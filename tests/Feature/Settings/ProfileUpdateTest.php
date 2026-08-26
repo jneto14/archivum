@@ -43,6 +43,41 @@ class ProfileUpdateTest extends TestCase
         $this->assertNull($user->email_verified_at);
     }
 
+    public function test_timezone_can_be_updated()
+    {
+        $user = User::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->patch(route('profile.update'), [
+                'name' => $user->name,
+                'email' => $user->email,
+                'timezone' => 'Europe/Lisbon',
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('profile.edit'));
+
+        $this->assertSame('Europe/Lisbon', $user->refresh()->timezone);
+    }
+
+    public function test_invalid_timezone_is_rejected()
+    {
+        $user = User::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->patch(route('profile.update'), [
+                'name' => $user->name,
+                'email' => $user->email,
+                'timezone' => 'Not/A/Timezone',
+            ]);
+
+        $response->assertSessionHasErrors('timezone');
+        $this->assertNull($user->refresh()->timezone);
+    }
+
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()
     {
         $user = User::factory()->create();
