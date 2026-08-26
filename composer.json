@@ -1,13 +1,15 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/react-starter-kit",
+    "name": "jneto14/archivum",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Open-source document management system focused on organizing physical documents and their digital representations.",
     "keywords": [
         "laravel",
-        "framework"
+        "document-management",
+        "dms",
+        "self-hosted"
     ],
-    "license": "MIT",
+    "license": "Elastic-2.0",
     "require": {
         "php": "^8.3",
         "inertiajs/inertia-laravel": "^3.0",

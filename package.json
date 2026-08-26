@@ -1,6 +1,9 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
+    "name": "archivum",
+    "description": "Open-source document management system focused on organizing physical documents and their digital representations.",
     "private": true,
+    "license": "Elastic-2.0",
     "type": "module",
     "scripts": {
         "build": "vite build",
