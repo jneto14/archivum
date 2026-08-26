@@ -61,6 +61,36 @@ Archivum favours simple, explicit, testable Laravel code over premature
 abstraction (no repositories, generic DTOs, or services without a real
 architectural reason).
 
+## Branch Naming
+
+`main` is protected: all changes land through a Pull Request (force-push and
+direct deletion are disabled). Branch names should follow:
+
+```text
+<type>/<short-description>
+
+feature/document-search-filters
+fix/workspace-isolation-leak
+docs/api-authentication
+chore/update-larastan
+```
+
+Common types: `feature`, `fix`, `docs`, `chore`, `refactor`, `test`.
+
+## Commit Messages
+
+Commits should follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```text
+<type>(<optional scope>): <short summary>
+
+feat(documents): add MoveDocument action
+fix(workspace): prevent cross-workspace document access
+docs(readme): clarify self-hosted single-workspace mode
+```
+
+Common types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`.
+
 ## Pull Requests
 
 - Explain **what** changed and **why**.
@@ -70,6 +100,9 @@ architectural reason).
 - Avoid unrelated changes in the same PR.
 - Keep PRs focused and reasonably small; large changes are easier to review
   when split up.
+- PRs merge via **squash merge** — the PR title/description becomes the commit
+  message on `main`, so keep it accurate and following the Conventional
+  Commits format above.
 
 ## Code of Conduct
 
