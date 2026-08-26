@@ -7,7 +7,19 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { edit } from '@/routes/profile';
+
+const timezones =
+    typeof Intl.supportedValuesOf === 'function'
+        ? Intl.supportedValuesOf('timeZone')
+        : ['UTC'];
 import { send } from '@/routes/verification';
 import type { Auth } from '@/types';
 
@@ -82,6 +94,41 @@ export default function Profile({
                                 <InputError
                                     className="mt-2"
                                     message={errors.email}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="timezone">Timezone</Label>
+
+                                <Select
+                                    name="timezone"
+                                    defaultValue={
+                                        auth.user.timezone ??
+                                        Intl.DateTimeFormat().resolvedOptions()
+                                            .timeZone
+                                    }
+                                >
+                                    <SelectTrigger
+                                        id="timezone"
+                                        className="w-full"
+                                    >
+                                        <SelectValue placeholder="Select a timezone" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {timezones.map((timezone) => (
+                                            <SelectItem
+                                                key={timezone}
+                                                value={timezone}
+                                            >
+                                                {timezone}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+
+                                <InputError
+                                    className="mt-2"
+                                    message={errors.timezone}
                                 />
                             </div>
 
