@@ -19,4 +19,20 @@ return [
         'password' => env('ADMIN_PASSWORD'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Multi-Workspace
+    |--------------------------------------------------------------------------
+    |
+    | When disabled, the installation transparently uses a single default
+    | Workspace (seeded on first install) instead of exposing workspace
+    | creation/switching. The Workspace model and tables still exist either
+    | way.
+    |
+    */
+
+    'multi_workspace_enabled' => env('MULTI_WORKSPACE_ENABLED', true),
+
+    'default_workspace_name' => env('DEFAULT_WORKSPACE_NAME', 'Default Workspace'),
+
 ];

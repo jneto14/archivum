@@ -13,3 +13,9 @@ once a first stable release is published.
 - Project specification and README.
 - Repository community files (CONTRIBUTING, CODE_OF_CONDUCT, SECURITY,
   LICENSE).
+- Laravel 13 + React/Inertia application scaffold, with Sail for local
+  development.
+- Workspaces and multi-workspace user membership, with role-based
+  authorization (`admin`/`user`), workspace isolation enforced through
+  Policies, session-based workspace context resolution, and a
+  self-hosted single-workspace mode (`MULTI_WORKSPACE_ENABLED`).

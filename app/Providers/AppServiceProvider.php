@@ -2,6 +2,10 @@
 
 namespace App\Providers;
 
+use App\Enums\WorkspaceRole;
+use App\Models\User;
+use App\Models\Workspace;
+use App\Models\WorkspaceUser;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureWorkspaceMembership();
     }
 
     /**
@@ -46,5 +51,31 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null,
         );
+    }
+
+    /**
+     * In single-workspace mode, every newly registered user is automatically
+     * attached to the sole default workspace — otherwise they'd have no
+     * membership and would be locked out of any workspace-scoped route.
+     */
+    protected function configureWorkspaceMembership(): void
+    {
+        User::created(function (User $user): void {
+            if (config('archivum.multi_workspace_enabled')) {
+                return;
+            }
+
+            $workspace = Workspace::query()->first();
+
+            if ($workspace === null || $workspace->isMember($user)) {
+                return;
+            }
+
+            WorkspaceUser::query()->create([
+                'workspace_id' => $workspace->id,
+                'user_id' => $user->id,
+                'role' => WorkspaceRole::User,
+            ]);
+        });
     }
 }
