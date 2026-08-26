@@ -14,7 +14,7 @@ import type { Passkey } from '@/types/auth';
 
 type Props = {
     passkey: Passkey;
-    onDelete: (id: number, onError: () => void) => void;
+    onDelete: (id: string, onError: () => void) => void;
 };
 
 export default function PasskeyItem({ passkey, onDelete }: Props) {

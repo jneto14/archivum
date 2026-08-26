@@ -1,5 +1,5 @@
 export type User = {
-    id: number;
+    id: string;
     name: string;
     email: string;
     avatar?: string;
@@ -15,7 +15,7 @@ export type Auth = {
 };
 
 export type Passkey = {
-    id: number;
+    id: string;
     name: string;
     authenticator: string | null;
     created_at_diff: string;

@@ -72,6 +72,25 @@ Archivum favours simple, explicit, testable Laravel code over premature
 abstraction (no repositories, generic DTOs, or services without a real
 architectural reason).
 
+### Primary Keys
+
+Domain models (`User`, and every model added from here on — `Workspace`,
+`Document`, etc.) use **UUIDv7** primary keys (`$table->uuid('id')->primary()`
+in migrations, `HasUuids` trait on the model), not auto-increment integers.
+This is deliberate, not a default left over from scaffolding:
+
+- Workspace isolation is this project's core architectural guarantee. IDs that
+  can't be enumerated or guessed are a meaningful extra layer of defense if an
+  authorization check ever has a bug.
+- Document/attachment IDs are exposed in URLs; sequential IDs would leak how
+  many records exist and make scraping trivial.
+- UUIDv7 is time-ordered (unlike UUIDv4), so it doesn't cause the
+  MySQL clustered-index fragmentation that random UUIDs are known for.
+
+Laravel's own infrastructure tables (`jobs`, `job_batches`, `cache`,
+`sessions`' own token column) keep their framework-standard shapes — this
+convention applies to tables that represent Archivum's domain.
+
 ## Branch Naming
 
 `main` is protected: all changes land through a Pull Request (force-push and
