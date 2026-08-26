@@ -1,35 +1,40 @@
-# Environment / secrets
-.env
-.env.*
-!.env.example
-.mcp.json
-
-# Laravel
-/vendor
+/.phpunit.cache
+/bootstrap/ssr
 /node_modules
 /public/build
+/public/fonts-manifest.dev.json
 /public/hot
 /public/storage
 /storage/*.key
-/storage/framework/cache/*
-/storage/framework/sessions/*
-/storage/framework/testing/*
-/storage/framework/views/*
-/storage/logs/*
-!/storage/framework/cache/.gitignore
-!/storage/framework/sessions/.gitignore
-!/storage/framework/testing/.gitignore
-!/storage/framework/views/.gitignore
-!/storage/logs/.gitignore
-/bootstrap/cache/*
-!/bootstrap/cache/.gitignore
+/storage/pail
+/resources/js/actions
+/resources/js/routes
+/resources/js/wayfinder
+/vendor
+.DS_Store
+.env
+.env.backup
+.env.production
+.env.*
+!.env.example
+.phpactor.json
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+/auth.json
+/.fleet
+/.idea
+/.nova
+/.vscode
+/.zed
+
+# Secrets
+.mcp.json
 
 # IDE / OS
-.idea
-.vscode
-.DS_Store
 Thumbs.db
 
 # Testing / coverage
-.phpunit.result.cache
 /coverage

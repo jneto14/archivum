@@ -21,37 +21,47 @@ access to any internal tooling to contribute.
 
 ## Development Setup
 
-Requirements:
+Local development uses [Laravel Sail](https://laravel.com/docs/sail) (Docker),
+so the only requirement is Docker itself.
 
 ```text
-PHP (matching Laravel 13 requirements)
-Composer
-Node.js + npm
-MySQL
+Docker
+Docker Compose
 ```
 
 Setup:
 
 ```bash
-composer install
-npm install
+composer install          # pulls in the sail script
 cp .env.example .env
-php artisan key:generate
-php artisan migrate
-npm run build
-php artisan serve
+./vendor/bin/sail up -d
+./vendor/bin/sail artisan key:generate
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail npm install
+./vendor/bin/sail npm run build
 ```
 
-Run the test suite and static analysis before opening a PR:
+The app is then available at http://localhost, and Mailpit (local mail
+catcher) at http://localhost:8025.
+
+If you already have PHP, Composer, Node and a local MySQL server set up and
+prefer not to use Docker, the same commands work without the `sail`
+wrapper — just run `composer install`, `npm install`, `php artisan migrate`,
+etc. directly.
+
+Run the full CI check suite (Pint, Larastan, Pest, ESLint, Prettier,
+TypeScript) before opening a PR:
 
 ```bash
-composer test      # Pest
-composer analyse    # Larastan
-composer format     # Pint
+./vendor/bin/sail composer ci:check
 ```
 
-(Exact composer script names will be finalized once the project scaffold
-lands — see the corresponding YouTrack task.)
+Or individually:
+
+```bash
+./vendor/bin/sail composer lint       # Pint
+./vendor/bin/sail composer test       # Pest (includes Pint + Larastan)
+```
 
 ## Development Philosophy
 
