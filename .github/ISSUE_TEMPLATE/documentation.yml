@@ -1,0 +1,20 @@
+name: Documentation
+description: Report missing, unclear, or incorrect documentation
+title: "[Docs]: "
+labels: ["documentation", "needs triage"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What's wrong or missing?
+      description: >-
+        Point to the affected page or section (README, /docs, or the GitHub
+        Wiki).
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested improvement
+    validations:
+      required: false

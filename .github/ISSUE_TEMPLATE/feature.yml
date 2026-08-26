@@ -1,0 +1,65 @@
+name: Feature request
+description: Suggest an idea or enhancement for Archivum
+title: "[Feature]: "
+labels: ["enhancement", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For larger or more open-ended ideas, consider starting a
+        [Discussion](../../discussions) first so it can be refined before
+        becoming an actionable issue.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Is your feature request related to a problem? Describe it.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the solution you'd like.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - backend
+        - frontend
+        - database
+        - search
+        - storage
+        - ocr
+        - organization
+        - workspace
+        - api
+        - infrastructure
+    validations:
+      required: false
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      description: >-
+        Archivum's current scope and roadmap are described in the README
+        ("Scope", "Future Features" and "Implementation Priorities" sections).
+      options:
+        - label: I've checked this isn't already covered by an existing feature or open issue.
+          required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+    validations:
+      required: false

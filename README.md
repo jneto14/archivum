@@ -1617,4 +1617,6 @@ Scout database-compatible engine
 
 # License
 
-TBD
+Archivum is licensed under the [Elastic License 2.0](LICENSE) (ELv2).
+
+You are free to use, modify, and self-host Archivum, including in production. The only restriction is that you may not offer Archivum to third parties as a hosted or managed service (SaaS).
