@@ -2,7 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Enums\WorkspaceRole;
 use App\Models\User;
+use App\Models\Workspace;
+use App\Models\WorkspaceUser;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -15,11 +18,17 @@ class DatabaseSeeder extends Seeder
     /**
      * Seed the application's database.
      *
-     * Creates the first admin user for a fresh self-hosted installation, so
-     * there is a way to log in right after `php artisan migrate`. Safe to
-     * re-run: an existing admin is left untouched.
+     * Creates the first admin user and default workspace for a fresh
+     * self-hosted installation, so there is a way to log in and something
+     * to log in to right after `php artisan migrate`. Safe to re-run.
      */
     public function run(): void
+    {
+        $user = $this->seedAdminUser();
+        $this->seedDefaultWorkspace($user);
+    }
+
+    private function seedAdminUser(): User
     {
         $email = (string) config('archivum.admin.email');
         $password = config('archivum.admin.password');
@@ -29,7 +38,7 @@ class DatabaseSeeder extends Seeder
         if ($user) {
             $this->command->info("Admin user already exists ({$email}), skipping.");
 
-            return;
+            return $user;
         }
 
         $generatedPassword = null;
@@ -39,7 +48,7 @@ class DatabaseSeeder extends Seeder
             $password = $generatedPassword;
         }
 
-        User::query()->create([
+        $user = User::query()->create([
             'name' => config('archivum.admin.name'),
             'email' => $email,
             'password' => Hash::make($password),
@@ -52,5 +61,21 @@ class DatabaseSeeder extends Seeder
         } else {
             $this->command->info("Created admin user {$email}.");
         }
+
+        return $user;
+    }
+
+    private function seedDefaultWorkspace(User $admin): void
+    {
+        $workspace = Workspace::query()->firstOrCreate([
+            'name' => config('archivum.default_workspace_name'),
+        ]);
+
+        WorkspaceUser::query()->firstOrCreate(
+            ['workspace_id' => $workspace->id, 'user_id' => $admin->id],
+            ['role' => WorkspaceRole::Admin],
+        );
+
+        $this->command->info("Default workspace \"{$workspace->name}\" ready.");
     }
 }

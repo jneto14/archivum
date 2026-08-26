@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Models;
+
+use App\Enums\WorkspaceRole;
+use Database\Factories\WorkspaceUserFactory;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
+
+/**
+ * @property string $id
+ * @property string $workspace_id
+ * @property string $user_id
+ * @property WorkspaceRole $role
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ */
+#[Fillable(['workspace_id', 'user_id', 'role'])]
+class WorkspaceUser extends Model
+{
+    /** @use HasFactory<WorkspaceUserFactory> */
+    use HasFactory, HasUuids;
+
+    protected $table = 'workspace_user';
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'role' => WorkspaceRole::class,
+        ];
+    }
+
+    /**
+     * @return BelongsTo<Workspace, $this>
+     */
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+}
