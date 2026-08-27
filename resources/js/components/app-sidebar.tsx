@@ -23,9 +23,11 @@ import {
 } from '@/components/ui/sidebar';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import { dashboard } from '@/routes';
+import { index as documentTypesIndex } from '@/routes/document-types';
 import { index as documentsIndex } from '@/routes/documents';
 import { index as schemesIndex } from '@/routes/organization/schemes';
 import { edit as editProfile } from '@/routes/profile';
+import { index as tagsIndex } from '@/routes/tags';
 import { show as workspaceShow } from '@/routes/workspaces';
 import { index as usersIndex } from '@/routes/workspaces/users';
 import type { NavItem } from '@/types';
@@ -68,8 +70,18 @@ export function AppSidebar() {
                   },
               ] as NavItem[])
             : []),
-        { title: 'Document types', href: '#', icon: FileStack, disabled: true },
-        { title: 'Tags', href: '#', icon: Tag, disabled: true },
+        {
+            title: 'Document types',
+            href: workspace ? documentTypesIndex.url(workspace.id) : '#',
+            icon: FileStack,
+            disabled: !workspace,
+        },
+        {
+            title: 'Tags',
+            href: workspace ? tagsIndex.url(workspace.id) : '#',
+            icon: Tag,
+            disabled: !workspace,
+        },
         {
             title: 'Import & export',
             href: '#',
