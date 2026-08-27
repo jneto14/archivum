@@ -26,6 +26,8 @@ import { dashboard } from '@/routes';
 import { index as documentsIndex } from '@/routes/documents';
 import { index as schemesIndex } from '@/routes/organization/schemes';
 import { edit as editProfile } from '@/routes/profile';
+import { show as workspaceShow } from '@/routes/workspaces';
+import { index as usersIndex } from '@/routes/workspaces/users';
 import type { NavItem } from '@/types';
 
 export function AppSidebar() {
@@ -80,8 +82,18 @@ export function AppSidebar() {
             icon: FolderTree,
             disabled: !workspace,
         },
-        { title: 'Users & roles', href: '#', icon: Users, disabled: true },
-        { title: 'Usage & limits', href: '#', icon: Gauge, disabled: true },
+        {
+            title: 'Users & roles',
+            href: workspace ? usersIndex.url(workspace.id) : '#',
+            icon: Users,
+            disabled: !workspace,
+        },
+        {
+            title: 'Usage & limits',
+            href: workspace ? workspaceShow.url(workspace.id) : '#',
+            icon: Gauge,
+            disabled: !workspace,
+        },
         { title: 'Settings', href: editProfile(), icon: Settings },
     ];
 

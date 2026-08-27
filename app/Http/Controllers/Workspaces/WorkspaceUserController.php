@@ -18,10 +18,43 @@ use App\Models\WorkspaceUser;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class WorkspaceUserController extends Controller
 {
+    /**
+     * List the workspace's members and their roles.
+     *
+     * @param Workspace $workspace The workspace whose memberships are listed.
+     *
+     * @return Response The rendered workspace members page.
+     *
+     * @throws AuthorizationException If the current user cannot list $workspace's memberships.
+     */
+    public function index(Workspace $workspace): Response
+    {
+        $this->authorize('viewAny', [WorkspaceUser::class, $workspace]);
+
+        $memberships = WorkspaceUser::query()
+            ->where('workspace_id', $workspace->id)
+            ->with('user')
+            ->orderBy('created_at')
+            ->get();
+
+        return Inertia::render('workspace/users', [
+            'workspace' => ['id' => $workspace->id, 'name' => $workspace->name],
+            'members' => $memberships->map(fn (WorkspaceUser $membership) => [
+                'id' => $membership->user->id,
+                'name' => $membership->user->name,
+                'email' => $membership->user->email,
+                'role' => (string) $membership->role->value,
+            ])->values()->all(),
+        ]);
+    }
+
     /**
      * Add a user to the workspace, inviting them by email if they don't already have an account.
      *
@@ -42,6 +75,8 @@ class WorkspaceUserController extends Controller
         $target = $findOrCreateUser->handle($request->validated('email'), $request->validated('name'), $workspace);
 
         $action->handle($workspace, $target, WorkspaceRole::from($request->validated('role')));
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('workspace.member_added')]);
 
         return back();
     }
@@ -68,6 +103,8 @@ class WorkspaceUserController extends Controller
 
         $action->handle($workspace, $targetUser, WorkspaceRole::from($request->validated('role')));
 
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('workspace.role_updated')]);
+
         return back();
     }
 
@@ -91,6 +128,8 @@ class WorkspaceUserController extends Controller
         $this->authorize('delete', $membership);
 
         $action->handle($workspace, $targetUser);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('workspace.member_removed')]);
 
         return back();
     }
