@@ -34,21 +34,33 @@ class WorkspaceLimit extends Model
         return $this->belongsTo(Workspace::class);
     }
 
+    /**
+     * Determine whether the given user count would meet or exceed the configured limit.
+     */
     public function exceedsUsers(int $currentCount): bool
     {
         return $this->users !== null && $currentCount >= $this->users;
     }
 
+    /**
+     * Determine whether the given document count would meet or exceed the configured limit.
+     */
     public function exceedsDocuments(int $currentCount): bool
     {
         return $this->documents !== null && $currentCount >= $this->documents;
     }
 
+    /**
+     * Determine whether the given attachment count would meet or exceed the configured limit.
+     */
     public function exceedsAttachments(int $currentCount): bool
     {
         return $this->attachments !== null && $currentCount >= $this->attachments;
     }
 
+    /**
+     * Determine whether adding the given bytes to the current usage would exceed the storage limit.
+     */
     public function exceedsStorage(int $currentBytes, int $additionalBytes): bool
     {
         return $this->storage_bytes !== null && ($currentBytes + $additionalBytes) > $this->storage_bytes;

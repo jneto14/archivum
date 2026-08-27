@@ -62,6 +62,9 @@ class DocumentController extends Controller
         return back();
     }
 
+    /**
+     * Resolve a document type by id, scoped to the given workspace.
+     */
     private function scopedDocumentType(Workspace $workspace, string $documentTypeId): DocumentType
     {
         return DocumentType::query()

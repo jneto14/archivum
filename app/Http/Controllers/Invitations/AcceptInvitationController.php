@@ -10,6 +10,9 @@ use Inertia\Response;
 
 class AcceptInvitationController extends Controller
 {
+    /**
+     * Display the accept-invitation form for the given invitation token.
+     */
     public function show(Request $request, string $token): Response
     {
         return Inertia::render('auth/accept-invitation', [

@@ -11,6 +11,10 @@ use Illuminate\Validation\ValidationException;
 
 class OrganizationSchemeMigrationController extends Controller
 {
+    /**
+     * Dispatch a background job to move all of a scheme's documents onto
+     * another scheme within the same workspace.
+     */
     public function store(MigrateSchemeDocumentsRequest $request, OrganizationScheme $scheme): RedirectResponse
     {
         $this->authorize('update', $scheme);
@@ -22,6 +26,10 @@ class OrganizationSchemeMigrationController extends Controller
         return back();
     }
 
+    /**
+     * Resolve the target scheme, ensuring it belongs to the same workspace
+     * and differs from the source scheme being migrated.
+     */
     private function resolveTargetScheme(OrganizationScheme $scheme, string $targetSchemeId): OrganizationScheme
     {
         $target = OrganizationScheme::query()

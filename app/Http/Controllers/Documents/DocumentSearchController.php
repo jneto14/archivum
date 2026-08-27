@@ -12,6 +12,10 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class DocumentSearchController extends Controller
 {
+    /**
+     * Search documents within a workspace, filtered by query, document type,
+     * tags, and date range.
+     */
     public function index(SearchDocumentsRequest $request, Workspace $workspace, SearchDocuments $action): AnonymousResourceCollection
     {
         $this->authorize('viewAny', [Document::class, $workspace]);

@@ -5,6 +5,10 @@ namespace App\Concerns;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rules\Password;
 
+/**
+ * Shared password validation rules, extracted into a trait so both the
+ * registration and password-update actions validate passwords consistently.
+ */
 trait PasswordValidationRules
 {
     /**

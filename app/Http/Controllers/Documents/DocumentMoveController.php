@@ -13,6 +13,10 @@ use Illuminate\Http\RedirectResponse;
 
 class DocumentMoveController extends Controller
 {
+    /**
+     * Move a document to an explicitly chosen node, or resolve a destination
+     * automatically from a scheme's matching rules when no node is given.
+     */
     public function store(StoreDocumentMoveRequest $request, Document $document, MoveDocument $action, FindAvailableLocation $findAvailableLocation): RedirectResponse
     {
         $this->authorize('update', $document);
@@ -28,6 +32,9 @@ class DocumentMoveController extends Controller
         return back();
     }
 
+    /**
+     * Resolve a node by id, scoped to the document's own workspace.
+     */
     private function resolveExplicitNode(Document $document, string $nodeId): OrganizationNode
     {
         return OrganizationNode::query()
@@ -37,6 +44,9 @@ class DocumentMoveController extends Controller
     }
 
     /**
+     * Resolve a destination node automatically via the scheme's matching
+     * rules, using the document's type together with the given criteria.
+     *
      * @param  array<string, string>  $criteria
      */
     private function resolveAutoNode(Document $document, FindAvailableLocation $action, string $schemeId, array $criteria): OrganizationNode

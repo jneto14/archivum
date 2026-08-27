@@ -23,6 +23,9 @@ class AttachmentController extends Controller
         return back();
     }
 
+    /**
+     * Stream the attachment's file as a download.
+     */
     public function show(DocumentAttachment $attachment): StreamedResponse
     {
         $this->authorize('view', $attachment);

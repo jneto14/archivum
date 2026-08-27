@@ -9,6 +9,9 @@ use Illuminate\Validation\ValidationException;
 
 class CreateOrganizationRule
 {
+    /**
+     * Create a new OrganizationRule mapping a matcher to a target level and preferred value.
+     */
     public function handle(OrganizationScheme $scheme, string $matcherKey, string $matcherValue, OrganizationLevel $targetLevel, string $preferredValue): OrganizationRule
     {
         $this->assertTargetLevelBelongsToScheme($scheme, $targetLevel);

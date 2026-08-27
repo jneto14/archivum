@@ -50,6 +50,9 @@ class WorkspaceUserController extends Controller
         return back();
     }
 
+    /**
+     * Find the membership record linking the workspace and target user.
+     */
     private function membership(Workspace $workspace, User $targetUser): WorkspaceUser
     {
         return WorkspaceUser::query()

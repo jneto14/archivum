@@ -9,6 +9,10 @@ use Illuminate\Http\JsonResponse;
 
 class WorkspaceUsageController extends Controller
 {
+    /**
+     * Return the workspace's current resource usage alongside its
+     * configured limits.
+     */
     public function show(Workspace $workspace, CalculateWorkspaceUsage $action): JsonResponse
     {
         $this->authorize('viewUsage', $workspace);

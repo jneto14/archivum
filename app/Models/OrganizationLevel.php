@@ -68,6 +68,9 @@ class OrganizationLevel extends Model
         return $this->hasMany(OrganizationRule::class, 'target_level_id');
     }
 
+    /**
+     * Find the level immediately below this one in the same scheme, if any.
+     */
     public function childLevel(): ?self
     {
         return static::query()
@@ -76,11 +79,17 @@ class OrganizationLevel extends Model
             ->first();
     }
 
+    /**
+     * Determine whether this is the bottommost level of its scheme.
+     */
     public function isLeaf(): bool
     {
         return $this->childLevel() === null;
     }
 
+    /**
+     * Count the nodes of this level that share the given parent node.
+     */
     public function siblingCountUnder(?OrganizationNode $parent): int
     {
         return OrganizationNode::query()
@@ -90,6 +99,9 @@ class OrganizationLevel extends Model
             ->count();
     }
 
+    /**
+     * Determine whether the configured capacity for this level has been reached under the given parent.
+     */
     public function capacityReached(?OrganizationNode $parent): bool
     {
         if ($this->capacity === null) {
@@ -99,6 +111,11 @@ class OrganizationLevel extends Model
         return $this->siblingCountUnder($parent) >= $this->capacity;
     }
 
+    /**
+     * Generate the next node value under the given parent, based on this level's value strategy.
+     *
+     * @throws LogicException if the value strategy is Manual, which cannot be auto-generated.
+     */
     public function nextValueForParent(?OrganizationNode $parent): string
     {
         $position = $this->siblingCountUnder($parent) + 1;
@@ -110,6 +127,9 @@ class OrganizationLevel extends Model
         };
     }
 
+    /**
+     * Convert a 1-based position into spreadsheet-style letters (1 => A, 26 => Z, 27 => AA, ...).
+     */
     private function numberToLetters(int $number): string
     {
         $letters = '';

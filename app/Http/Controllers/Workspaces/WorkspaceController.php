@@ -12,6 +12,9 @@ use Illuminate\Http\RedirectResponse;
 
 class WorkspaceController extends Controller
 {
+    /**
+     * Create a new workspace and switch the current session to it.
+     */
     public function store(StoreWorkspaceRequest $request, CreateWorkspace $action): RedirectResponse
     {
         $this->authorize('create', Workspace::class);

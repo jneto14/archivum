@@ -8,6 +8,9 @@ use Illuminate\Validation\ValidationException;
 
 class UpdateOrganizationRule
 {
+    /**
+     * Update an OrganizationRule's matcher and target placement.
+     */
     public function handle(OrganizationRule $rule, string $matcherKey, string $matcherValue, OrganizationLevel $targetLevel, string $preferredValue): OrganizationRule
     {
         $this->assertTargetLevelBelongsToScheme($rule, $targetLevel);

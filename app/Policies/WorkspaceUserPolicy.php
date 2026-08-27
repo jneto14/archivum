@@ -13,6 +13,10 @@ class WorkspaceUserPolicy
         return $workspace->isAdmin($user);
     }
 
+    /**
+     * Workspace admins can view any membership; other members may only
+     * view their own.
+     */
     public function view(User $user, WorkspaceUser $membership): bool
     {
         return $membership->workspace->isAdmin($user) || $membership->user_id === $user->id;

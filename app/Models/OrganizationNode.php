@@ -49,6 +49,9 @@ class OrganizationNode extends Model
         return $this->hasMany(self::class, 'parent_id');
     }
 
+    /**
+     * Build the full hierarchical path of this node's value joined with its ancestors' values, root first.
+     */
     public function path(string $separator = '-'): string
     {
         $segments = [$this->value];

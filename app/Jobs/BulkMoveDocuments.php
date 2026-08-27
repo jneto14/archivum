@@ -10,6 +10,11 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 
+/**
+ * Queues the migration of every document under one organization scheme to
+ * another, off the request cycle since a scheme can hold a large number of
+ * documents.
+ */
 class BulkMoveDocuments implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;

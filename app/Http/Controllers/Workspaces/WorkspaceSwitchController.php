@@ -9,6 +9,10 @@ use Illuminate\Http\Request;
 
 class WorkspaceSwitchController extends Controller
 {
+    /**
+     * Switch the session's current workspace, when multi-workspace support
+     * is enabled.
+     */
     public function store(Request $request, Workspace $workspace): RedirectResponse
     {
         abort_unless(config('archivum.multi_workspace_enabled'), 404);

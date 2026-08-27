@@ -42,6 +42,9 @@ class Workspace extends Model
         return $this->hasOne(WorkspaceLimit::class);
     }
 
+    /**
+     * Determine whether the given user belongs to this workspace.
+     */
     public function isMember(User $user): bool
     {
         return WorkspaceUser::query()
@@ -50,6 +53,9 @@ class Workspace extends Model
             ->exists();
     }
 
+    /**
+     * Determine whether the given user has the admin role in this workspace.
+     */
     public function isAdmin(User $user): bool
     {
         return WorkspaceUser::query()
@@ -59,6 +65,9 @@ class Workspace extends Model
             ->exists();
     }
 
+    /**
+     * Count the members holding the admin role in this workspace.
+     */
     public function adminsCount(): int
     {
         return WorkspaceUser::query()
@@ -67,6 +76,9 @@ class Workspace extends Model
             ->count();
     }
 
+    /**
+     * Determine whether removing the given user would leave the workspace without any admin.
+     */
     public function wouldRemoveLastAdmin(User $user): bool
     {
         return $this->isAdmin($user) && $this->adminsCount() === 1;

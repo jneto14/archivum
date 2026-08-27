@@ -18,6 +18,10 @@ class DocumentAttachmentPolicy
         return $attachment->document->workspace->isMember($user);
     }
 
+    /**
+     * Workspace admins can delete any attachment; other members may only
+     * delete attachments they uploaded themselves.
+     */
     public function delete(User $user, DocumentAttachment $attachment): bool
     {
         return $attachment->document->workspace->isAdmin($user) || $attachment->uploaded_by === $user->id;

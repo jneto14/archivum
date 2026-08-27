@@ -5,6 +5,10 @@ namespace App\Notifications;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
+/**
+ * Invites a user to join a workspace via a signed, time-limited token
+ * emailed to them.
+ */
 class WorkspaceInvitation extends Notification
 {
     public function __construct(
@@ -13,6 +17,8 @@ class WorkspaceInvitation extends Notification
     ) {}
 
     /**
+     * Deliver the invitation by mail only.
+     *
      * @return array<int, string>
      */
     public function via(mixed $notifiable): array
@@ -20,6 +26,10 @@ class WorkspaceInvitation extends Notification
         return ['mail'];
     }
 
+    /**
+     * Build the invitation email, linking to the accept-invitation route
+     * and noting the token's expiry.
+     */
     public function toMail(mixed $notifiable): MailMessage
     {
         $url = url(route('invitations.accept', [

@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Builder;
 class CalculateWorkspaceUsage
 {
     /**
+     * Compute all workspace usage totals in one call.
+     *
      * @return array{storage_bytes: int, users: int, documents: int, attachments: int}
      */
     public function handle(Workspace $workspace): array
@@ -22,21 +24,33 @@ class CalculateWorkspaceUsage
         ];
     }
 
+    /**
+     * Sum the byte size of all attachments belonging to the workspace's documents.
+     */
     public function storageBytes(Workspace $workspace): int
     {
         return (int) $this->attachmentsQuery($workspace)->sum('size');
     }
 
+    /**
+     * Count the workspace's members.
+     */
     public function users(Workspace $workspace): int
     {
         return $workspace->users()->count();
     }
 
+    /**
+     * Count the workspace's documents.
+     */
     public function documents(Workspace $workspace): int
     {
         return Document::query()->where('workspace_id', $workspace->id)->count();
     }
 
+    /**
+     * Count attachments across the workspace's documents.
+     */
     public function attachments(Workspace $workspace): int
     {
         return $this->attachmentsQuery($workspace)->count();

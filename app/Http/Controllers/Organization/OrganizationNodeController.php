@@ -11,6 +11,10 @@ use Illuminate\Http\RedirectResponse;
 
 class OrganizationNodeController extends Controller
 {
+    /**
+     * Create a node under the given scheme's level, optionally nested under
+     * a parent node belonging to the same scheme.
+     */
     public function store(StoreOrganizationNodeRequest $request, OrganizationScheme $scheme, CreateOrganizationNode $action): RedirectResponse
     {
         $this->authorize('update', $scheme);

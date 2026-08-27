@@ -7,6 +7,10 @@ use App\Models\Workspace;
 
 class WorkspacePolicy
 {
+    /**
+     * Any authenticated user may list workspaces; the results are scoped
+     * to their memberships at the query level, not by this gate.
+     */
     public function viewAny(User $user): bool
     {
         return true;
@@ -17,6 +21,10 @@ class WorkspacePolicy
         return $workspace->isMember($user);
     }
 
+    /**
+     * Workspace creation is only allowed when multi-workspace mode is
+     * enabled; in single-workspace mode no user may create additional ones.
+     */
     public function create(User $user): bool
     {
         return (bool) config('archivum.multi_workspace_enabled');
