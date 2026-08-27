@@ -21,7 +21,7 @@ class WorkspaceUserController extends Controller
     {
         $this->authorize('create', [WorkspaceUser::class, $workspace]);
 
-        $target = $findOrCreateUser->handle($request->validated('email'), $request->validated('name'));
+        $target = $findOrCreateUser->handle($request->validated('email'), $request->validated('name'), $workspace);
 
         $action->handle($workspace, $target, WorkspaceRole::from($request->validated('role')));
 
