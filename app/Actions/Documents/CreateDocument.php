@@ -24,7 +24,7 @@ class CreateDocument
     {
         if ($workspace->limits?->exceedsDocuments($this->calculateUsage->documents($workspace))) {
             throw ValidationException::withMessages([
-                'workspace' => 'This workspace has reached its document limit.',
+                'workspace' => __('This workspace has reached its document limit.'),
             ]);
         }
 

@@ -1,0 +1,21 @@
+{
+    "Profile updated.": "Perfil atualizado.",
+    "Password updated.": "Palavra-passe atualizada.",
+    "The location must belong to the same workspace as the document.": "A localização deve pertencer ao mesmo workspace que o documento.",
+    "Cannot remove the last admin of a workspace.": "Não é possível remover o último administrador de um workspace.",
+    "This workspace has reached its document limit.": "Este workspace atingiu o seu limite de documentos.",
+    "This workspace has reached its attachment limit.": "Este workspace atingiu o seu limite de anexos.",
+    "This upload would exceed the workspace storage limit.": "Este carregamento excederia o limite de armazenamento do workspace.",
+    "At least one level is required.": "É necessário pelo menos um nível.",
+    "Level keys must be unique within a scheme.": "As chaves de nível devem ser únicas dentro de um esquema.",
+    "This user is already a member of this workspace.": "Este utilizador já é membro deste workspace.",
+    "This workspace has reached its user limit.": "Este workspace atingiu o seu limite de utilizadores.",
+    "Cannot demote the last admin of a workspace.": "Não é possível despromover o último administrador de um workspace.",
+    "The target level must belong to the same scheme.": "O nível de destino deve pertencer ao mesmo esquema.",
+    "A rule already exists for this matcher within the scheme.": "Já existe uma regra para este critério dentro do esquema.",
+    "This level has reached its configured capacity.": "Este nível atingiu a sua capacidade configurada.",
+    "A value is required for levels using the Manual strategy.": "É necessário um valor para níveis que usam a estratégia Manual.",
+    "A node at the first level cannot have a parent.": "Um nó no primeiro nível não pode ter um nó pai.",
+    "The parent node must belong to the immediately preceding level of the same scheme.": "O nó pai deve pertencer ao nível imediatamente anterior do mesmo esquema.",
+    "A node with this value already exists at this level under the same parent.": "Já existe um nó com este valor neste nível sob o mesmo pai."
+}

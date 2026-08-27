@@ -26,7 +26,7 @@ class ChangeWorkspaceUserRole
 
         if ($role === WorkspaceRole::User && $workspace->wouldRemoveLastAdmin($user)) {
             throw ValidationException::withMessages([
-                'role' => 'Cannot demote the last admin of a workspace.',
+                'role' => __('Cannot demote the last admin of a workspace.'),
             ]);
         }
 

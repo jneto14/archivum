@@ -23,13 +23,13 @@ class UploadAttachment
 
         if ($limits?->exceedsAttachments($this->calculateUsage->attachments($workspace))) {
             throw ValidationException::withMessages([
-                'file' => 'This workspace has reached its attachment limit.',
+                'file' => __('This workspace has reached its attachment limit.'),
             ]);
         }
 
         if ($limits?->exceedsStorage($this->calculateUsage->storageBytes($workspace), $file->getSize())) {
             throw ValidationException::withMessages([
-                'file' => 'This upload would exceed the workspace storage limit.',
+                'file' => __('This upload would exceed the workspace storage limit.'),
             ]);
         }
 
