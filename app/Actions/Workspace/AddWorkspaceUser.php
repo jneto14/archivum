@@ -10,6 +10,8 @@ use Illuminate\Validation\ValidationException;
 
 class AddWorkspaceUser
 {
+    public function __construct(private readonly CalculateWorkspaceUsage $calculateUsage) {}
+
     /**
      * Add a user to a Workspace with the given role.
      */
@@ -18,6 +20,12 @@ class AddWorkspaceUser
         if ($workspace->isMember($user)) {
             throw ValidationException::withMessages([
                 'email' => 'This user is already a member of this workspace.',
+            ]);
+        }
+
+        if ($workspace->limits?->exceedsUsers($this->calculateUsage->users($workspace))) {
+            throw ValidationException::withMessages([
+                'email' => 'This workspace has reached its user limit.',
             ]);
         }
 

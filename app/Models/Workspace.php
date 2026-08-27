@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -31,6 +32,14 @@ class Workspace extends Model
         return $this->belongsToMany(User::class, 'workspace_user')
             ->withPivot(['id', 'role'])
             ->withTimestamps();
+    }
+
+    /**
+     * @return HasOne<WorkspaceLimit, $this>
+     */
+    public function limits(): HasOne
+    {
+        return $this->hasOne(WorkspaceLimit::class);
     }
 
     public function isMember(User $user): bool

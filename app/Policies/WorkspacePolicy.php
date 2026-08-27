@@ -27,6 +27,11 @@ class WorkspacePolicy
         return $workspace->isAdmin($user);
     }
 
+    public function viewUsage(User $user, Workspace $workspace): bool
+    {
+        return $workspace->isAdmin($user);
+    }
+
     public function delete(User $user, Workspace $workspace): bool
     {
         return $workspace->isAdmin($user);
