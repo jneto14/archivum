@@ -30,11 +30,23 @@ type PageProps = {
 export default function Profile({
     mustVerifyEmail,
     status,
+    locales,
 }: {
     mustVerifyEmail: boolean;
     status?: string;
+    locales: Record<string, string>;
 }) {
     const { auth } = usePage<PageProps>().props;
+
+    const browserLocale =
+        typeof navigator !== 'undefined'
+            ? navigator.language.split('-')[0]
+            : undefined;
+    const defaultLocale =
+        auth.user.locale ??
+        (browserLocale && browserLocale in locales
+            ? browserLocale
+            : Object.keys(locales)[0]);
 
     return (
         <>
@@ -129,6 +141,39 @@ export default function Profile({
                                 <InputError
                                     className="mt-2"
                                     message={errors.timezone}
+                                />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="locale">Language</Label>
+
+                                <Select
+                                    name="locale"
+                                    defaultValue={defaultLocale}
+                                >
+                                    <SelectTrigger
+                                        id="locale"
+                                        className="w-full"
+                                    >
+                                        <SelectValue placeholder="Select a language" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Object.entries(locales).map(
+                                            ([value, label]) => (
+                                                <SelectItem
+                                                    key={value}
+                                                    value={value}
+                                                >
+                                                    {label}
+                                                </SelectItem>
+                                            ),
+                                        )}
+                                    </SelectContent>
+                                </Select>
+
+                                <InputError
+                                    className="mt-2"
+                                    message={errors.locale}
                                 />
                             </div>
 

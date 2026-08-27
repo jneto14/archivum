@@ -52,4 +52,20 @@ return [
         'disk' => env('ATTACHMENTS_DISK', 'local'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Locales
+    |--------------------------------------------------------------------------
+    |
+    | Languages users may pick as their preferred locale, keyed by IETF
+    | language tag. The application's default locale (config('app.locale'))
+    | is used whenever a user hasn't chosen one.
+    |
+    */
+
+    'locales' => [
+        'en' => 'English',
+        'pt' => 'Português',
+    ],
+
 ];
