@@ -14,6 +14,17 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class DocumentResource extends JsonResource
 {
     /**
+     * Disable the default `{"data": {...}}` wrapping — this resource is used both as a
+     * single Inertia prop (`documents/show`, `documents/form`) where the frontend
+     * expects the document's attributes directly, and inside a paginated collection
+     * (`documents.search`, `documents/index`) where the collection itself already
+     * wraps under `data`.
+     *
+     * @var string|null
+     */
+    public static $wrap = null;
+
+    /**
      * Transform the document into its public array representation.
      *
      * @param Request $request The incoming request.
@@ -44,6 +55,22 @@ class DocumentResource extends JsonResource
                 'id' => $this->creator->id,
                 'name' => $this->creator->name,
             ]),
+            'attachments' => $this->whenLoaded('attachments', fn () => $this->attachments->map(fn ($attachment) => [
+                'id' => $attachment->id,
+                'filename' => $attachment->filename,
+                'mime_type' => $attachment->mime_type,
+                'size' => $attachment->size,
+                'created_at' => $attachment->created_at?->toIso8601String(),
+                'uploader' => $attachment->relationLoaded('uploader') ? [
+                    'id' => $attachment->uploader->id,
+                    'name' => $attachment->uploader->name,
+                ] : null,
+            ])->values()->all()),
+            'location_history' => $this->whenLoaded('locations', fn () => $this->locations->map(fn ($location) => [
+                'id' => $location->id,
+                'path' => $location->node?->path(),
+                'created_at' => $location->created_at?->toIso8601String(),
+            ])->values()->all()),
         ];
     }
 }
