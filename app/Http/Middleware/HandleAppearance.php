@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use Closure;
@@ -10,9 +12,12 @@ use Symfony\Component\HttpFoundation\Response;
 class HandleAppearance
 {
     /**
-     * Handle an incoming request.
+     * Share the visitor's appearance (theme) cookie with all views, defaulting to "system".
      *
-     * @param  Closure(Request): (Response)  $next
+     * @param Request $request The incoming request, read for its `appearance` cookie.
+     * @param Closure(Request): (Response) $next
+     *
+     * @return Response The response returned by the next middleware/handler in the pipeline.
      */
     public function handle(Request $request, Closure $next): Response
     {

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'levels_required' => 'At least one level is required.',
     'duplicate_level_keys' => 'Level keys must be unique within a scheme.',

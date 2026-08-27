@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Http\Controllers\Documents\DocumentController;
 use App\Http\Controllers\Documents\DocumentMoveController;
 use App\Http\Controllers\Documents\DocumentSearchController;

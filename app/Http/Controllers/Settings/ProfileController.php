@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
@@ -16,6 +18,10 @@ class ProfileController extends Controller
 {
     /**
      * Show the user's profile settings page.
+     *
+     * @param Request $request The incoming request, used to resolve the current user and session status.
+     *
+     * @return Response The Inertia response rendering the profile settings page.
      */
     public function edit(Request $request): Response
     {
@@ -28,6 +34,10 @@ class ProfileController extends Controller
 
     /**
      * Update the user's profile information.
+     *
+     * @param ProfileUpdateRequest $request The incoming request with the validated profile attributes.
+     *
+     * @return RedirectResponse Redirect back to the profile edit page.
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
@@ -46,6 +56,10 @@ class ProfileController extends Controller
 
     /**
      * Delete the user's profile.
+     *
+     * @param ProfileDeleteRequest $request The incoming request; validates the current password before deletion.
+     *
+     * @return RedirectResponse Redirect to the application root.
      */
     public function destroy(ProfileDeleteRequest $request): RedirectResponse
     {

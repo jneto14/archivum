@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Actions\Documents;
 
 use App\Models\Document;
@@ -17,8 +19,11 @@ class SearchDocuments
      * Workspace scoping is hard-enforced here and is never client-controlled
      * — this is the critical isolation guarantee for this Action.
      *
-     * @param  array{document_type_id?: string|null, tag_ids?: array<int, string>, from?: string|null, to?: string|null}  $filters
-     * @return LengthAwarePaginator<int, Document>
+     * @param Workspace $workspace The workspace results are restricted to.
+     * @param string|null $query Free-text search term matched against document titles via Scout; null/empty matches all.
+     * @param array{document_type_id?: string|null, tag_ids?: array<int, string>, from?: string|null, to?: string|null} $filters Structured filters: document type, tag IDs, and document date range.
+     *
+     * @return LengthAwarePaginator<int, Document> A paginated (15 per page) list of matching documents, eager-loaded with type, tags, current location, and creator.
      */
     public function handle(Workspace $workspace, ?string $query, array $filters): LengthAwarePaginator
     {
@@ -48,8 +53,12 @@ class SearchDocuments
     }
 
     /**
-     * @param  array<int, string>  $tagIds
-     * @return array<int, string>
+     * Restrict the given tag IDs to those that actually belong to the workspace, preventing cross-workspace tag filtering.
+     *
+     * @param Workspace $workspace The workspace the tags must belong to.
+     * @param array<int, string> $tagIds Candidate tag IDs supplied by the caller.
+     *
+     * @return array<int, string> The subset of $tagIds that belong to $workspace.
      */
     private function scopedTagIds(Workspace $workspace, array $tagIds): array
     {

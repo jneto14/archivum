@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
@@ -18,6 +20,8 @@ class FortifyServiceProvider extends ServiceProvider
 {
     /**
      * Register any application services.
+     *
+     * @return void No services are registered here.
      */
     public function register(): void
     {
@@ -26,6 +30,8 @@ class FortifyServiceProvider extends ServiceProvider
 
     /**
      * Bootstrap any application services.
+     *
+     * @return void No return value; delegates to the configureX() methods below.
      */
     public function boot(): void
     {
@@ -36,6 +42,8 @@ class FortifyServiceProvider extends ServiceProvider
 
     /**
      * Configure Fortify actions.
+     *
+     * @return void No return value; registers action bindings with Fortify as a side effect.
      */
     private function configureActions(): void
     {
@@ -45,6 +53,8 @@ class FortifyServiceProvider extends ServiceProvider
 
     /**
      * Configure Fortify views.
+     *
+     * @return void No return value; registers view callbacks with Fortify as a side effect.
      */
     private function configureViews(): void
     {
@@ -74,6 +84,8 @@ class FortifyServiceProvider extends ServiceProvider
 
     /**
      * Configure rate limiting.
+     *
+     * @return void No return value; registers rate limiters as a side effect.
      */
     private function configureRateLimiting(): void
     {
@@ -82,14 +94,14 @@ class FortifyServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('login', function (Request $request) {
-            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
+            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())) . '|' . $request->ip());
 
             return Limit::perMinute(5)->by($throttleKey);
         });
 
         RateLimiter::for('passkeys', function (Request $request) {
             return Limit::perMinute(10)->by(
-                ($request->input('credential.id') ?: $request->session()->getId()).'|'.$request->ip(),
+                ($request->input('credential.id') ?: $request->session()->getId()) . '|' . $request->ip(),
             );
         });
     }

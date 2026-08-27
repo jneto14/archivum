@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Organization;
 
 use App\Enums\NodeValueStrategy;
@@ -9,6 +11,8 @@ use Illuminate\Validation\Rule;
 class StoreOrganizationSchemeRequest extends FormRequest
 {
     /**
+     * Get the validation rules that apply to the request.
+     *
      * @return array<string, array<int, mixed>>
      */
     public function rules(): array

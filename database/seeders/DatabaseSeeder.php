@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Seeders;
 
 use App\Enums\WorkspaceRole;
@@ -43,7 +45,7 @@ class DatabaseSeeder extends Seeder
 
         $generatedPassword = null;
 
-        if (! $password) {
+        if (!$password) {
             $generatedPassword = Str::password(20);
             $password = $generatedPassword;
         }

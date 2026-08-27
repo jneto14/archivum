@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Actions\Organization;
 
 use App\Actions\Documents\MoveDocument;
@@ -7,6 +9,7 @@ use App\Models\Document;
 use App\Models\OrganizationScheme;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\LazyCollection;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 class MigrateSchemeDocuments
@@ -20,6 +23,14 @@ class MigrateSchemeDocuments
      * Move every document currently located under $source to a location
      * resolved under $target, using the same auto-placement rules
      * (ApplyOrganizationRules → FindAvailableLocation) a manual move uses.
+     *
+     * @param OrganizationScheme $source The scheme documents are currently located under.
+     * @param OrganizationScheme $target The scheme documents are relocated into; must be a different scheme in the same workspace.
+     *
+     * @return void No return value; documents are relocated as a side effect.
+     *
+     * @throws InvalidArgumentException If $target is the same scheme as $source, or belongs to a different workspace.
+     * @throws ValidationException If resolving or recording a document's new location fails validation (see FindAvailableLocation::handle() and MoveDocument::handle()).
      */
     public function handle(OrganizationScheme $source, OrganizationScheme $target): void
     {
@@ -37,7 +48,7 @@ class MigrateSchemeDocuments
     }
 
     /**
-     * @return LazyCollection<int, Document>
+     * @return LazyCollection<int, Document> Documents currently located under any node within $source, lazily loaded by ID.
      */
     private function documentsUnder(OrganizationScheme $source)
     {
@@ -47,6 +58,14 @@ class MigrateSchemeDocuments
             ->lazyById();
     }
 
+    /**
+     * @param OrganizationScheme $source The scheme documents are currently located under.
+     * @param OrganizationScheme $target The candidate target scheme.
+     *
+     * @return void No return value when valid.
+     *
+     * @throws InvalidArgumentException If $source and $target are the same scheme, or belong to different workspaces.
+     */
     private function assertDifferentSchemeInSameWorkspace(OrganizationScheme $source, OrganizationScheme $target): void
     {
         if ($source->id === $target->id || $source->workspace_id !== $target->workspace_id) {

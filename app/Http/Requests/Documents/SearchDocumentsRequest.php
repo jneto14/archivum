@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Documents;
 
 use Illuminate\Foundation\Http\FormRequest;
@@ -7,6 +9,8 @@ use Illuminate\Foundation\Http\FormRequest;
 class SearchDocumentsRequest extends FormRequest
 {
     /**
+     * Get the validation rules that apply to the request.
+     *
      * @return array<string, array<int, mixed>>
      */
     public function rules(): array

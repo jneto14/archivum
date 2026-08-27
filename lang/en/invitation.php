@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'mail_subject' => 'You have been invited to join :workspace',
     'mail_greeting' => 'Welcome to :workspace!',
