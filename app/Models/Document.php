@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
+use Laravel\Scout\Searchable;
 
 /**
  * @property string $id
@@ -28,7 +29,7 @@ use Illuminate\Support\Carbon;
 class Document extends Model
 {
     /** @use HasFactory<DocumentFactory> */
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, Searchable;
 
     /**
      * @return array<string, string>
@@ -38,6 +39,20 @@ class Document extends Model
         return [
             'document_date' => 'date',
             'metadata' => 'array',
+        ];
+    }
+
+    /**
+     * Deliberately minimal — only the primary free-text field. `metadata`
+     * and relation fields (document type, tags) are structured filters,
+     * not Scout text search.
+     *
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'title' => $this->title,
         ];
     }
 
