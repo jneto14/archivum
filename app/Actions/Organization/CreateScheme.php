@@ -50,7 +50,7 @@ class CreateScheme
     {
         if ($levels === []) {
             throw ValidationException::withMessages([
-                'levels' => __('At least one level is required.'),
+                'levels' => __('organization.levels_required'),
             ]);
         }
 
@@ -58,7 +58,7 @@ class CreateScheme
 
         if (count($keys) !== count(array_unique($keys))) {
             throw ValidationException::withMessages([
-                'levels' => __('Level keys must be unique within a scheme.'),
+                'levels' => __('organization.duplicate_level_keys'),
             ]);
         }
     }

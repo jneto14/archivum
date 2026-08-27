@@ -26,7 +26,7 @@ class MoveDocument
     {
         if ($node->level->scheme->workspace_id !== $document->workspace_id) {
             throw ValidationException::withMessages([
-                'node_id' => __('The location must belong to the same workspace as the document.'),
+                'node_id' => __('document.location_workspace_mismatch'),
             ]);
         }
     }

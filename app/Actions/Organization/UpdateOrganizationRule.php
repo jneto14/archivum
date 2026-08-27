@@ -27,7 +27,7 @@ class UpdateOrganizationRule
     {
         if ($targetLevel->scheme_id !== $rule->scheme_id) {
             throw ValidationException::withMessages([
-                'target_level_id' => __('The target level must belong to the same scheme.'),
+                'target_level_id' => __('organization.invalid_rule_target_level'),
             ]);
         }
     }
@@ -43,7 +43,7 @@ class UpdateOrganizationRule
 
         if ($exists) {
             throw ValidationException::withMessages([
-                'matcher_value' => __('A rule already exists for this matcher within the scheme.'),
+                'matcher_value' => __('organization.duplicate_rule_matcher'),
             ]);
         }
     }

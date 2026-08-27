@@ -19,13 +19,13 @@ class AddWorkspaceUser
     {
         if ($workspace->isMember($user)) {
             throw ValidationException::withMessages([
-                'email' => __('This user is already a member of this workspace.'),
+                'email' => __('workspace.member_already_exists'),
             ]);
         }
 
         if ($workspace->limits?->exceedsUsers($this->calculateUsage->users($workspace))) {
             throw ValidationException::withMessages([
-                'email' => __('This workspace has reached its user limit.'),
+                'email' => __('workspace.user_limit_reached'),
             ]);
         }
 

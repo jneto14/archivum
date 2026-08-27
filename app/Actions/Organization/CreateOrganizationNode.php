@@ -20,14 +20,14 @@ class CreateOrganizationNode
 
         if ($level->capacityReached($parent)) {
             throw ValidationException::withMessages([
-                'capacity' => __('This level has reached its configured capacity.'),
+                'capacity' => __('organization.capacity_reached'),
             ]);
         }
 
         if ($value === null) {
             if ($level->value_strategy === NodeValueStrategy::Manual) {
                 throw ValidationException::withMessages([
-                    'value' => __('A value is required for levels using the Manual strategy.'),
+                    'value' => __('organization.value_required'),
                 ]);
             }
 
@@ -48,7 +48,7 @@ class CreateOrganizationNode
         if ($level->position === 1) {
             if ($parent !== null) {
                 throw ValidationException::withMessages([
-                    'parent_id' => __('A node at the first level cannot have a parent.'),
+                    'parent_id' => __('organization.root_node_cannot_have_parent'),
                 ]);
             }
 
@@ -57,7 +57,7 @@ class CreateOrganizationNode
 
         if ($parent === null || $parent->level->scheme_id !== $level->scheme_id || $parent->level->position !== $level->position - 1) {
             throw ValidationException::withMessages([
-                'parent_id' => __('The parent node must belong to the immediately preceding level of the same scheme.'),
+                'parent_id' => __('organization.invalid_parent_level'),
             ]);
         }
     }
@@ -73,7 +73,7 @@ class CreateOrganizationNode
 
         if ($exists) {
             throw ValidationException::withMessages([
-                'value' => __('A node with this value already exists at this level under the same parent.'),
+                'value' => __('organization.duplicate_node_value'),
             ]);
         }
     }
