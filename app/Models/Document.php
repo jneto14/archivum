@@ -88,4 +88,12 @@ class Document extends Model
     {
         return $this->hasOne(DocumentLocation::class)->latestOfMany();
     }
+
+    /**
+     * @return HasMany<DocumentAttachment, $this>
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(DocumentAttachment::class);
+    }
 }

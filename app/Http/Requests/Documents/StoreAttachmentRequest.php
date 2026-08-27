@@ -1,0 +1,18 @@
+<?php
+
+namespace App\Http\Requests\Documents;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class StoreAttachmentRequest extends FormRequest
+{
+    /**
+     * @return array<string, array<int, string>>
+     */
+    public function rules(): array
+    {
+        return [
+            'file' => ['required', 'file', 'max:51200'],
+        ];
+    }
+}
