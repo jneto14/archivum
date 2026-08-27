@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Enums\WorkspaceRole;
+use App\Models\Passkey;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Passkeys\Passkeys;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -29,6 +31,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureWorkspaceMembership();
+        $this->configurePasskeys();
     }
 
     /**
@@ -77,5 +80,14 @@ class AppServiceProvider extends ServiceProvider
                 'role' => WorkspaceRole::User,
             ]);
         });
+    }
+
+    /**
+     * Use this app's UUID-keyed Passkey model instead of the package's
+     * default, which assumes an auto-incrementing integer primary key.
+     */
+    protected function configurePasskeys(): void
+    {
+        Passkeys::usePasskeyModel(Passkey::class);
     }
 }
