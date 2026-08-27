@@ -24,6 +24,7 @@ import {
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import { dashboard } from '@/routes';
 import { index as documentsIndex } from '@/routes/documents';
+import { index as schemesIndex } from '@/routes/organization/schemes';
 import { edit as editProfile } from '@/routes/profile';
 import { show as workspaceShow } from '@/routes/workspaces';
 import { index as usersIndex } from '@/routes/workspaces/users';
@@ -77,9 +78,9 @@ export function AppSidebar() {
         },
         {
             title: 'Organization scheme',
-            href: '#',
+            href: workspace ? schemesIndex.url(workspace.id) : '#',
             icon: FolderTree,
-            disabled: true,
+            disabled: !workspace,
         },
         {
             title: 'Users & roles',

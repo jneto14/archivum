@@ -12,6 +12,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 
 class OrganizationSchemeMigrationController extends Controller
 {
@@ -35,6 +36,8 @@ class OrganizationSchemeMigrationController extends Controller
         $target = $this->resolveTargetScheme($scheme, $request->validated('target_scheme_id'));
 
         BulkMoveDocuments::dispatch($scheme, $target);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('organization.migration_queued')]);
 
         return back();
     }

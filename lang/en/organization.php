@@ -13,4 +13,11 @@ return [
     'invalid_rule_target_level' => 'The target level must belong to the same scheme.',
     'duplicate_rule_matcher' => 'A rule already exists for this matcher within the scheme.',
     'migration_target_must_differ' => 'The target scheme must be different from the source scheme.',
+    'scheme_created' => 'Organization scheme created.',
+    'scheme_updated' => 'Organization scheme updated.',
+    'node_created' => 'Location added.',
+    'rule_created' => 'Rule created.',
+    'rule_updated' => 'Rule updated.',
+    'rule_deleted' => 'Rule deleted.',
+    'migration_queued' => 'Document migration queued.',
 ];
