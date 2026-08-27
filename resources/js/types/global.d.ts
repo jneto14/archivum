@@ -1,4 +1,5 @@
 import type { Auth } from '@/types/auth';
+import type { Workspace, WorkspaceMembership } from '@/types/workspace';
 
 declare module 'react' {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -14,6 +15,11 @@ declare module '@inertiajs/core' {
             locale: string;
             auth: Auth;
             sidebarOpen: boolean;
+            workspace: Workspace | null;
+            workspaces: WorkspaceMembership[];
+            canSwitchWorkspace: boolean;
+            isWorkspaceAdmin: boolean;
+            documentsCount: number | null;
             [key: string]: unknown;
         };
     }

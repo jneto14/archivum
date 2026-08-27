@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Actions\Workspace\CalculateWorkspaceUsage;
+use App\Enums\WorkspaceRole;
+use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Inertia\Middleware;
@@ -44,14 +47,38 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
+        /** @var Workspace|null $workspace */
+        $workspace = $request->attributes->get('workspace');
+
+        $workspaces = $user
+            ? $user->workspaces()->orderBy('workspace_user.created_at')->get()
+            : collect();
+
+        $currentMembership = $workspace ? $workspaces->firstWhere('id', $workspace->id) : null;
+        $currentRole = $currentMembership ? WorkspaceRole::from((string) $currentMembership->pivot->role) : null;
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'locale' => App::getLocale(),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
             ],
             'sidebarOpen' => !$request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'workspace' => $workspace ? [
+                'id' => $workspace->id,
+                'name' => $workspace->name,
+            ] : null,
+            'workspaces' => $workspaces->map(fn ($w) => [
+                'id' => $w->id,
+                'name' => $w->name,
+                'role' => (string) $w->pivot->role,
+            ])->all(),
+            'canSwitchWorkspace' => (bool) config('archivum.multi_workspace_enabled'),
+            'isWorkspaceAdmin' => $currentRole === WorkspaceRole::Admin,
+            'documentsCount' => $workspace ? app(CalculateWorkspaceUsage::class)->documents($workspace) : null,
         ];
     }
 }
