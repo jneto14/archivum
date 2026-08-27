@@ -19,6 +19,7 @@ trait ProfileValidationRules
             'name' => $this->nameRules(),
             'email' => $this->emailRules($userId),
             'timezone' => $this->timezoneRules(),
+            'locale' => $this->localeRules(),
         ];
     }
 
@@ -58,5 +59,15 @@ trait ProfileValidationRules
     protected function timezoneRules(): array
     {
         return ['nullable', 'timezone'];
+    }
+
+    /**
+     * Get the validation rules used to validate user locales.
+     *
+     * @return array<int, ValidationRule|array<mixed>|string>
+     */
+    protected function localeRules(): array
+    {
+        return ['nullable', 'string', Rule::in(array_keys(config('archivum.locales')))];
     }
 }

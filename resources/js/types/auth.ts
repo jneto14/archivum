@@ -5,6 +5,7 @@ export type User = {
     avatar?: string;
     email_verified_at: string | null;
     timezone: string | null;
+    locale: string | null;
     two_factor_enabled?: boolean;
     created_at: string;
     updated_at: string;

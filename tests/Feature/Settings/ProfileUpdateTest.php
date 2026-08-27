@@ -78,6 +78,41 @@ class ProfileUpdateTest extends TestCase
         $this->assertNull($user->refresh()->timezone);
     }
 
+    public function test_locale_can_be_updated()
+    {
+        $user = User::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->patch(route('profile.update'), [
+                'name' => $user->name,
+                'email' => $user->email,
+                'locale' => 'pt',
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('profile.edit'));
+
+        $this->assertSame('pt', $user->refresh()->locale);
+    }
+
+    public function test_invalid_locale_is_rejected()
+    {
+        $user = User::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->patch(route('profile.update'), [
+                'name' => $user->name,
+                'email' => $user->email,
+                'locale' => 'xx',
+            ]);
+
+        $response->assertSessionHasErrors('locale');
+        $this->assertNull($user->refresh()->locale);
+    }
+
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged()
     {
         $user = User::factory()->create();
