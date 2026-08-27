@@ -16,7 +16,7 @@ class RemoveWorkspaceUser
     {
         if ($workspace->wouldRemoveLastAdmin($user)) {
             throw ValidationException::withMessages([
-                'user' => 'Cannot remove the last admin of a workspace.',
+                'user' => __('workspace.cannot_remove_last_admin'),
             ]);
         }
 
