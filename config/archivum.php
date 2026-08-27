@@ -35,4 +35,21 @@ return [
 
     'default_workspace_name' => env('DEFAULT_WORKSPACE_NAME', 'Default Workspace'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Attachments
+    |--------------------------------------------------------------------------
+    |
+    | Disk used to store Document attachments (scans, photos, PDFs). Defaults
+    | to the private "local" disk rather than "public", since documents may
+    | contain sensitive content. Set to "s3" (pointed at AWS S3 or a
+    | MinIO-compatible endpoint via the AWS_* env vars) for non-local
+    | deployments.
+    |
+    */
+
+    'attachments' => [
+        'disk' => env('ATTACHMENTS_DISK', 'local'),
+    ],
+
 ];
