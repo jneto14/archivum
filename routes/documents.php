@@ -20,6 +20,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
     Route::post('documents/{document}/move', [DocumentMoveController::class, 'store'])->name('documents.move');
 
+    Route::get('workspaces/{workspace}/document-types', [DocumentTypeController::class, 'index'])->name('document-types.index');
     Route::post('workspaces/{workspace}/document-types', [DocumentTypeController::class, 'store'])->name('document-types.store');
+    Route::patch('document-types/{documentType}', [DocumentTypeController::class, 'update'])->name('document-types.update');
+    Route::delete('document-types/{documentType}', [DocumentTypeController::class, 'destroy'])->name('document-types.destroy');
+
+    Route::get('workspaces/{workspace}/tags', [TagController::class, 'index'])->name('tags.index');
     Route::post('workspaces/{workspace}/tags', [TagController::class, 'store'])->name('tags.store');
+    Route::patch('tags/{tag}', [TagController::class, 'update'])->name('tags.update');
+    Route::delete('tags/{tag}', [TagController::class, 'destroy'])->name('tags.destroy');
 });
