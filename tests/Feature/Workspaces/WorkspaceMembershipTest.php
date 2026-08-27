@@ -6,7 +6,9 @@ use App\Enums\WorkspaceRole;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
+use App\Notifications\WorkspaceInvitation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class WorkspaceMembershipTest extends TestCase
@@ -27,6 +29,77 @@ class WorkspaceMembershipTest extends TestCase
         $response->assertRedirect();
         $this->assertTrue($workspace->isMember($newUser));
         $this->assertFalse($workspace->isAdmin($newUser));
+    }
+
+    public function test_admin_can_invite_a_brand_new_user_by_email_and_name()
+    {
+        Notification::fake();
+
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+
+        $response = $this->actingAs($admin->user)->post(route('workspaces.users.store', $workspace), [
+            'email' => 'new.person@example.com',
+            'name' => 'New Person',
+            'role' => WorkspaceRole::User->value,
+        ]);
+
+        $response->assertRedirect();
+
+        $invited = User::query()->where('email', 'new.person@example.com')->firstOrFail();
+        $this->assertSame('New Person', $invited->name);
+        $this->assertTrue($workspace->isMember($invited));
+        Notification::assertSentTo($invited, WorkspaceInvitation::class);
+    }
+
+    public function test_invited_user_can_accept_the_invitation_and_activate_their_account()
+    {
+        Notification::fake();
+
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+
+        $this->actingAs($admin->user)->post(route('workspaces.users.store', $workspace), [
+            'email' => 'new.person@example.com',
+            'name' => 'New Person',
+            'role' => WorkspaceRole::User->value,
+        ]);
+
+        $invited = User::query()->where('email', 'new.person@example.com')->firstOrFail();
+
+        $this->app['auth']->guard('web')->logout();
+
+        Notification::assertSentTo($invited, WorkspaceInvitation::class, function ($notification) use ($invited) {
+            $this->get(route('invitations.accept', ['token' => $notification->token, 'email' => $invited->email]))
+                ->assertOk();
+
+            $response = $this->post(route('password.update'), [
+                'token' => $notification->token,
+                'email' => $invited->email,
+                'password' => 'password',
+                'password_confirmation' => 'password',
+            ]);
+
+            $response
+                ->assertSessionHasNoErrors()
+                ->assertRedirect(route('login'));
+
+            return true;
+        });
+    }
+
+    public function test_inviting_a_new_email_without_a_name_fails_validation()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+
+        $response = $this->actingAs($admin->user)->post(route('workspaces.users.store', $workspace), [
+            'email' => 'no.name@example.com',
+            'role' => WorkspaceRole::User->value,
+        ]);
+
+        $response->assertSessionHasErrors('name');
+        $this->assertDatabaseMissing('users', ['email' => 'no.name@example.com']);
     }
 
     public function test_adding_an_already_member_email_fails_validation()

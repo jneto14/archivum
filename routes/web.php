@@ -9,6 +9,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 require __DIR__.'/settings.php';
+require __DIR__.'/invitations.php';
 require __DIR__.'/workspaces.php';
 require __DIR__.'/organization.php';
 require __DIR__.'/documents.php';

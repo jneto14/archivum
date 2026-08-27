@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Workspaces;
 
 use App\Actions\Workspace\AddWorkspaceUser;
 use App\Actions\Workspace\ChangeWorkspaceUserRole;
+use App\Actions\Workspace\FindOrCreateInvitedUser;
 use App\Actions\Workspace\RemoveWorkspaceUser;
 use App\Enums\WorkspaceRole;
 use App\Http\Controllers\Controller;
@@ -16,11 +17,11 @@ use Illuminate\Http\RedirectResponse;
 
 class WorkspaceUserController extends Controller
 {
-    public function store(AddWorkspaceUserRequest $request, Workspace $workspace, AddWorkspaceUser $action): RedirectResponse
+    public function store(AddWorkspaceUserRequest $request, Workspace $workspace, FindOrCreateInvitedUser $findOrCreateUser, AddWorkspaceUser $action): RedirectResponse
     {
         $this->authorize('create', [WorkspaceUser::class, $workspace]);
 
-        $target = User::query()->where('email', $request->validated('email'))->firstOrFail();
+        $target = $findOrCreateUser->handle($request->validated('email'), $request->validated('name'), $workspace);
 
         $action->handle($workspace, $target, WorkspaceRole::from($request->validated('role')));
 
