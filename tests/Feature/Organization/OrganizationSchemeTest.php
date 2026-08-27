@@ -30,9 +30,9 @@ class OrganizationSchemeTest extends TestCase
             ],
         ]);
 
-        $response->assertRedirect();
-
         $scheme = OrganizationScheme::query()->where('name', 'Traditional Archive')->firstOrFail();
+
+        $response->assertRedirect(route('organization.schemes.show', $scheme));
 
         $this->assertSame(['Cover', 'Letter', 'Position'], $scheme->levels()->pluck('name')->all());
         $this->assertSame([1, 2, 3], $scheme->levels()->pluck('position')->all());

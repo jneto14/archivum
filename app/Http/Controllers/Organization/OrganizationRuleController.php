@@ -15,6 +15,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class OrganizationRuleController extends Controller
@@ -45,6 +46,8 @@ class OrganizationRuleController extends Controller
             $targetLevel,
             $request->validated('preferred_value'),
         );
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('organization.rule_created')]);
 
         return back();
     }
@@ -80,6 +83,8 @@ class OrganizationRuleController extends Controller
             $request->validated('preferred_value'),
         );
 
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('organization.rule_updated')]);
+
         return back();
     }
 
@@ -101,6 +106,8 @@ class OrganizationRuleController extends Controller
         abort_unless($rule->scheme_id === $scheme->id, 404);
 
         $rule->delete();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('organization.rule_deleted')]);
 
         return back();
     }

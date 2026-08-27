@@ -13,6 +13,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 
 class OrganizationNodeController extends Controller
 {
@@ -45,6 +46,8 @@ class OrganizationNodeController extends Controller
             : null;
 
         $action->handle($level, $parent, $request->validated('value'));
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('organization.node_created')]);
 
         return back();
     }
