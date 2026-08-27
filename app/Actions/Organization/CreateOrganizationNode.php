@@ -51,6 +51,10 @@ class CreateOrganizationNode
     }
 
     /**
+     * @param  OrganizationLevel  $level  The level the new node would belong to.
+     * @param  OrganizationNode|null  $parent  The candidate parent node, or null for a root-level node.
+     * @return void No return value when consistent.
+     *
      * @throws ValidationException If $level is the root level but $parent is set, or $parent does not belong to the level immediately above $level.
      */
     private function assertParentConsistency(OrganizationLevel $level, ?OrganizationNode $parent): void
@@ -73,6 +77,11 @@ class CreateOrganizationNode
     }
 
     /**
+     * @param  OrganizationLevel  $level  The level the new node would belong to.
+     * @param  OrganizationNode|null  $parent  The parent node the sibling check is scoped to, or null for root-level nodes.
+     * @param  string  $value  The candidate node value.
+     * @return void No return value when unique.
+     *
      * @throws ValidationException If a sibling node under the same parent and level already has $value.
      */
     private function assertValueIsUnique(OrganizationLevel $level, ?OrganizationNode $parent, string $value): void

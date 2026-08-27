@@ -50,6 +50,7 @@ class CreateScheme
 
     /**
      * @param  array<int, array{key: string}>  $levels  The levels to validate.
+     * @return void No return value when valid.
      *
      * @throws ValidationException If $levels is empty, or contains duplicate 'key' values.
      */

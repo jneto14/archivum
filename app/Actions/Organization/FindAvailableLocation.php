@@ -49,6 +49,7 @@ class FindAvailableLocation
 
     /**
      * @param  array{level: OrganizationLevel, preferred_value: string}|null  $rule  The rule resolved by ApplyOrganizationRules, if any.
+     * @param  OrganizationLevel  $level  The level being resolved, to check against $rule's target level.
      * @return string|null The preferred value to use at $level, or null if $rule doesn't target $level.
      */
     private function preferredValueFor(?array $rule, OrganizationLevel $level): ?string

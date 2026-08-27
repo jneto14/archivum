@@ -83,6 +83,8 @@ class OrganizationLevel extends Model
 
     /**
      * Determine whether this is the bottommost level of its scheme, i.e. it has no child level.
+     *
+     * @return bool True if no level in this scheme sits immediately below this one.
      */
     public function isLeaf(): bool
     {
@@ -110,6 +112,7 @@ class OrganizationLevel extends Model
      * never considered full.
      *
      * @param  OrganizationNode|null  $parent  The parent node to check sibling capacity under, or null for root-level nodes of this level.
+     * @return bool True if a capacity is configured and the sibling count under $parent has reached it.
      */
     public function capacityReached(?OrganizationNode $parent): bool
     {

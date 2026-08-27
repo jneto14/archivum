@@ -47,6 +47,7 @@ class Workspace extends Model
      * corresponding workspace_user pivot record regardless of role.
      *
      * @param  User  $user  The user to check membership for.
+     * @return bool True if $user has a workspace_user pivot record for this workspace.
      */
     public function isMember(User $user): bool
     {
@@ -60,6 +61,7 @@ class Workspace extends Model
      * Determine whether the given user holds the Admin role in this workspace.
      *
      * @param  User  $user  The user to check the admin role for.
+     * @return bool True if $user's membership in this workspace has the Admin role.
      */
     public function isAdmin(User $user): bool
     {

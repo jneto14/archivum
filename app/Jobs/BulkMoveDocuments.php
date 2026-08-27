@@ -30,6 +30,7 @@ class BulkMoveDocuments implements ShouldQueue
 
     /**
      * @param  MigrateSchemeDocuments  $action  Resolved from the container by the queue worker.
+     * @return void No return value; documents are relocated as a side effect.
      *
      * @throws \InvalidArgumentException If the source and target scheme are the same, or belong to
      *                                   different workspaces (should not happen if dispatched via the

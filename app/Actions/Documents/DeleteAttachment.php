@@ -11,6 +11,7 @@ class DeleteAttachment
      * Delete an attachment and its underlying stored file.
      *
      * @param  DocumentAttachment  $attachment  The attachment to remove, including its stored file on disk.
+     * @return void No return value; the stored file and record are deleted as a side effect.
      */
     public function handle(DocumentAttachment $attachment): void
     {

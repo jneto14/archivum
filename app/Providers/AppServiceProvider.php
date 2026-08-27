@@ -16,6 +16,8 @@ class AppServiceProvider extends ServiceProvider
 {
     /**
      * Register any application services.
+     *
+     * @return void No services are registered here.
      */
     public function register(): void
     {
@@ -24,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
 
     /**
      * Bootstrap any application services.
+     *
+     * @return void No return value; delegates to the configureX() methods below.
      */
     public function boot(): void
     {
@@ -33,6 +37,8 @@ class AppServiceProvider extends ServiceProvider
 
     /**
      * Configure default behaviors for production-ready applications.
+     *
+     * @return void No return value; sets global date/DB/password defaults as a side effect.
      */
     protected function configureDefaults(): void
     {
@@ -57,6 +63,8 @@ class AppServiceProvider extends ServiceProvider
      * In single-workspace mode, every newly registered user is automatically
      * attached to the sole default workspace — otherwise they'd have no
      * membership and would be locked out of any workspace-scoped route.
+     *
+     * @return void No return value; registers a User::created listener as a side effect.
      */
     protected function configureWorkspaceMembership(): void
     {

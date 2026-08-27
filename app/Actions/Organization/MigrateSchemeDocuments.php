@@ -24,6 +24,7 @@ class MigrateSchemeDocuments
      *
      * @param  OrganizationScheme  $source  The scheme documents are currently located under.
      * @param  OrganizationScheme  $target  The scheme documents are relocated into; must be a different scheme in the same workspace.
+     * @return void No return value; documents are relocated as a side effect.
      *
      * @throws InvalidArgumentException If $target is the same scheme as $source, or belongs to a different workspace.
      * @throws ValidationException If resolving or recording a document's new location fails validation (see FindAvailableLocation::handle() and MoveDocument::handle()).
@@ -55,6 +56,10 @@ class MigrateSchemeDocuments
     }
 
     /**
+     * @param  OrganizationScheme  $source  The scheme documents are currently located under.
+     * @param  OrganizationScheme  $target  The candidate target scheme.
+     * @return void No return value when valid.
+     *
      * @throws InvalidArgumentException If $source and $target are the same scheme, or belong to different workspaces.
      */
     private function assertDifferentSchemeInSameWorkspace(OrganizationScheme $source, OrganizationScheme $target): void

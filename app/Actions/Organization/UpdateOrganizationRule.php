@@ -36,6 +36,10 @@ class UpdateOrganizationRule
     }
 
     /**
+     * @param  OrganizationRule  $rule  The rule being updated.
+     * @param  OrganizationLevel  $targetLevel  The candidate target level.
+     * @return void No return value when valid.
+     *
      * @throws ValidationException If $targetLevel does not belong to $rule's scheme.
      */
     private function assertTargetLevelBelongsToScheme(OrganizationRule $rule, OrganizationLevel $targetLevel): void
@@ -48,6 +52,11 @@ class UpdateOrganizationRule
     }
 
     /**
+     * @param  OrganizationRule  $rule  The rule being updated (excluded from its own uniqueness check).
+     * @param  string  $matcherKey  The candidate matcher key.
+     * @param  string  $matcherValue  The candidate matcher value.
+     * @return void No return value when unique.
+     *
      * @throws ValidationException If a different rule in $rule's scheme already has this matcher key/value.
      */
     private function assertMatcherIsUnique(OrganizationRule $rule, string $matcherKey, string $matcherValue): void

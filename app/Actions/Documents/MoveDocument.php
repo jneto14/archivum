@@ -29,6 +29,10 @@ class MoveDocument
     }
 
     /**
+     * @param  Document  $document  The document being relocated.
+     * @param  OrganizationNode  $node  The candidate destination node.
+     * @return void No return value when valid.
+     *
      * @throws ValidationException If $node's scheme workspace differs from $document's workspace.
      */
     private function assertNodeBelongsToWorkspace(Document $document, OrganizationNode $node): void

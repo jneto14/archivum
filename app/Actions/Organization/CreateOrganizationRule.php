@@ -36,6 +36,10 @@ class CreateOrganizationRule
     }
 
     /**
+     * @param  OrganizationScheme  $scheme  The scheme the rule would belong to.
+     * @param  OrganizationLevel  $targetLevel  The candidate target level.
+     * @return void No return value when valid.
+     *
      * @throws ValidationException If $targetLevel does not belong to $scheme.
      */
     private function assertTargetLevelBelongsToScheme(OrganizationScheme $scheme, OrganizationLevel $targetLevel): void
@@ -48,6 +52,11 @@ class CreateOrganizationRule
     }
 
     /**
+     * @param  OrganizationScheme  $scheme  The scheme the rule would belong to.
+     * @param  string  $matcherKey  The candidate matcher key.
+     * @param  string  $matcherValue  The candidate matcher value.
+     * @return void No return value when unique.
+     *
      * @throws ValidationException If a rule with this matcher key/value already exists in $scheme.
      */
     private function assertMatcherIsUnique(OrganizationScheme $scheme, string $matcherKey, string $matcherValue): void
