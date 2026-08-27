@@ -32,9 +32,9 @@ class CreateDocumentTest extends TestCase
             'tag_ids' => [$tag->id],
         ]);
 
-        $response->assertRedirect();
-
         $document = Document::query()->where('title', 'Invoice #FT2026/1234')->firstOrFail();
+
+        $response->assertRedirect(route('documents.show', $document));
 
         $this->assertSame($workspace->id, $document->workspace_id);
         $this->assertSame($member->user->id, $document->created_by);

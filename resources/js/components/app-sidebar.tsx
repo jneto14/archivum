@@ -23,20 +23,21 @@ import {
 } from '@/components/ui/sidebar';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import { dashboard } from '@/routes';
+import { index as documentsIndex } from '@/routes/documents';
 import { edit as editProfile } from '@/routes/profile';
 import type { NavItem } from '@/types';
 
 export function AppSidebar() {
-    const { isWorkspaceAdmin, canSwitchWorkspace, documentsCount } =
+    const { isWorkspaceAdmin, canSwitchWorkspace, documentsCount, workspace } =
         usePage().props;
 
     const archiveItems: NavItem[] = [
         { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
         {
             title: 'Documents',
-            href: '#',
+            href: workspace ? documentsIndex.url(workspace.id) : '#',
             icon: FileText,
-            disabled: true,
+            disabled: !workspace,
             badge: documentsCount,
         },
         { title: 'Physical storage', href: '#', icon: Archive, disabled: true },

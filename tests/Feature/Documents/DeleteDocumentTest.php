@@ -30,7 +30,7 @@ class DeleteDocumentTest extends TestCase
 
         $response = $this->actingAs($creator->user)->delete(route('documents.destroy', $document));
 
-        $response->assertRedirect();
+        $response->assertRedirect(route('documents.index', $workspace));
         $this->assertDatabaseMissing('documents', ['id' => $document->id]);
     }
 

@@ -1,0 +1,64 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Feature\Documents;
+
+use App\Enums\WorkspaceRole;
+use App\Models\Document;
+use App\Models\DocumentType;
+use App\Models\Workspace;
+use App\Models\WorkspaceUser;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
+use Tests\TestCase;
+
+class DocumentIndexTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_member_sees_only_their_workspaces_documents()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $type = DocumentType::factory()->for($workspace)->create();
+        Document::factory()->for($workspace)->for($type, 'documentType')->create(['title' => 'Mine']);
+        Document::factory()->create(['title' => 'Theirs']);
+
+        $this->actingAs($member->user)
+            ->get(route('documents.index', $workspace))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('documents/index')
+                ->has('documents.data', 1)
+                ->where('documents.data.0.title', 'Mine'),
+            );
+    }
+
+    public function test_filters_narrow_results()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $typeA = DocumentType::factory()->for($workspace)->create();
+        $typeB = DocumentType::factory()->for($workspace)->create();
+        Document::factory()->for($workspace)->for($typeA, 'documentType')->create(['title' => 'Invoice one']);
+        Document::factory()->for($workspace)->for($typeB, 'documentType')->create(['title' => 'Contract one']);
+
+        $this->actingAs($member->user)
+            ->get(route('documents.index', $workspace) . '?document_type_id=' . $typeA->id)
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('documents.data', 1)
+                ->where('documents.data.0.title', 'Invoice one'),
+            );
+    }
+
+    public function test_non_member_cannot_view_the_index()
+    {
+        $workspace = Workspace::factory()->create();
+        $outsider = WorkspaceUser::factory()->create(['role' => WorkspaceRole::Admin]);
+
+        $this->actingAs($outsider->user)
+            ->get(route('documents.index', $workspace))
+            ->assertForbidden();
+    }
+}
