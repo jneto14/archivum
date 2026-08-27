@@ -24,12 +24,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             ResolveLocale::class,
             HandleAppearance::class,
+            ResolveWorkspace::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
-        ]);
-
-        $middleware->alias([
-            'workspace' => ResolveWorkspace::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

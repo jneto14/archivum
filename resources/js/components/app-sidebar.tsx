@@ -1,7 +1,18 @@
-import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-react';
-import AppLogo from '@/components/app-logo';
-import { NavFooter } from '@/components/nav-footer';
+import { usePage } from '@inertiajs/react';
+import {
+    Activity,
+    Archive,
+    FileStack,
+    FileText,
+    FolderTree,
+    Gauge,
+    LayoutGrid,
+    Layers,
+    RefreshCw,
+    Settings,
+    Tag,
+    Users,
+} from 'lucide-react';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -9,55 +20,83 @@ import {
     SidebarContent,
     SidebarFooter,
     SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import { dashboard } from '@/routes';
+import { edit as editProfile } from '@/routes/profile';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
-
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
-    },
-];
-
 export function AppSidebar() {
+    const { isWorkspaceAdmin, canSwitchWorkspace, documentsCount } =
+        usePage().props;
+
+    const archiveItems: NavItem[] = [
+        { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
+        {
+            title: 'Documents',
+            href: '#',
+            icon: FileText,
+            disabled: true,
+            badge: documentsCount,
+        },
+        { title: 'Physical storage', href: '#', icon: Archive, disabled: true },
+        { title: 'Activity', href: '#', icon: Activity, disabled: true },
+        ...(isWorkspaceAdmin
+            ? ([
+                  {
+                      title: 'Jobs & OCR',
+                      href: '#',
+                      icon: RefreshCw,
+                      disabled: true,
+                  },
+              ] as NavItem[])
+            : []),
+    ];
+
+    const configItems: NavItem[] = [
+        ...(canSwitchWorkspace
+            ? ([
+                  {
+                      title: 'Workspaces',
+                      href: '#',
+                      icon: Layers,
+                      disabled: true,
+                  },
+              ] as NavItem[])
+            : []),
+        { title: 'Document types', href: '#', icon: FileStack, disabled: true },
+        { title: 'Tags', href: '#', icon: Tag, disabled: true },
+        {
+            title: 'Import & export',
+            href: '#',
+            icon: RefreshCw,
+            disabled: true,
+        },
+        {
+            title: 'Organization scheme',
+            href: '#',
+            icon: FolderTree,
+            disabled: true,
+        },
+        { title: 'Users & roles', href: '#', icon: Users, disabled: true },
+        { title: 'Usage & limits', href: '#', icon: Gauge, disabled: true },
+        { title: 'Settings', href: editProfile(), icon: Settings },
+    ];
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
-                                <AppLogo />
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
+                <WorkspaceSwitcher />
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain label="Archive" items={archiveItems} />
+                {isWorkspaceAdmin && (
+                    <NavMain label="Configuration" items={configItems} />
+                )}
             </SidebarContent>
 
             <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

@@ -85,7 +85,7 @@ class WorkspaceIsolationTest extends TestCase
 
     public function test_resolve_workspace_middleware_revalidates_membership_on_every_request()
     {
-        Route::middleware(['web', 'auth', 'workspace'])->get('/__test/current-workspace', function (Request $request) {
+        Route::middleware(['web', 'auth'])->get('/__test/current-workspace', function (Request $request) {
             return response()->json(['workspace_id' => $request->attributes->get('workspace')->id]);
         });
 
@@ -111,14 +111,62 @@ class WorkspaceIsolationTest extends TestCase
         $this->assertSame($workspaceTwo->id, $response->json('workspace_id'));
     }
 
-    public function test_resolve_workspace_middleware_forbids_user_with_no_memberships()
+    public function test_resolve_workspace_middleware_resolves_to_null_for_a_user_with_no_memberships()
     {
-        Route::middleware(['web', 'auth', 'workspace'])->get('/__test/current-workspace', function (Request $request) {
-            return response()->json(['workspace_id' => $request->attributes->get('workspace')->id]);
+        Route::middleware(['web', 'auth'])->get('/__test/current-workspace', function (Request $request) {
+            return response()->json(['workspace_id' => $request->attributes->get('workspace')?->id]);
         });
 
         $user = User::factory()->create();
 
-        $this->actingAs($user)->getJson('/__test/current-workspace')->assertForbidden();
+        $this->actingAs($user)
+            ->getJson('/__test/current-workspace')
+            ->assertOk()
+            ->assertJson(['workspace_id' => null]);
+    }
+
+    public function test_resolve_workspace_middleware_does_not_error_for_guests()
+    {
+        Route::middleware(['web'])->get('/__test/current-workspace', function (Request $request) {
+            return response()->json(['workspace_id' => $request->attributes->get('workspace')?->id]);
+        });
+
+        $this->getJson('/__test/current-workspace')
+            ->assertOk()
+            ->assertJson(['workspace_id' => null]);
+    }
+
+    public function test_resolve_workspace_middleware_in_single_workspace_mode_resolves_for_the_sole_members()
+    {
+        Route::middleware(['web', 'auth'])->get('/__test/current-workspace', function (Request $request) {
+            return response()->json(['workspace_id' => $request->attributes->get('workspace')?->id]);
+        });
+
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+
+        config(['archivum.multi_workspace_enabled' => false]);
+
+        $this->actingAs($member->user)
+            ->getJson('/__test/current-workspace')
+            ->assertOk()
+            ->assertJson(['workspace_id' => $workspace->id]);
+    }
+
+    public function test_resolve_workspace_middleware_in_single_workspace_mode_resolves_to_null_for_a_non_member()
+    {
+        Route::middleware(['web', 'auth'])->get('/__test/current-workspace', function (Request $request) {
+            return response()->json(['workspace_id' => $request->attributes->get('workspace')?->id]);
+        });
+
+        Workspace::factory()->create();
+        $outsider = User::factory()->create();
+
+        config(['archivum.multi_workspace_enabled' => false]);
+
+        $this->actingAs($outsider)
+            ->getJson('/__test/current-workspace')
+            ->assertOk()
+            ->assertJson(['workspace_id' => null]);
     }
 }
