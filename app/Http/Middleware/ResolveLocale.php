@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use App\Models\User;
@@ -15,8 +17,9 @@ class ResolveLocale
      * preference, falling back to the browser's Accept-Language header,
      * falling back to the application's configured default locale.
      *
-     * @param  Request  $request  The incoming request.
-     * @param  Closure(Request): Response  $next  The next middleware/handler in the pipeline.
+     * @param Request $request The incoming request.
+     * @param Closure(Request): Response $next The next middleware/handler in the pipeline.
+     *
      * @return Response The response produced by the rest of the pipeline.
      */
     public function handle(Request $request, Closure $next): Response

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Workspaces;
 
 use App\Actions\Workspace\CreateWorkspace;
@@ -16,8 +18,9 @@ class WorkspaceController extends Controller
     /**
      * Create a new workspace and switch the current session to it.
      *
-     * @param  StoreWorkspaceRequest  $request  The incoming request with the validated workspace name.
-     * @param  CreateWorkspace  $action  Creates the workspace and attaches the current user as its admin.
+     * @param StoreWorkspaceRequest $request The incoming request with the validated workspace name.
+     * @param CreateWorkspace $action Creates the workspace and attaches the current user as its admin.
+     *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws AuthorizationException If the current user cannot create workspaces.
@@ -36,9 +39,10 @@ class WorkspaceController extends Controller
     /**
      * Update a workspace's attributes.
      *
-     * @param  UpdateWorkspaceRequest  $request  The incoming request with the validated workspace name.
-     * @param  Workspace  $workspace  The workspace being updated.
-     * @param  UpdateWorkspace  $action  Applies the update.
+     * @param UpdateWorkspaceRequest $request The incoming request with the validated workspace name.
+     * @param Workspace $workspace The workspace being updated.
+     * @param UpdateWorkspace $action Applies the update.
+     *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws AuthorizationException If the current user cannot update $workspace.

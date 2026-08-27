@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Documents;
 
 use App\Actions\Documents\SearchDocuments;
@@ -17,9 +19,10 @@ class DocumentSearchController extends Controller
      * Search documents within a workspace, filtered by query, document type,
      * tags, and date range.
      *
-     * @param  SearchDocumentsRequest  $request  The incoming request with the validated search query and filters.
-     * @param  Workspace  $workspace  The workspace to search documents within.
-     * @param  SearchDocuments  $action  Runs the scoped Scout search with the given filters.
+     * @param SearchDocumentsRequest $request The incoming request with the validated search query and filters.
+     * @param Workspace $workspace The workspace to search documents within.
+     * @param SearchDocuments $action Runs the scoped Scout search with the given filters.
+     *
      * @return AnonymousResourceCollection A paginated collection of matching documents.
      *
      * @throws AuthorizationException If the current user cannot view documents in $workspace.

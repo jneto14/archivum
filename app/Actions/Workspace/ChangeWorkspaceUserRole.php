@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Actions\Workspace;
 
 use App\Enums\WorkspaceRole;
@@ -14,9 +16,10 @@ class ChangeWorkspaceUserRole
     /**
      * Change a member's role within a Workspace.
      *
-     * @param  Workspace  $workspace  The workspace the membership belongs to.
-     * @param  User  $user  The user whose role is being changed.
-     * @param  WorkspaceRole  $role  The new role to assign.
+     * @param Workspace $workspace The workspace the membership belongs to.
+     * @param User $user The user whose role is being changed.
+     * @param WorkspaceRole $role The new role to assign.
+     *
      * @return WorkspaceUser The membership record (unchanged if $role already matches the current role).
      *
      * @throws ModelNotFoundException If $user is not a member of $workspace.

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Organization;
 
 use App\Http\Controllers\Controller;
@@ -17,8 +19,9 @@ class OrganizationSchemeMigrationController extends Controller
      * Dispatch a background job to move all of a scheme's documents onto
      * another scheme within the same workspace.
      *
-     * @param  MigrateSchemeDocumentsRequest  $request  The incoming request with the validated target scheme id.
-     * @param  OrganizationScheme  $scheme  The source scheme whose documents are migrated away.
+     * @param MigrateSchemeDocumentsRequest $request The incoming request with the validated target scheme id.
+     * @param OrganizationScheme $scheme The source scheme whose documents are migrated away.
+     *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws AuthorizationException If the current user cannot update $scheme.
@@ -40,8 +43,9 @@ class OrganizationSchemeMigrationController extends Controller
      * Resolve the target scheme, ensuring it belongs to the same workspace
      * and differs from the source scheme being migrated.
      *
-     * @param  OrganizationScheme  $scheme  The source scheme being migrated away from.
-     * @param  string  $targetSchemeId  The UUID of the scheme documents should be migrated onto.
+     * @param OrganizationScheme $scheme The source scheme being migrated away from.
+     * @param string $targetSchemeId The UUID of the scheme documents should be migrated onto.
+     *
      * @return OrganizationScheme The resolved target scheme.
      *
      * @throws ModelNotFoundException If no scheme with $targetSchemeId exists in the same workspace as $scheme.

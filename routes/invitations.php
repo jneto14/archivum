@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Http\Controllers\Invitations\AcceptInvitationController;
 use Illuminate\Support\Facades\Route;
 

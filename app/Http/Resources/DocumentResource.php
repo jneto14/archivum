@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Resources;
 
 use App\Models\Document;
@@ -14,7 +16,8 @@ class DocumentResource extends JsonResource
     /**
      * Transform the document into its public array representation.
      *
-     * @param  Request  $request  The incoming request.
+     * @param Request $request The incoming request.
+     *
      * @return array<string, mixed> The document's public attributes, plus any eager-loaded relations.
      */
     public function toArray(Request $request): array

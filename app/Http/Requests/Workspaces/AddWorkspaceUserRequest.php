@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Workspaces;
 
 use App\Enums\WorkspaceRole;
@@ -19,7 +21,7 @@ class AddWorkspaceUserRequest extends FormRequest
         return [
             'email' => ['required', 'email'],
             'name' => [
-                Rule::requiredIf(fn () => ! User::query()->where('email', $this->input('email'))->exists()),
+                Rule::requiredIf(fn () => !User::query()->where('email', $this->input('email'))->exists()),
                 'nullable',
                 'string',
                 'max:255',

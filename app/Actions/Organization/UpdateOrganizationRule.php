@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Actions\Organization;
 
 use App\Models\OrganizationLevel;
@@ -11,11 +13,12 @@ class UpdateOrganizationRule
     /**
      * Update an OrganizationRule's matcher and target placement.
      *
-     * @param  OrganizationRule  $rule  The rule to update.
-     * @param  string  $matcherKey  The document attribute this rule matches against (e.g. "document_type").
-     * @param  string  $matcherValue  The value of $matcherKey that triggers this rule.
-     * @param  OrganizationLevel  $targetLevel  The level a matched document should be placed under.
-     * @param  string  $preferredValue  The node value to use/create at $targetLevel when the rule matches.
+     * @param OrganizationRule $rule The rule to update.
+     * @param string $matcherKey The document attribute this rule matches against (e.g. "document_type").
+     * @param string $matcherValue The value of $matcherKey that triggers this rule.
+     * @param OrganizationLevel $targetLevel The level a matched document should be placed under.
+     * @param string $preferredValue The node value to use/create at $targetLevel when the rule matches.
+     *
      * @return OrganizationRule The updated rule.
      *
      * @throws ValidationException If $targetLevel does not belong to $rule's scheme, or another rule for this matcher already exists in the scheme.
@@ -36,8 +39,9 @@ class UpdateOrganizationRule
     }
 
     /**
-     * @param  OrganizationRule  $rule  The rule being updated.
-     * @param  OrganizationLevel  $targetLevel  The candidate target level.
+     * @param OrganizationRule $rule The rule being updated.
+     * @param OrganizationLevel $targetLevel The candidate target level.
+     *
      * @return void No return value when valid.
      *
      * @throws ValidationException If $targetLevel does not belong to $rule's scheme.
@@ -52,9 +56,10 @@ class UpdateOrganizationRule
     }
 
     /**
-     * @param  OrganizationRule  $rule  The rule being updated (excluded from its own uniqueness check).
-     * @param  string  $matcherKey  The candidate matcher key.
-     * @param  string  $matcherValue  The candidate matcher value.
+     * @param OrganizationRule $rule The rule being updated (excluded from its own uniqueness check).
+     * @param string $matcherKey The candidate matcher key.
+     * @param string $matcherValue The candidate matcher value.
+     *
      * @return void No return value when unique.
      *
      * @throws ValidationException If a different rule in $rule's scheme already has this matcher key/value.

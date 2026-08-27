@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
@@ -22,7 +24,8 @@ class HandleInertiaRequests extends Middleware
      *
      * @see https://inertiajs.com/asset-versioning
      *
-     * @param  Request  $request  The incoming request.
+     * @param Request $request The incoming request.
+     *
      * @return string|null The current asset version, or null when versioning isn't configured.
      */
     public function version(Request $request): ?string
@@ -35,7 +38,8 @@ class HandleInertiaRequests extends Middleware
      *
      * @see https://inertiajs.com/shared-data
      *
-     * @param  Request  $request  The incoming request.
+     * @param Request $request The incoming request.
+     *
      * @return array<string, mixed> The shared props merged with the parent's default shared props.
      */
     public function share(Request $request): array
@@ -47,7 +51,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
-            'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'sidebarOpen' => !$request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
 }

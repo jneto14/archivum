@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Actions\Organization;
 
 use App\Actions\Documents\MoveDocument;
@@ -22,8 +24,9 @@ class MigrateSchemeDocuments
      * resolved under $target, using the same auto-placement rules
      * (ApplyOrganizationRules → FindAvailableLocation) a manual move uses.
      *
-     * @param  OrganizationScheme  $source  The scheme documents are currently located under.
-     * @param  OrganizationScheme  $target  The scheme documents are relocated into; must be a different scheme in the same workspace.
+     * @param OrganizationScheme $source The scheme documents are currently located under.
+     * @param OrganizationScheme $target The scheme documents are relocated into; must be a different scheme in the same workspace.
+     *
      * @return void No return value; documents are relocated as a side effect.
      *
      * @throws InvalidArgumentException If $target is the same scheme as $source, or belongs to a different workspace.
@@ -56,8 +59,9 @@ class MigrateSchemeDocuments
     }
 
     /**
-     * @param  OrganizationScheme  $source  The scheme documents are currently located under.
-     * @param  OrganizationScheme  $target  The candidate target scheme.
+     * @param OrganizationScheme $source The scheme documents are currently located under.
+     * @param OrganizationScheme $target The candidate target scheme.
+     *
      * @return void No return value when valid.
      *
      * @throws InvalidArgumentException If $source and $target are the same scheme, or belong to different workspaces.

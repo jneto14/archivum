@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Actions\Organization;
 
 use App\Enums\NodeValueStrategy;
@@ -14,9 +16,10 @@ class CreateScheme
     /**
      * Create a new OrganizationScheme together with its ordered levels.
      *
-     * @param  Workspace  $workspace  The workspace the scheme belongs to.
-     * @param  string  $name  The scheme's name.
-     * @param  array<int, array{name: string, key: string, capacity?: int|null, value_strategy: NodeValueStrategy, display_settings?: array<string, mixed>|null, metadata?: array<string, mixed>|null}>  $levels  The scheme's levels in order; each entry's array position determines its position (1-indexed).
+     * @param Workspace $workspace The workspace the scheme belongs to.
+     * @param string $name The scheme's name.
+     * @param array<int, array{name: string, key: string, capacity?: int|null, value_strategy: NodeValueStrategy, display_settings?: array<string, mixed>|null, metadata?: array<string, mixed>|null}> $levels The scheme's levels in order; each entry's array position determines its position (1-indexed).
+     *
      * @return OrganizationScheme The newly created scheme with its levels persisted.
      *
      * @throws ValidationException If $levels is empty, or contains duplicate level keys.
@@ -49,7 +52,8 @@ class CreateScheme
     }
 
     /**
-     * @param  array<int, array{key: string}>  $levels  The levels to validate.
+     * @param array<int, array{key: string}> $levels The levels to validate.
+     *
      * @return void No return value when valid.
      *
      * @throws ValidationException If $levels is empty, or contains duplicate 'key' values.

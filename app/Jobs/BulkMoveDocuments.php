@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use App\Actions\Organization\MigrateSchemeDocuments;
@@ -9,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use InvalidArgumentException;
 
 /**
  * Queues the migration of every document under one organization scheme to
@@ -20,8 +23,8 @@ class BulkMoveDocuments implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * @param  OrganizationScheme  $source  The scheme documents are currently organized under.
-     * @param  OrganizationScheme  $target  The scheme documents are moved into.
+     * @param OrganizationScheme $source The scheme documents are currently organized under.
+     * @param OrganizationScheme $target The scheme documents are moved into.
      */
     public function __construct(
         public readonly OrganizationScheme $source,
@@ -29,12 +32,13 @@ class BulkMoveDocuments implements ShouldQueue
     ) {}
 
     /**
-     * @param  MigrateSchemeDocuments  $action  Resolved from the container by the queue worker.
+     * @param MigrateSchemeDocuments $action Resolved from the container by the queue worker.
+     *
      * @return void No return value; documents are relocated as a side effect.
      *
-     * @throws \InvalidArgumentException If the source and target scheme are the same, or belong to
-     *                                   different workspaces (should not happen if dispatched via the
-     *                                   controller, which validates this first — defense in depth).
+     * @throws InvalidArgumentException If the source and target scheme are the same, or belong to
+     *                                  different workspaces (should not happen if dispatched via the
+     *                                  controller, which validates this first — defense in depth).
      */
     public function handle(MigrateSchemeDocuments $action): void
     {

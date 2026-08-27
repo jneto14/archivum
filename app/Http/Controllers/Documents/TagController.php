@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Documents;
 
 use App\Http\Controllers\Controller;
@@ -14,8 +16,9 @@ class TagController extends Controller
     /**
      * Create a new tag within the given workspace.
      *
-     * @param  StoreTagRequest  $request  The incoming request with the validated tag name.
-     * @param  Workspace  $workspace  The workspace the tag is created in.
+     * @param StoreTagRequest $request The incoming request with the validated tag name.
+     * @param Workspace $workspace The workspace the tag is created in.
+     *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws AuthorizationException If the current user cannot create tags in $workspace.

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Organization;
 
 use App\Actions\Organization\CreateOrganizationNode;
@@ -18,9 +20,10 @@ class OrganizationNodeController extends Controller
      * Create a node under the given scheme's level, optionally nested under
      * a parent node belonging to the same scheme.
      *
-     * @param  StoreOrganizationNodeRequest  $request  The incoming request with the validated level, parent, and value.
-     * @param  OrganizationScheme  $scheme  The scheme the new node belongs to.
-     * @param  CreateOrganizationNode  $action  Creates the node, auto-generating its value when applicable.
+     * @param StoreOrganizationNodeRequest $request The incoming request with the validated level, parent, and value.
+     * @param OrganizationScheme $scheme The scheme the new node belongs to.
+     * @param CreateOrganizationNode $action Creates the node, auto-generating its value when applicable.
+     *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws AuthorizationException If the current user cannot update $scheme.

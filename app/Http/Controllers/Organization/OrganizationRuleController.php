@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Organization;
 
 use App\Actions\Organization\CreateOrganizationRule;
@@ -20,9 +22,10 @@ class OrganizationRuleController extends Controller
     /**
      * Create a new matching rule for the given scheme.
      *
-     * @param  StoreOrganizationRuleRequest  $request  The incoming request with the validated matcher and target attributes.
-     * @param  OrganizationScheme  $scheme  The scheme the rule belongs to.
-     * @param  CreateOrganizationRule  $action  Creates the rule, after validating it against the scheme.
+     * @param StoreOrganizationRuleRequest $request The incoming request with the validated matcher and target attributes.
+     * @param OrganizationScheme $scheme The scheme the rule belongs to.
+     * @param CreateOrganizationRule $action Creates the rule, after validating it against the scheme.
+     *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws AuthorizationException If the current user cannot update $scheme.
@@ -49,10 +52,11 @@ class OrganizationRuleController extends Controller
     /**
      * Update an existing matching rule's matcher and target placement.
      *
-     * @param  UpdateOrganizationRuleRequest  $request  The incoming request with the validated matcher and target attributes.
-     * @param  OrganizationScheme  $scheme  The scheme the rule is expected to belong to.
-     * @param  OrganizationRule  $rule  The rule being updated.
-     * @param  UpdateOrganizationRule  $action  Applies the update, after validating it against the scheme.
+     * @param UpdateOrganizationRuleRequest $request The incoming request with the validated matcher and target attributes.
+     * @param OrganizationScheme $scheme The scheme the rule is expected to belong to.
+     * @param OrganizationRule $rule The rule being updated.
+     * @param UpdateOrganizationRule $action Applies the update, after validating it against the scheme.
+     *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws AuthorizationException If the current user cannot update $scheme.
@@ -82,8 +86,9 @@ class OrganizationRuleController extends Controller
     /**
      * Delete a matching rule.
      *
-     * @param  OrganizationScheme  $scheme  The scheme the rule is expected to belong to.
-     * @param  OrganizationRule  $rule  The rule to delete.
+     * @param OrganizationScheme $scheme The scheme the rule is expected to belong to.
+     * @param OrganizationRule $rule The rule to delete.
+     *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws AuthorizationException If the current user cannot update $scheme.

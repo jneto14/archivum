@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Workspaces;
 
 use App\Actions\Workspace\AddWorkspaceUser;
@@ -23,10 +25,11 @@ class WorkspaceUserController extends Controller
     /**
      * Add a user to the workspace, inviting them by email if they don't already have an account.
      *
-     * @param  AddWorkspaceUserRequest  $request  The incoming request with the validated email, name, and role.
-     * @param  Workspace  $workspace  The workspace the user is added to.
-     * @param  FindOrCreateInvitedUser  $findOrCreateUser  Finds the user by email, or creates and invites a new one.
-     * @param  AddWorkspaceUser  $action  Attaches the resolved user to $workspace with the given role.
+     * @param AddWorkspaceUserRequest $request The incoming request with the validated email, name, and role.
+     * @param Workspace $workspace The workspace the user is added to.
+     * @param FindOrCreateInvitedUser $findOrCreateUser Finds the user by email, or creates and invites a new one.
+     * @param AddWorkspaceUser $action Attaches the resolved user to $workspace with the given role.
+     *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws AuthorizationException If the current user cannot add members to $workspace.
@@ -46,10 +49,11 @@ class WorkspaceUserController extends Controller
     /**
      * Change a member's role within the workspace.
      *
-     * @param  UpdateWorkspaceUserRequest  $request  The incoming request with the validated new role.
-     * @param  Workspace  $workspace  The workspace the membership belongs to.
-     * @param  User  $targetUser  The member whose role is being changed.
-     * @param  ChangeWorkspaceUserRole  $action  Applies the role change.
+     * @param UpdateWorkspaceUserRequest $request The incoming request with the validated new role.
+     * @param Workspace $workspace The workspace the membership belongs to.
+     * @param User $targetUser The member whose role is being changed.
+     * @param ChangeWorkspaceUserRole $action Applies the role change.
+     *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws ModelNotFoundException If $targetUser is not a member of $workspace.
@@ -70,9 +74,10 @@ class WorkspaceUserController extends Controller
     /**
      * Remove a member from the workspace.
      *
-     * @param  Workspace  $workspace  The workspace the membership belongs to.
-     * @param  User  $targetUser  The member being removed.
-     * @param  RemoveWorkspaceUser  $action  Removes the membership.
+     * @param Workspace $workspace The workspace the membership belongs to.
+     * @param User $targetUser The member being removed.
+     * @param RemoveWorkspaceUser $action Removes the membership.
+     *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws ModelNotFoundException If $targetUser is not a member of $workspace.
@@ -93,8 +98,9 @@ class WorkspaceUserController extends Controller
     /**
      * Find the membership record linking the workspace and target user.
      *
-     * @param  Workspace  $workspace  The workspace the membership must belong to.
-     * @param  User  $targetUser  The user the membership must belong to.
+     * @param Workspace $workspace The workspace the membership must belong to.
+     * @param User $targetUser The user the membership must belong to.
+     *
      * @return WorkspaceUser The matching membership record.
      *
      * @throws ModelNotFoundException If $targetUser is not a member of $workspace.

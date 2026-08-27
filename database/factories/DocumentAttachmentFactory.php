@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Database\Factories;
 
 use App\Models\Document;
@@ -23,8 +25,8 @@ class DocumentAttachmentFactory extends Factory
             'document_id' => Document::factory(),
             'uploaded_by' => User::factory(),
             'disk' => 'local',
-            'path' => 'documents/'.fake()->uuid().'/'.fake()->uuid().'.pdf',
-            'filename' => fake()->word().'.pdf',
+            'path' => 'documents/' . fake()->uuid() . '/' . fake()->uuid() . '.pdf',
+            'filename' => fake()->word() . '.pdf',
             'mime_type' => 'application/pdf',
             'size' => fake()->numberBetween(1000, 5_000_000),
             'checksum' => hash('sha256', fake()->uuid()),

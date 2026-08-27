@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Database\Factories\OrganizationNodeFactory;
@@ -53,7 +55,8 @@ class OrganizationNode extends Model
      * Build the full hierarchical path of this node's value joined with its ancestors'
      * values, walking up the parent chain to the root.
      *
-     * @param  string  $separator  The string used to join each ancestor's value, root first.
+     * @param string $separator The string used to join each ancestor's value, root first.
+     *
      * @return string The joined path, e.g. "A-01-003" for a three-level hierarchy with the default separator.
      */
     public function path(string $separator = '-'): string

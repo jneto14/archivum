@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Middleware;
 
 use App\Models\Workspace;
@@ -19,8 +21,9 @@ class ResolveWorkspace
      * the session, so a user removed from a workspace mid-session loses
      * access on their very next request.
      *
-     * @param  Request  $request  The incoming request; its session's `current_workspace_id` is read and updated.
-     * @param  Closure(Request): Response  $next  The next middleware/handler in the pipeline.
+     * @param Request $request The incoming request; its session's `current_workspace_id` is read and updated.
+     * @param Closure(Request): Response $next The next middleware/handler in the pipeline.
+     *
      * @return Response The response produced by the rest of the pipeline.
      *
      * @throws HttpException If multi-workspace support is disabled and no workspace is configured (500), or the user isn't a member of the single configured workspace (403).
@@ -30,7 +33,7 @@ class ResolveWorkspace
     {
         $user = $request->user();
 
-        if (! config('archivum.multi_workspace_enabled')) {
+        if (!config('archivum.multi_workspace_enabled')) {
             $workspace = Workspace::query()->first();
 
             abort_if($workspace === null, 500, 'No workspace configured.');

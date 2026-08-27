@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Http\Controllers\Organization\OrganizationNodeController;
 use App\Http\Controllers\Organization\OrganizationRuleController;
 use App\Http\Controllers\Organization\OrganizationSchemeController;

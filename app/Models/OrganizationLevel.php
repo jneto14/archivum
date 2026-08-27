@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use App\Enums\NodeValueStrategy;
@@ -94,7 +96,8 @@ class OrganizationLevel extends Model
     /**
      * Count the existing nodes of this level that share the given parent node.
      *
-     * @param  OrganizationNode|null  $parent  The parent node to count direct children under, or null to count root-level nodes of this level (those with no parent).
+     * @param OrganizationNode|null $parent The parent node to count direct children under, or null to count root-level nodes of this level (those with no parent).
+     *
      * @return int The number of sibling nodes found.
      */
     public function siblingCountUnder(?OrganizationNode $parent): int
@@ -111,7 +114,8 @@ class OrganizationLevel extends Model
      * existing nodes under the given parent. A level without a configured capacity is
      * never considered full.
      *
-     * @param  OrganizationNode|null  $parent  The parent node to check sibling capacity under, or null for root-level nodes of this level.
+     * @param OrganizationNode|null $parent The parent node to check sibling capacity under, or null for root-level nodes of this level.
+     *
      * @return bool True if a capacity is configured and the sibling count under $parent has reached it.
      */
     public function capacityReached(?OrganizationNode $parent): bool
@@ -127,7 +131,8 @@ class OrganizationLevel extends Model
      * Generate the next node value under the given parent, based on this level's value strategy
      * (Sequential: zero-padded incrementing number; Alphabetical: spreadsheet-style letters).
      *
-     * @param  OrganizationNode|null  $parent  The parent node to count existing siblings under, or null for a root-level node.
+     * @param OrganizationNode|null $parent The parent node to count existing siblings under, or null for a root-level node.
+     *
      * @return string The generated value, ready to assign to a new OrganizationNode.
      *
      * @throws LogicException If this level's value_strategy is Manual, since Manual values must be supplied explicitly and cannot be auto-generated.
@@ -137,7 +142,7 @@ class OrganizationLevel extends Model
         $position = $this->siblingCountUnder($parent) + 1;
 
         return match ($this->value_strategy) {
-            NodeValueStrategy::Sequential => str_pad((string) $position, 3, '0', STR_PAD_LEFT),
+            NodeValueStrategy::Sequential => mb_str_pad((string) $position, 3, '0', STR_PAD_LEFT),
             NodeValueStrategy::Alphabetical => $this->numberToLetters($position),
             NodeValueStrategy::Manual => throw new LogicException('Cannot auto-generate a value for a Manual value-strategy level.'),
         };
@@ -146,7 +151,8 @@ class OrganizationLevel extends Model
     /**
      * Convert a 1-based position into spreadsheet-style letters (1 => A, 26 => Z, 27 => AA, ...).
      *
-     * @param  int  $number  The 1-based position to convert.
+     * @param int $number The 1-based position to convert.
+     *
      * @return string The resulting letter sequence.
      */
     private function numberToLetters(int $number): string
@@ -155,7 +161,7 @@ class OrganizationLevel extends Model
 
         while ($number > 0) {
             $number--;
-            $letters = chr(65 + ($number % 26)).$letters;
+            $letters = chr(65 + ($number % 26)) . $letters;
             $number = intdiv($number, 26);
         }
 

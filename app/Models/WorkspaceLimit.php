@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Database\Factories\WorkspaceLimitFactory;
@@ -38,7 +40,8 @@ class WorkspaceLimit extends Model
      * Determine whether the given user count has reached or exceeded this workspace's
      * configured user limit. A null limit means the count is unrestricted.
      *
-     * @param  int  $currentCount  The workspace's current member count to check against the limit.
+     * @param int $currentCount The workspace's current member count to check against the limit.
+     *
      * @return bool True if a limit is configured and currentCount meets or exceeds it.
      */
     public function exceedsUsers(int $currentCount): bool
@@ -50,7 +53,8 @@ class WorkspaceLimit extends Model
      * Determine whether the given document count has reached or exceeded this workspace's
      * configured document limit. A null limit means the count is unrestricted.
      *
-     * @param  int  $currentCount  The workspace's current document count to check against the limit.
+     * @param int $currentCount The workspace's current document count to check against the limit.
+     *
      * @return bool True if a limit is configured and currentCount meets or exceeds it.
      */
     public function exceedsDocuments(int $currentCount): bool
@@ -62,7 +66,8 @@ class WorkspaceLimit extends Model
      * Determine whether the given attachment count has reached or exceeded this workspace's
      * configured attachment limit. A null limit means the count is unrestricted.
      *
-     * @param  int  $currentCount  The workspace's current attachment count to check against the limit.
+     * @param int $currentCount The workspace's current attachment count to check against the limit.
+     *
      * @return bool True if a limit is configured and currentCount meets or exceeds it.
      */
     public function exceedsAttachments(int $currentCount): bool
@@ -74,8 +79,9 @@ class WorkspaceLimit extends Model
      * Determine whether adding the given bytes to current usage would exceed this
      * workspace's configured storage limit. A null limit means usage is unrestricted.
      *
-     * @param  int  $currentBytes  The workspace's current storage usage, in bytes.
-     * @param  int  $additionalBytes  The number of bytes about to be added (e.g. a new upload's size).
+     * @param int $currentBytes The workspace's current storage usage, in bytes.
+     * @param int $additionalBytes The number of bytes about to be added (e.g. a new upload's size).
+     *
      * @return bool True if a limit is configured and currentBytes + additionalBytes would exceed it.
      */
     public function exceedsStorage(int $currentBytes, int $additionalBytes): bool

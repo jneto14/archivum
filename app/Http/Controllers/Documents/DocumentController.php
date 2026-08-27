@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Documents;
 
 use App\Actions\Documents\CreateDocument;
@@ -22,9 +24,10 @@ class DocumentController extends Controller
     /**
      * Create a new document within the given workspace.
      *
-     * @param  StoreDocumentRequest  $request  The incoming request with the validated document attributes.
-     * @param  Workspace  $workspace  The workspace the document is created in.
-     * @param  CreateDocument  $action  Creates the document and syncs its tags.
+     * @param StoreDocumentRequest $request The incoming request with the validated document attributes.
+     * @param Workspace $workspace The workspace the document is created in.
+     * @param CreateDocument $action Creates the document and syncs its tags.
+     *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws AuthorizationException If the current user cannot create documents in $workspace.
@@ -53,9 +56,10 @@ class DocumentController extends Controller
     /**
      * Update a document's attributes and tags.
      *
-     * @param  UpdateDocumentRequest  $request  The incoming request with the validated document attributes.
-     * @param  Document  $document  The document being updated.
-     * @param  UpdateDocument  $action  Applies the update and resyncs tags.
+     * @param UpdateDocumentRequest $request The incoming request with the validated document attributes.
+     * @param Document $document The document being updated.
+     * @param UpdateDocument $action Applies the update and resyncs tags.
+     *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws AuthorizationException If the current user cannot update $document.
@@ -82,8 +86,9 @@ class DocumentController extends Controller
     /**
      * Delete a document.
      *
-     * @param  Document  $document  The document to delete.
-     * @param  DeleteDocument  $action  Deletes the document and its cascading records.
+     * @param Document $document The document to delete.
+     * @param DeleteDocument $action Deletes the document and its cascading records.
+     *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws AuthorizationException If the current user cannot delete $document.
@@ -100,8 +105,9 @@ class DocumentController extends Controller
     /**
      * Resolve a document type by id, scoped to the given workspace.
      *
-     * @param  Workspace  $workspace  The workspace the document type must belong to.
-     * @param  string  $documentTypeId  The UUID of the document type to resolve.
+     * @param Workspace $workspace The workspace the document type must belong to.
+     * @param string $documentTypeId The UUID of the document type to resolve.
+     *
      * @return DocumentType The matching document type.
      *
      * @throws ModelNotFoundException If no document type with $documentTypeId exists in $workspace.
@@ -117,8 +123,9 @@ class DocumentController extends Controller
     /**
      * Filter the given tag ids down to those that actually belong to the workspace.
      *
-     * @param  Workspace  $workspace  The workspace tags must belong to.
-     * @param  array<int, string>  $tagIds  Candidate tag UUIDs, e.g. from client input.
+     * @param Workspace $workspace The workspace tags must belong to.
+     * @param array<int, string> $tagIds Candidate tag UUIDs, e.g. from client input.
+     *
      * @return array<int, string> The subset of $tagIds that exist and belong to $workspace.
      */
     private function scopedTagIds(Workspace $workspace, array $tagIds): array

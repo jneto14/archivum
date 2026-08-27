@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
@@ -16,7 +18,8 @@ class SecurityController extends Controller
     /**
      * Show the user's security settings page.
      *
-     * @param  TwoFactorAuthenticationRequest  $request  The incoming request, used to resolve the current user and validate two-factor state.
+     * @param TwoFactorAuthenticationRequest $request The incoming request, used to resolve the current user and validate two-factor state.
+     *
      * @return Response The Inertia response rendering the security settings page.
      */
     public function edit(TwoFactorAuthenticationRequest $request): Response
@@ -56,7 +59,8 @@ class SecurityController extends Controller
     /**
      * Update the user's password.
      *
-     * @param  PasswordUpdateRequest  $request  The incoming request with the validated current and new password.
+     * @param PasswordUpdateRequest $request The incoming request with the validated current and new password.
+     *
      * @return RedirectResponse Redirect back to the previous page.
      */
     public function update(PasswordUpdateRequest $request): RedirectResponse

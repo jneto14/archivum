@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'levels_required' => 'É necessário pelo menos um nível.',
     'duplicate_level_keys' => 'As chaves de nível devem ser únicas dentro de um esquema.',
