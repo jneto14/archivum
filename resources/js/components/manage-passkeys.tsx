@@ -29,12 +29,7 @@ export default function ManagePasskeys(props: Props) {
     const passkeys = props.passkeys ?? [];
 
     const handleDelete = (id: string, onError: () => void) => {
-        // Wayfinder types this route's id param as `number` because it
-        // reflects the vendor Passkey model's own (inaccurate) docblock,
-        // which it can't know we've swapped for a UUID-keyed model at
-        // runtime (see AppServiceProvider::configurePasskeys()). The id is
-        // always a string in this app; only the generated type is wrong.
-        router.delete(destroy.url(id as unknown as number), {
+        router.delete(destroy.url(id), {
             preserveScroll: true,
             onError,
         });
