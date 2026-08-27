@@ -12,6 +12,10 @@ class CreateWorkspace
 {
     /**
      * Create a new Workspace and attach the owner as its admin.
+     *
+     * @param  User  $owner  The user who will own the workspace, added as its first admin.
+     * @param  string  $name  The workspace's name.
+     * @return Workspace The newly created workspace.
      */
     public function handle(User $owner, string $name): Workspace
     {

@@ -14,7 +14,12 @@ class CreateScheme
     /**
      * Create a new OrganizationScheme together with its ordered levels.
      *
-     * @param  array<int, array{name: string, key: string, capacity?: int|null, value_strategy: NodeValueStrategy, display_settings?: array<string, mixed>|null, metadata?: array<string, mixed>|null}>  $levels
+     * @param  Workspace  $workspace  The workspace the scheme belongs to.
+     * @param  string  $name  The scheme's name.
+     * @param  array<int, array{name: string, key: string, capacity?: int|null, value_strategy: NodeValueStrategy, display_settings?: array<string, mixed>|null, metadata?: array<string, mixed>|null}>  $levels  The scheme's levels in order; each entry's array position determines its position (1-indexed).
+     * @return OrganizationScheme The newly created scheme with its levels persisted.
+     *
+     * @throws ValidationException If $levels is empty, or contains duplicate level keys.
      */
     public function handle(Workspace $workspace, string $name, array $levels): OrganizationScheme
     {
@@ -44,7 +49,9 @@ class CreateScheme
     }
 
     /**
-     * @param  array<int, array{key: string}>  $levels
+     * @param  array<int, array{key: string}>  $levels  The levels to validate.
+     *
+     * @throws ValidationException If $levels is empty, or contains duplicate 'key' values.
      */
     private function assertLevelsAreConsistent(array $levels): void
     {

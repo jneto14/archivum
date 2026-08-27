@@ -9,6 +9,8 @@ class DeleteAttachment
 {
     /**
      * Delete an attachment and its underlying stored file.
+     *
+     * @param  DocumentAttachment  $attachment  The attachment to remove, including its stored file on disk.
      */
     public function handle(DocumentAttachment $attachment): void
     {

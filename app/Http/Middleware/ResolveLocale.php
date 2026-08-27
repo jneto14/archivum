@@ -14,6 +14,10 @@ class ResolveLocale
      * Resolve the active locale for this request: the authenticated user's
      * preference, falling back to the browser's Accept-Language header,
      * falling back to the application's configured default locale.
+     *
+     * @param  Request  $request  The incoming request.
+     * @param  Closure(Request): Response  $next  The next middleware/handler in the pipeline.
+     * @return Response The response produced by the rest of the pipeline.
      */
     public function handle(Request $request, Closure $next): Response
     {

@@ -43,7 +43,10 @@ class Workspace extends Model
     }
 
     /**
-     * Determine whether the given user belongs to this workspace.
+     * Determine whether the given user is a member of this workspace, i.e. has a
+     * corresponding workspace_user pivot record regardless of role.
+     *
+     * @param  User  $user  The user to check membership for.
      */
     public function isMember(User $user): bool
     {
@@ -54,7 +57,9 @@ class Workspace extends Model
     }
 
     /**
-     * Determine whether the given user has the admin role in this workspace.
+     * Determine whether the given user holds the Admin role in this workspace.
+     *
+     * @param  User  $user  The user to check the admin role for.
      */
     public function isAdmin(User $user): bool
     {
@@ -66,7 +71,9 @@ class Workspace extends Model
     }
 
     /**
-     * Count the members holding the admin role in this workspace.
+     * Count how many members currently hold the Admin role in this workspace.
+     *
+     * @return int The number of workspace_user records with the Admin role.
      */
     public function adminsCount(): int
     {
@@ -77,7 +84,11 @@ class Workspace extends Model
     }
 
     /**
-     * Determine whether removing the given user would leave the workspace without any admin.
+     * Determine whether removing the given user from this workspace would leave it
+     * with no remaining admins, based on whether they are currently its sole admin.
+     *
+     * @param  User  $user  The user being considered for removal.
+     * @return bool True if the user currently holds the Admin role and is the workspace's only admin.
      */
     public function wouldRemoveLastAdmin(User $user): bool
     {

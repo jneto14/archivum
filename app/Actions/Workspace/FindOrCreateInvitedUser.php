@@ -15,6 +15,11 @@ class FindOrCreateInvitedUser
      * set their own password. Archivum has no public registration (accounts
      * only exist via the seeded admin or being invited), so inviting a new
      * email is the only way to bring someone in.
+     *
+     * @param  string  $email  The email address to look up or invite.
+     * @param  string|null  $name  The name to use if a new user is created; ignored if a user with $email already exists.
+     * @param  Workspace  $workspace  The workspace referenced in the invitation notification.
+     * @return User The existing or newly created user.
      */
     public function handle(string $email, ?string $name, Workspace $workspace): User
     {

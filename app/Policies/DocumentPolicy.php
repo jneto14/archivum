@@ -8,16 +8,29 @@ use App\Models\Workspace;
 
 class DocumentPolicy
 {
+    /**
+     * Determine whether the user may list documents in the given workspace.
+     *
+     * @param  Workspace  $workspace  The workspace whose documents are being listed.
+     */
     public function viewAny(User $user, Workspace $workspace): bool
     {
         return $workspace->isMember($user);
     }
 
+    /**
+     * Determine whether the user may view the given document.
+     */
     public function view(User $user, Document $document): bool
     {
         return $document->workspace->isMember($user);
     }
 
+    /**
+     * Determine whether the user may create a document in the given workspace.
+     *
+     * @param  Workspace  $workspace  The workspace the document would be created in.
+     */
     public function create(User $user, Workspace $workspace): bool
     {
         return $workspace->isMember($user);

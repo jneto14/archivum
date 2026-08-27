@@ -11,6 +11,11 @@ class RemoveWorkspaceUser
 {
     /**
      * Remove a user from a Workspace.
+     *
+     * @param  Workspace  $workspace  The workspace to remove the user from.
+     * @param  User  $user  The user being removed.
+     *
+     * @throws ValidationException If removing $user would leave the workspace without an admin.
      */
     public function handle(Workspace $workspace, User $user): void
     {

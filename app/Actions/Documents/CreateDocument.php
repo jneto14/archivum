@@ -17,8 +17,16 @@ class CreateDocument
     /**
      * Create a new Document and sync its tags.
      *
-     * @param  array<string, mixed>|null  $metadata
-     * @param  array<int, string>  $tagIds
+     * @param  Workspace  $workspace  The workspace the document belongs to; its usage limits are enforced.
+     * @param  User  $creator  The user recorded as the document's creator.
+     * @param  DocumentType  $type  The document type assigned to the document.
+     * @param  string  $title  The document's title.
+     * @param  string|null  $documentDate  The date the document was issued/dated, if known.
+     * @param  array<string, mixed>|null  $metadata  Arbitrary type-specific metadata to store alongside the document.
+     * @param  array<int, string>  $tagIds  IDs of tags to attach to the document.
+     * @return Document The newly created document, with its tags synced.
+     *
+     * @throws ValidationException If the workspace has reached its document limit.
      */
     public function handle(Workspace $workspace, User $creator, DocumentType $type, string $title, ?string $documentDate, ?array $metadata, array $tagIds = []): Document
     {

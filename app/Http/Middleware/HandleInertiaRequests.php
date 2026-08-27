@@ -21,6 +21,9 @@ class HandleInertiaRequests extends Middleware
      * Determines the current asset version.
      *
      * @see https://inertiajs.com/asset-versioning
+     *
+     * @param  Request  $request  The incoming request.
+     * @return string|null The current asset version, or null when versioning isn't configured.
      */
     public function version(Request $request): ?string
     {
@@ -32,7 +35,8 @@ class HandleInertiaRequests extends Middleware
      *
      * @see https://inertiajs.com/shared-data
      *
-     * @return array<string, mixed>
+     * @param  Request  $request  The incoming request.
+     * @return array<string, mixed> The shared props merged with the parent's default shared props.
      */
     public function share(Request $request): array
     {

@@ -12,7 +12,8 @@ class CalculateWorkspaceUsage
     /**
      * Compute all workspace usage totals in one call.
      *
-     * @return array{storage_bytes: int, users: int, documents: int, attachments: int}
+     * @param  Workspace  $workspace  The workspace to compute usage for.
+     * @return array{storage_bytes: int, users: int, documents: int, attachments: int} Current usage totals.
      */
     public function handle(Workspace $workspace): array
     {
@@ -26,6 +27,9 @@ class CalculateWorkspaceUsage
 
     /**
      * Sum the byte size of all attachments belonging to the workspace's documents.
+     *
+     * @param  Workspace  $workspace  The workspace whose attachments are summed.
+     * @return int Total attachment size in bytes.
      */
     public function storageBytes(Workspace $workspace): int
     {
@@ -34,6 +38,9 @@ class CalculateWorkspaceUsage
 
     /**
      * Count the workspace's members.
+     *
+     * @param  Workspace  $workspace  The workspace whose members are counted.
+     * @return int The number of members.
      */
     public function users(Workspace $workspace): int
     {
@@ -42,6 +49,9 @@ class CalculateWorkspaceUsage
 
     /**
      * Count the workspace's documents.
+     *
+     * @param  Workspace  $workspace  The workspace whose documents are counted.
+     * @return int The number of documents.
      */
     public function documents(Workspace $workspace): int
     {
@@ -50,6 +60,9 @@ class CalculateWorkspaceUsage
 
     /**
      * Count attachments across the workspace's documents.
+     *
+     * @param  Workspace  $workspace  The workspace whose attachments are counted.
+     * @return int The number of attachments.
      */
     public function attachments(Workspace $workspace): int
     {
@@ -57,7 +70,8 @@ class CalculateWorkspaceUsage
     }
 
     /**
-     * @return Builder<DocumentAttachment>
+     * @param  Workspace  $workspace  The workspace to scope the attachments query to.
+     * @return Builder<DocumentAttachment> Query builder for attachments belonging to $workspace's documents.
      */
     private function attachmentsQuery(Workspace $workspace): Builder
     {

@@ -15,6 +15,13 @@ class UploadAttachment
 
     /**
      * Store an uploaded file and attach it to a Document.
+     *
+     * @param  Document  $document  The document the file is attached to; determines the owning workspace and storage path.
+     * @param  UploadedFile  $file  The uploaded file to store.
+     * @param  User  $uploader  The user recorded as having uploaded the file.
+     * @return DocumentAttachment The newly created attachment record.
+     *
+     * @throws ValidationException If the workspace has reached its attachment count limit, or storing $file would exceed its storage limit.
      */
     public function handle(Document $document, UploadedFile $file, User $uploader): DocumentAttachment
     {

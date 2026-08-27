@@ -69,7 +69,9 @@ class OrganizationLevel extends Model
     }
 
     /**
-     * Find the level immediately below this one in the same scheme, if any.
+     * Find the level immediately below this one (position + 1) within the same scheme.
+     *
+     * @return self|null The child level, or null if this is the scheme's bottommost level.
      */
     public function childLevel(): ?self
     {
@@ -80,7 +82,7 @@ class OrganizationLevel extends Model
     }
 
     /**
-     * Determine whether this is the bottommost level of its scheme.
+     * Determine whether this is the bottommost level of its scheme, i.e. it has no child level.
      */
     public function isLeaf(): bool
     {
@@ -88,7 +90,10 @@ class OrganizationLevel extends Model
     }
 
     /**
-     * Count the nodes of this level that share the given parent node.
+     * Count the existing nodes of this level that share the given parent node.
+     *
+     * @param  OrganizationNode|null  $parent  The parent node to count direct children under, or null to count root-level nodes of this level (those with no parent).
+     * @return int The number of sibling nodes found.
      */
     public function siblingCountUnder(?OrganizationNode $parent): int
     {
@@ -100,7 +105,11 @@ class OrganizationLevel extends Model
     }
 
     /**
-     * Determine whether the configured capacity for this level has been reached under the given parent.
+     * Determine whether this level's configured capacity has been reached among the
+     * existing nodes under the given parent. A level without a configured capacity is
+     * never considered full.
+     *
+     * @param  OrganizationNode|null  $parent  The parent node to check sibling capacity under, or null for root-level nodes of this level.
      */
     public function capacityReached(?OrganizationNode $parent): bool
     {
@@ -112,9 +121,13 @@ class OrganizationLevel extends Model
     }
 
     /**
-     * Generate the next node value under the given parent, based on this level's value strategy.
+     * Generate the next node value under the given parent, based on this level's value strategy
+     * (Sequential: zero-padded incrementing number; Alphabetical: spreadsheet-style letters).
      *
-     * @throws LogicException if the value strategy is Manual, which cannot be auto-generated.
+     * @param  OrganizationNode|null  $parent  The parent node to count existing siblings under, or null for a root-level node.
+     * @return string The generated value, ready to assign to a new OrganizationNode.
+     *
+     * @throws LogicException If this level's value_strategy is Manual, since Manual values must be supplied explicitly and cannot be auto-generated.
      */
     public function nextValueForParent(?OrganizationNode $parent): string
     {
@@ -129,6 +142,9 @@ class OrganizationLevel extends Model
 
     /**
      * Convert a 1-based position into spreadsheet-style letters (1 => A, 26 => Z, 27 => AA, ...).
+     *
+     * @param  int  $number  The 1-based position to convert.
+     * @return string The resulting letter sequence.
      */
     private function numberToLetters(int $number): string
     {

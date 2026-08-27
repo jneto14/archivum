@@ -6,6 +6,8 @@ use App\Models\Workspace;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ResolveWorkspace
 {
@@ -16,6 +18,13 @@ class ResolveWorkspace
      * Membership is re-validated on every request rather than trusted from
      * the session, so a user removed from a workspace mid-session loses
      * access on their very next request.
+     *
+     * @param  Request  $request  The incoming request; its session's `current_workspace_id` is read and updated.
+     * @param  Closure(Request): Response  $next  The next middleware/handler in the pipeline.
+     * @return Response The response produced by the rest of the pipeline.
+     *
+     * @throws HttpException If multi-workspace support is disabled and no workspace is configured (500), or the user isn't a member of the single configured workspace (403).
+     * @throws NotFoundHttpException If multi-workspace support is enabled and the user isn't a member of any workspace (403, thrown via `abort_if`).
      */
     public function handle(Request $request, Closure $next): Response
     {

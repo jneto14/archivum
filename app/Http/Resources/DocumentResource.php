@@ -12,7 +12,10 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class DocumentResource extends JsonResource
 {
     /**
-     * @return array<string, mixed>
+     * Transform the document into its public array representation.
+     *
+     * @param  Request  $request  The incoming request.
+     * @return array<string, mixed> The document's public attributes, plus any eager-loaded relations.
      */
     public function toArray(Request $request): array
     {

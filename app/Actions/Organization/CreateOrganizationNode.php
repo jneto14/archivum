@@ -13,6 +13,13 @@ class CreateOrganizationNode
      * Create a new OrganizationNode under the given parent (or as a root node
      * when the level is the first in its scheme), auto-generating the value
      * when the level's strategy allows it.
+     *
+     * @param  OrganizationLevel  $level  The level the new node belongs to.
+     * @param  OrganizationNode|null  $parent  The parent node, or null when $level is the scheme's root level.
+     * @param  string|null  $value  The node's value; if null, it is auto-generated from $level's value strategy (unless the strategy is Manual).
+     * @return OrganizationNode The newly created node.
+     *
+     * @throws ValidationException If $parent is inconsistent with $level's position in the scheme, $level has reached capacity under $parent, $value is null under a Manual value strategy, or the resulting value is not unique among siblings.
      */
     public function handle(OrganizationLevel $level, ?OrganizationNode $parent, ?string $value = null): OrganizationNode
     {
@@ -43,6 +50,9 @@ class CreateOrganizationNode
         ]);
     }
 
+    /**
+     * @throws ValidationException If $level is the root level but $parent is set, or $parent does not belong to the level immediately above $level.
+     */
     private function assertParentConsistency(OrganizationLevel $level, ?OrganizationNode $parent): void
     {
         if ($level->position === 1) {
@@ -62,6 +72,9 @@ class CreateOrganizationNode
         }
     }
 
+    /**
+     * @throws ValidationException If a sibling node under the same parent and level already has $value.
+     */
     private function assertValueIsUnique(OrganizationLevel $level, ?OrganizationNode $parent, string $value): void
     {
         $exists = OrganizationNode::query()

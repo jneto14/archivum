@@ -16,6 +16,9 @@ class WorkspacePolicy
         return true;
     }
 
+    /**
+     * Determine whether the user may view the given workspace.
+     */
     public function view(User $user, Workspace $workspace): bool
     {
         return $workspace->isMember($user);
@@ -30,16 +33,25 @@ class WorkspacePolicy
         return (bool) config('archivum.multi_workspace_enabled');
     }
 
+    /**
+     * Only workspace admins may update workspace settings.
+     */
     public function update(User $user, Workspace $workspace): bool
     {
         return $workspace->isAdmin($user);
     }
 
+    /**
+     * Only workspace admins may view usage and limits for the given workspace.
+     */
     public function viewUsage(User $user, Workspace $workspace): bool
     {
         return $workspace->isAdmin($user);
     }
 
+    /**
+     * Only workspace admins may delete a workspace.
+     */
     public function delete(User $user, Workspace $workspace): bool
     {
         return $workspace->isAdmin($user);

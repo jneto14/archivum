@@ -6,6 +6,7 @@ use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
 class CreateNewUser implements CreatesNewUsers
@@ -15,7 +16,10 @@ class CreateNewUser implements CreatesNewUsers
     /**
      * Validate and create a newly registered user.
      *
-     * @param  array<string, string>  $input
+     * @param  array<string, string>  $input  Raw registration input, expected to contain name, email, and password.
+     * @return User The newly created user.
+     *
+     * @throws ValidationException If $input fails the profile or password validation rules.
      */
     public function create(array $input): User
     {

@@ -15,6 +15,8 @@ trait ProfileValidationRules
     /**
      * Get the validation rules used to validate user profiles.
      *
+     * @param  string|null  $userId  The id of the user being updated, so their own email is excluded
+     *                               from the uniqueness check; omit when validating a brand-new profile.
      * @return array<string, array<int, ValidationRule|array<mixed>|string>>
      */
     protected function profileRules(?string $userId = null): array
@@ -40,6 +42,8 @@ trait ProfileValidationRules
     /**
      * Get the validation rules used to validate user emails.
      *
+     * @param  string|null  $userId  The id of the user being updated, so their own email is excluded
+     *                               from the uniqueness check; omit when validating a brand-new profile.
      * @return array<int, ValidationRule|array<mixed>|string>
      */
     protected function emailRules(?string $userId = null): array
