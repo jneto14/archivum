@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'mail_subject' => 'Foi convidado para :workspace',
     'mail_greeting' => 'Bem-vindo ao :workspace!',

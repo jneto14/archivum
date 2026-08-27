@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 return [
     'member_already_exists' => 'Este utilizador já é membro deste workspace.',
     'user_limit_reached' => 'Este workspace atingiu o seu limite de utilizadores.',

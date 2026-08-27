@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Documents;
 
 use App\Models\Workspace;
@@ -12,6 +14,8 @@ use Illuminate\Validation\Rule;
 class StoreTagRequest extends FormRequest
 {
     /**
+     * Get the validation rules that apply to the request.
+     *
      * @return array<string, array<int, mixed>>
      */
     public function rules(): array
