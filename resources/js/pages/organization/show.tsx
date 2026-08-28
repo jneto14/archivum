@@ -1,4 +1,4 @@
-import { Head, router, setLayoutProps, usePage } from '@inertiajs/react';
+import { Head, router, setLayoutProps } from '@inertiajs/react';
 import { PlusIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -69,7 +69,6 @@ export default function OrganizationSchemeShow({
         sequential: t('organization.show.strategy_sequential'),
         alphabetical: t('organization.show.strategy_alphabetical'),
     };
-    const { workspace } = usePage().props;
     const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
     const [editingRule, setEditingRule] = useState<Rule | null>(null);
     const [ruleForm, setRuleForm] = useState({
@@ -80,10 +79,7 @@ export default function OrganizationSchemeShow({
     });
 
     setLayoutProps({
-        breadcrumbs: [
-            { title: workspace?.name ?? '', href: '#' },
-            { title: t('organization.show.title'), href: '#' },
-        ],
+        breadcrumbs: [{ title: t('organization.show.title'), href: '#' }],
     });
 
     const openAddRule = () => {

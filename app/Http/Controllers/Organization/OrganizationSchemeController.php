@@ -80,7 +80,7 @@ class OrganizationSchemeController extends Controller
                     'preferred_value' => $rule->preferred_value,
                 ])->values()->all(),
             ],
-            'canManage' => $scheme->workspace->isAdmin($request->user()),
+            'canManage' => $scheme->workspace->isManageableBy($request->user()),
             'resultingPath' => $this->resultingPath($scheme),
         ]);
     }

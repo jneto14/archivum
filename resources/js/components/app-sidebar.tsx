@@ -34,7 +34,7 @@ import {
 } from '@/routes/organization/schemes';
 import { edit as editProfile } from '@/routes/profile';
 import { index as tagsIndex } from '@/routes/tags';
-import { show as workspaceShow } from '@/routes/workspaces';
+import { index as workspacesIndex } from '@/routes/workspaces';
 import { show as workspaceSettingsShow } from '@/routes/workspaces/settings';
 import { index as usersIndex } from '@/routes/workspaces/users';
 import type { NavItem } from '@/types';
@@ -42,6 +42,7 @@ import type { NavItem } from '@/types';
 export function AppSidebar() {
     const t = useTranslation();
     const {
+        auth,
         isWorkspaceAdmin,
         canSwitchWorkspace,
         documentsCount,
@@ -89,13 +90,12 @@ export function AppSidebar() {
     ];
 
     const configItems: NavItem[] = [
-        ...(canSwitchWorkspace
+        ...(canSwitchWorkspace && auth.user.is_platform_admin
             ? ([
                   {
                       title: t('nav.workspaces'),
-                      href: '#',
+                      href: workspacesIndex(),
                       icon: Layers,
-                      disabled: true,
                   },
               ] as NavItem[])
             : []),
@@ -135,9 +135,9 @@ export function AppSidebar() {
         },
         {
             title: t('nav.usage_limits'),
-            href: workspace ? workspaceShow.url(workspace.id) : '#',
+            href: '#',
             icon: Gauge,
-            disabled: !workspace,
+            disabled: true,
         },
         ...(isWorkspaceAdmin
             ? ([
@@ -162,7 +162,8 @@ export function AppSidebar() {
 
             <SidebarContent>
                 <NavMain label={t('nav.group_archive')} items={archiveItems} />
-                {isWorkspaceAdmin && (
+                {(isWorkspaceAdmin ||
+                    (canSwitchWorkspace && auth.user.is_platform_admin)) && (
                     <NavMain
                         label={t('nav.group_configuration')}
                         items={configItems}

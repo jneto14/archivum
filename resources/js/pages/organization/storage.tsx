@@ -82,7 +82,7 @@ export default function OrganizationStorage({
     canManage,
 }: Props) {
     const t = useTranslation();
-    const { workspace, errors } = usePage().props;
+    const { errors } = usePage().props;
     const [view, setView] = useState<'tree' | 'columns'>('tree');
     const [columnSelection, setColumnSelection] = useState<StorageNode[]>([]);
 
@@ -95,10 +95,7 @@ export default function OrganizationStorage({
     const [moveTargetId, setMoveTargetId] = useState('');
 
     setLayoutProps({
-        breadcrumbs: [
-            { title: workspace?.name ?? '', href: '#' },
-            { title: t('organization.storage.title'), href: '#' },
-        ],
+        breadcrumbs: [{ title: t('organization.storage.title'), href: '#' }],
     });
 
     const nodeCount = countNodes(tree);

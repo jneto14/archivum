@@ -59,7 +59,6 @@ export default function DocumentTypeIndex({
 
     setLayoutProps({
         breadcrumbs: [
-            { title: workspace.name, href: '#' },
             {
                 title: t('document_types.index.breadcrumb'),
                 href: index.url(workspace.id),

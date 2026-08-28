@@ -43,7 +43,7 @@ class OrganizationStorageController extends Controller
                 'is_leaf' => $level->isLeaf(),
             ])->values()->all(),
             'tree' => $this->buildTree($scheme->levels),
-            'canManage' => $scheme->workspace->isAdmin($request->user()),
+            'canManage' => $scheme->workspace->isManageableBy($request->user()),
         ]);
     }
 

@@ -36,16 +36,20 @@ class WorkspacePolicy
     }
 
     /**
-     * Workspace creation is only allowed when multi-workspace mode is
-     * enabled; in single-workspace mode no user may create additional ones.
+     * Workspace creation is restricted to platform admins; they pass this
+     * check via the Gate::before() bypass, so no other user may create one.
+     * Whether multi-workspace mode is enabled at all is an instance-wide
+     * flag, not a per-user authorization concern, so it's checked at the
+     * controller entry point (see WorkspaceController::store()) rather than
+     * here — the same convention used by WorkspaceController::index().
      *
      * @param User $user The acting user.
      *
-     * @return bool True if the `archivum.multi_workspace_enabled` config is enabled.
+     * @return bool Always false; only a platform admin (via Gate::before()) may create a workspace.
      */
     public function create(User $user): bool
     {
-        return (bool) config('archivum.multi_workspace_enabled');
+        return false;
     }
 
     /**
@@ -72,6 +76,23 @@ class WorkspacePolicy
     public function viewUsage(User $user, Workspace $workspace): bool
     {
         return $workspace->isAdmin($user);
+    }
+
+    /**
+     * Workspace resource limits are an operator-level control, not something
+     * a workspace's own admin manages — the "Usage & limits" page is purely
+     * informational for them. Only platform admins may edit limits; they
+     * pass this check via the Gate::before() bypass, so no workspace admin
+     * may edit limits for their own workspace.
+     *
+     * @param User $user The acting user.
+     * @param Workspace $workspace The workspace whose limits are being edited.
+     *
+     * @return bool Always false; only a platform admin (via Gate::before()) may edit workspace limits.
+     */
+    public function updateLimits(User $user, Workspace $workspace): bool
+    {
+        return false;
     }
 
     /**
