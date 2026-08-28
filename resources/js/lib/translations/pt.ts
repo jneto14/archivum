@@ -315,6 +315,17 @@ export default {
         ':name vai perder o acesso a este espaço de trabalho. Isto pode ser revertido com um novo convite.',
     'workspace.users.remove_confirm_button': 'Remover membro',
 
+    'workspace.usage.title': 'Utilização e limites',
+    'workspace.usage.description':
+        'Vê como o :workspace está a usar os recursos atribuídos.',
+    'workspace.usage.card_title': 'Utilização de recursos',
+    'workspace.usage.storage_label': 'Armazenamento',
+    'workspace.usage.users_label': 'Utilizadores',
+    'workspace.usage.documents_label': 'Documentos',
+    'workspace.usage.attachments_label': 'Anexos',
+    'workspace.usage.used_of_limit': ':used de :limit',
+    'workspace.usage.unlimited': ':used (ilimitado)',
+
     'workspace.settings.title': 'Definições',
     'workspace.settings.description':
         'Gere a configuração deste workspace, os tokens de API e a tua conta.',
