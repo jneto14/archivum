@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/', fn () => redirect()->route(Auth::check() ? 'dashboard' : 'login'))->name('home');
+
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('/', 'dashboard')->name('home');
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 });
 

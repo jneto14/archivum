@@ -19,12 +19,12 @@ class ExampleTest extends TestCase
         $response->assertRedirect(route('login'));
     }
 
-    public function test_authenticated_users_visiting_the_root_url_see_the_dashboard()
+    public function test_authenticated_users_visiting_the_root_url_are_redirected_to_the_dashboard()
     {
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->get(route('home'));
 
-        $response->assertOk();
+        $response->assertRedirect(route('dashboard'));
     }
 }
