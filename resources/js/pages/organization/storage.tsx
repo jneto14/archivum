@@ -6,6 +6,7 @@ import {
     Trash2Icon,
 } from 'lucide-react';
 import { useState } from 'react';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -65,13 +66,21 @@ function nodesAtDepth(nodes: StorageNode[], depth: number): StorageNode[] {
     return nodes.flatMap((node) => nodesAtDepth(node.children, depth - 1));
 }
 
+function firstEmptyLevel(levels: Level[], tree: StorageNode[]): Level | null {
+    return (
+        levels.find(
+            (level) => nodesAtDepth(tree, level.position - 1).length === 0,
+        ) ?? null
+    );
+}
+
 export default function OrganizationStorage({
     scheme,
     levels,
     tree,
     canManage,
 }: Props) {
-    const { workspace } = usePage().props;
+    const { workspace, errors } = usePage().props;
     const [view, setView] = useState<'tree' | 'columns'>('tree');
     const [columnSelection, setColumnSelection] = useState<StorageNode[]>([]);
 
@@ -98,9 +107,13 @@ export default function OrganizationStorage({
     const addParentOptions = addLevel
         ? nodesAtDepth(tree, addLevel.position - 2)
         : [];
+    const isLevelAddable = (level: Level) =>
+        level.position === 1 ||
+        nodesAtDepth(tree, level.position - 2).length > 0;
 
     const openAdd = () => {
-        setAddLevelId(leafLevel?.id ?? levels[0]?.id ?? '');
+        const target = firstEmptyLevel(levels, tree) ?? leafLevel ?? levels[0];
+        setAddLevelId(target?.id ?? '');
         setAddParentId('');
         setAddValue('');
         setAddOpen(true);
@@ -322,16 +335,20 @@ export default function OrganizationStorage({
                                     <SelectValue placeholder="Select a level" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {levels.map((level) => (
+                                    {levels.map((level, index) => (
                                         <SelectItem
                                             key={level.id}
                                             value={level.id}
+                                            disabled={!isLevelAddable(level)}
                                         >
                                             {level.name}
+                                            {!isLevelAddable(level) &&
+                                                ` (add ${levels[index - 1]?.name} first)`}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
+                            <InputError message={errors.level_id} />
                         </div>
                         {addLevel && addLevel.position > 1 && (
                             <div className="grid gap-2">
@@ -354,6 +371,7 @@ export default function OrganizationStorage({
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                <InputError message={errors.parent_id} />
                             </div>
                         )}
                         <div className="grid gap-2">
@@ -368,6 +386,8 @@ export default function OrganizationStorage({
                                 }
                                 placeholder="A"
                             />
+                            <InputError message={errors.value} />
+                            <InputError message={errors.capacity} />
                         </div>
                     </div>
                     <DialogFooter>
@@ -418,6 +438,7 @@ export default function OrganizationStorage({
                                         ))}
                                 </SelectContent>
                             </Select>
+                            <InputError message={errors.target_node_id} />
                         </div>
                     </div>
                     <DialogFooter>
