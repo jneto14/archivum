@@ -5,6 +5,7 @@ declare(strict_types=1);
 return [
     'levels_required' => 'É necessário pelo menos um nível.',
     'duplicate_level_keys' => 'As chaves de nível devem ser únicas dentro de um esquema.',
+    'alphabetical_capacity_max' => 'Um nível que usa a estratégia Alfabética não pode ter uma capacidade superior a 26 (A–Z).',
     'capacity_reached' => 'Este nível atingiu a sua capacidade configurada.',
     'value_required' => 'É necessário um valor para níveis que usam a estratégia Manual.',
     'root_node_cannot_have_parent' => 'Um nó no primeiro nível não pode ter um nó pai.',

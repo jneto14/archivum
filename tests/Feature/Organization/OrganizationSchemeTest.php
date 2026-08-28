@@ -72,6 +72,56 @@ class OrganizationSchemeTest extends TestCase
         $this->assertDatabaseMissing('organization_schemes', ['name' => 'Second Scheme']);
     }
 
+    public function test_an_alphabetical_level_with_no_capacity_defaults_to_26()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+
+        $this->actingAs($admin->user)->post(route('organization.schemes.store', $workspace), [
+            'name' => 'Traditional Archive',
+            'levels' => [
+                ['name' => 'Letter', 'key' => 'letter', 'value_strategy' => NodeValueStrategy::Alphabetical->value],
+            ],
+        ]);
+
+        $scheme = OrganizationScheme::query()->where('name', 'Traditional Archive')->firstOrFail();
+
+        $this->assertSame(26, $scheme->levels->first()->capacity);
+    }
+
+    public function test_an_alphabetical_level_capacity_greater_than_26_is_rejected()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+
+        $response = $this->actingAs($admin->user)->post(route('organization.schemes.store', $workspace), [
+            'name' => 'Traditional Archive',
+            'levels' => [
+                ['name' => 'Letter', 'key' => 'letter', 'capacity' => 27, 'value_strategy' => NodeValueStrategy::Alphabetical->value],
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('levels');
+        $this->assertDatabaseMissing('organization_schemes', ['name' => 'Traditional Archive']);
+    }
+
+    public function test_a_non_alphabetical_level_with_no_capacity_stays_unlimited()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+
+        $this->actingAs($admin->user)->post(route('organization.schemes.store', $workspace), [
+            'name' => 'Traditional Archive',
+            'levels' => [
+                ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential->value],
+            ],
+        ]);
+
+        $scheme = OrganizationScheme::query()->where('name', 'Traditional Archive')->firstOrFail();
+
+        $this->assertNull($scheme->levels->first()->capacity);
+    }
+
     public function test_non_admin_member_cannot_create_a_scheme()
     {
         $workspace = Workspace::factory()->create();
