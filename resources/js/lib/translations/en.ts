@@ -360,6 +360,17 @@ export default {
         "Copy this token now — it won't be shown again.",
     'workspace.settings.done_button': 'Done',
 
+    'password_strength.level_very_weak': 'Very weak',
+    'password_strength.level_weak': 'Weak',
+    'password_strength.level_fair': 'Fair',
+    'password_strength.level_good': 'Good',
+    'password_strength.level_strong': 'Strong',
+    'password_strength.requirement_length': 'At least 12 characters',
+    'password_strength.requirement_lowercase': 'A lowercase letter',
+    'password_strength.requirement_uppercase': 'An uppercase letter',
+    'password_strength.requirement_number': 'A number',
+    'password_strength.requirement_symbol': 'A symbol',
+
     'auth.accept_invitation.head_title': 'Accept invitation',
     'auth.accept_invitation.layout_title': 'Welcome to Archivum',
     'auth.accept_invitation.layout_description':

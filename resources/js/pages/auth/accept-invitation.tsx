@@ -1,6 +1,8 @@
 import { Form, Head, setLayoutProps } from '@inertiajs/react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import PasswordStrengthMeter from '@/components/password-strength-meter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +22,7 @@ export default function AcceptInvitation({
     passwordRules,
 }: Props) {
     const t = useTranslation();
+    const [password, setPassword] = useState('');
 
     setLayoutProps({
         title: t('auth.accept_invitation.layout_title'),
@@ -70,7 +73,11 @@ export default function AcceptInvitation({
                                     'auth.accept_invitation.password_placeholder',
                                 )}
                                 passwordrules={passwordRules}
+                                onChange={(event) =>
+                                    setPassword(event.target.value)
+                                }
                             />
+                            <PasswordStrengthMeter password={password} />
                             <InputError message={errors.password} />
                         </div>
 
