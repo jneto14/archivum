@@ -31,10 +31,27 @@ class WorkspaceLimitController extends Controller
     {
         $this->authorize('updateLimits', $workspace);
 
-        $action->handle($workspace, $request->validated());
+        $action->handle($workspace, $this->limitsFromRequest($request));
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('workspace.limits_updated')]);
 
         return back();
+    }
+
+    /**
+     * Normalize the request's raw limit fields into the shape expected by UpdateWorkspaceLimit.
+     *
+     * @param UpdateWorkspaceLimitRequest $request The incoming request holding the validated limit fields.
+     *
+     * @return array{storage_bytes: int|null, users: int|null, documents: int|null, attachments: int|null} The normalized limit values.
+     */
+    private function limitsFromRequest(UpdateWorkspaceLimitRequest $request): array
+    {
+        return [
+            'storage_bytes' => $request->validated('storage_bytes') !== null ? (int) $request->validated('storage_bytes') : null,
+            'users' => $request->validated('users') !== null ? (int) $request->validated('users') : null,
+            'documents' => $request->validated('documents') !== null ? (int) $request->validated('documents') : null,
+            'attachments' => $request->validated('attachments') !== null ? (int) $request->validated('attachments') : null,
+        ];
     }
 }
