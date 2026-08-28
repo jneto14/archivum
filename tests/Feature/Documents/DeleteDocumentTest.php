@@ -6,6 +6,7 @@ namespace Tests\Feature\Documents;
 
 use App\Actions\Documents\CreateDocument;
 use App\Actions\Documents\MoveDocument;
+use App\Actions\Documents\UploadAttachment;
 use App\Actions\Organization\CreateOrganizationNode;
 use App\Actions\Organization\CreateScheme;
 use App\Enums\NodeValueStrategy;
@@ -15,6 +16,8 @@ use App\Models\Tag;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class DeleteDocumentTest extends TestCase
@@ -66,5 +69,19 @@ class DeleteDocumentTest extends TestCase
 
         $this->assertDatabaseMissing('document_tags', ['document_id' => $document->id]);
         $this->assertDatabaseMissing('document_locations', ['document_id' => $document->id]);
+    }
+
+    public function test_deleting_a_document_purges_its_attachment_files_from_disk()
+    {
+        Storage::fake(config('archivum.attachments.disk'));
+        $workspace = Workspace::factory()->create();
+        $creator = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $type = DocumentType::factory()->for($workspace)->create();
+        $document = app(CreateDocument::class)->handle($workspace, $creator->user, $type, 'Original', null, null);
+        $attachment = app(UploadAttachment::class)->handle($document, UploadedFile::fake()->create('scan.pdf'), $creator->user);
+
+        $this->actingAs($creator->user)->delete(route('documents.destroy', $document))->assertRedirect();
+
+        Storage::disk($attachment->disk)->assertMissing($attachment->path);
     }
 }

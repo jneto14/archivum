@@ -10,6 +10,7 @@ import {
     Layers,
     RefreshCw,
     Settings,
+    SlidersHorizontal,
     Tag,
     Users,
 } from 'lucide-react';
@@ -33,6 +34,7 @@ import {
 import { edit as editProfile } from '@/routes/profile';
 import { index as tagsIndex } from '@/routes/tags';
 import { show as workspaceShow } from '@/routes/workspaces';
+import { show as workspaceSettingsShow } from '@/routes/workspaces/settings';
 import { index as usersIndex } from '@/routes/workspaces/users';
 import type { NavItem } from '@/types';
 
@@ -126,6 +128,18 @@ export function AppSidebar() {
             icon: Gauge,
             disabled: !workspace,
         },
+        ...(isWorkspaceAdmin
+            ? ([
+                  {
+                      title: 'Workspace settings',
+                      href: workspace
+                          ? workspaceSettingsShow.url(workspace.id)
+                          : '#',
+                      icon: SlidersHorizontal,
+                      disabled: !workspace,
+                  },
+              ] as NavItem[])
+            : []),
         { title: 'Settings', href: editProfile(), icon: Settings },
     ];
 
