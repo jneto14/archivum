@@ -20,6 +20,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useTranslation } from '@/hooks/use-translation';
 import { edit as schemeEdit } from '@/routes/organization/schemes';
 import rules from '@/routes/organization/schemes/rules';
 
@@ -57,17 +58,17 @@ type Props = {
     resultingPath: ResultingPath;
 };
 
-const STRATEGY_DESCRIPTIONS: Record<string, string> = {
-    manual: 'Value entered manually for each location',
-    sequential: 'Auto-generated: 001, 002…',
-    alphabetical: 'Auto-generated: A, B…',
-};
-
 export default function OrganizationSchemeShow({
     scheme,
     canManage,
     resultingPath,
 }: Props) {
+    const t = useTranslation();
+    const strategyDescriptions: Record<string, string> = {
+        manual: t('organization.show.strategy_manual'),
+        sequential: t('organization.show.strategy_sequential'),
+        alphabetical: t('organization.show.strategy_alphabetical'),
+    };
     const { workspace } = usePage().props;
     const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
     const [editingRule, setEditingRule] = useState<Rule | null>(null);
@@ -81,7 +82,7 @@ export default function OrganizationSchemeShow({
     setLayoutProps({
         breadcrumbs: [
             { title: workspace?.name ?? '', href: '#' },
-            { title: 'Organization scheme', href: '#' },
+            { title: t('organization.show.title'), href: '#' },
         ],
     });
 
@@ -134,17 +135,16 @@ export default function OrganizationSchemeShow({
 
     return (
         <>
-            <Head title="Organization scheme" />
+            <Head title={t('organization.show.title')} />
 
             <div className="mx-auto max-w-5xl space-y-6 p-6">
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight">
-                            Organization scheme
+                            {t('organization.show.title')}
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            Levels define the physical hierarchy. Nothing here
-                            is hard-coded in the application.
+                            {t('organization.show.subtitle')}
                         </p>
                     </div>
                     {canManage && (
@@ -155,7 +155,7 @@ export default function OrganizationSchemeShow({
                                 router.visit(schemeEdit.url(scheme.id))
                             }
                         >
-                            Edit
+                            {t('organization.show.edit_button')}
                         </Button>
                     )}
                 </div>
@@ -167,12 +167,26 @@ export default function OrganizationSchemeShow({
                                 <div>
                                     <CardTitle>{scheme.name}</CardTitle>
                                     <p className="mt-0.5 text-xs text-muted-foreground">
-                                        Active scheme · {scheme.levels.length}{' '}
-                                        level
-                                        {scheme.levels.length === 1 ? '' : 's'}
+                                        {scheme.levels.length === 1
+                                            ? t(
+                                                  'organization.show.active_scheme_levels_one',
+                                                  {
+                                                      count: scheme.levels
+                                                          .length,
+                                                  },
+                                              )
+                                            : t(
+                                                  'organization.show.active_scheme_levels_other',
+                                                  {
+                                                      count: scheme.levels
+                                                          .length,
+                                                  },
+                                              )}
                                     </p>
                                 </div>
-                                <Badge variant="secondary">Active</Badge>
+                                <Badge variant="secondary">
+                                    {t('organization.show.active_badge')}
+                                </Badge>
                             </CardHeader>
                             <CardContent className="space-y-0 p-0">
                                 {scheme.levels.map((level) => (
@@ -188,20 +202,28 @@ export default function OrganizationSchemeShow({
                                                 {level.name}
                                             </span>
                                             <span className="block font-mono text-xs text-muted-foreground">
-                                                key: {level.key}
+                                                {t(
+                                                    'organization.show.level_key_label',
+                                                )}{' '}
+                                                {level.key}
                                             </span>
                                         </span>
                                         <span className="flex-1 text-xs text-muted-foreground">
                                             {
-                                                STRATEGY_DESCRIPTIONS[
+                                                strategyDescriptions[
                                                     level.value_strategy
                                                 ]
                                             }
                                         </span>
                                         <span className="ml-auto flex-none text-xs text-muted-foreground">
                                             {level.capacity !== null
-                                                ? `Capacity ${level.capacity}`
-                                                : 'Unlimited'}
+                                                ? t(
+                                                      'organization.show.capacity_label',
+                                                      { count: level.capacity },
+                                                  )
+                                                : t(
+                                                      'organization.show.unlimited_label',
+                                                  )}
                                         </span>
                                     </div>
                                 ))}
@@ -211,9 +233,11 @@ export default function OrganizationSchemeShow({
                         <Card className="overflow-hidden py-0">
                             <CardHeader className="flex-row items-center justify-between border-b py-4">
                                 <div>
-                                    <CardTitle>Organization rules</CardTitle>
+                                    <CardTitle>
+                                        {t('organization.show.rules_heading')}
+                                    </CardTitle>
                                     <p className="mt-0.5 text-xs text-muted-foreground">
-                                        Recommendations, not constraints.
+                                        {t('organization.show.rules_subtitle')}
                                     </p>
                                 </div>
                                 {canManage && (
@@ -222,15 +246,17 @@ export default function OrganizationSchemeShow({
                                         size="sm"
                                         onClick={openAddRule}
                                     >
-                                        <PlusIcon /> Add rule
+                                        <PlusIcon />{' '}
+                                        {t('organization.show.add_rule_button')}
                                     </Button>
                                 )}
                             </CardHeader>
                             <CardContent className="space-y-0 p-0">
                                 {scheme.rules.length === 0 && (
                                     <p className="p-4 text-sm text-muted-foreground">
-                                        No rules yet — documents will file into
-                                        the first available location.
+                                        {t(
+                                            'organization.show.no_rules_empty_state',
+                                        )}
                                     </p>
                                 )}
                                 {scheme.rules.map((rule) => (
@@ -259,7 +285,9 @@ export default function OrganizationSchemeShow({
                                                         openEditRule(rule)
                                                     }
                                                 >
-                                                    Edit
+                                                    {t(
+                                                        'organization.show.edit_button',
+                                                    )}
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
@@ -280,9 +308,11 @@ export default function OrganizationSchemeShow({
 
                     <Card className="sticky top-6">
                         <CardHeader>
-                            <CardTitle>Resulting path</CardTitle>
+                            <CardTitle>
+                                {t('organization.show.resulting_path_heading')}
+                            </CardTitle>
                             <p className="text-xs text-muted-foreground">
-                                Preview using the first matching rule per level.
+                                {t('organization.show.resulting_path_subtitle')}
                             </p>
                         </CardHeader>
                         <CardContent className="space-y-2">
@@ -301,7 +331,7 @@ export default function OrganizationSchemeShow({
                             ))}
                             <div className="border-t pt-4 text-center">
                                 <p className="mb-1.5 text-xs text-muted-foreground">
-                                    Full location
+                                    {t('organization.show.full_location_label')}
                                 </p>
                                 <p className="font-mono text-lg font-semibold">
                                     {resultingPath.path}
@@ -315,12 +345,16 @@ export default function OrganizationSchemeShow({
             <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
                 <DialogContent>
                     <DialogTitle>
-                        {editingRule ? 'Edit rule' : 'Add rule'}
+                        {editingRule
+                            ? t('organization.show.edit_rule_dialog_title')
+                            : t('organization.show.add_rule_button')}
                     </DialogTitle>
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="matcher_key">Matcher key</Label>
+                                <Label htmlFor="matcher_key">
+                                    {t('organization.show.matcher_key_label')}
+                                </Label>
                                 <Input
                                     id="matcher_key"
                                     value={ruleForm.matcher_key}
@@ -334,7 +368,7 @@ export default function OrganizationSchemeShow({
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="matcher_value">
-                                    Matcher value
+                                    {t('organization.show.matcher_value_label')}
                                 </Label>
                                 <Input
                                     id="matcher_value"
@@ -350,7 +384,7 @@ export default function OrganizationSchemeShow({
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="target_level_id">
-                                Target level
+                                {t('organization.show.target_level_label')}
                             </Label>
                             <Select
                                 value={ruleForm.target_level_id}
@@ -381,7 +415,7 @@ export default function OrganizationSchemeShow({
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="preferred_value">
-                                Preferred value
+                                {t('organization.show.preferred_value_label')}
                             </Label>
                             <Input
                                 id="preferred_value"
@@ -397,10 +431,14 @@ export default function OrganizationSchemeShow({
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
-                            <Button variant="ghost">Cancel</Button>
+                            <Button variant="ghost">
+                                {t('organization.show.cancel_button')}
+                            </Button>
                         </DialogClose>
                         <Button onClick={submitRule}>
-                            {editingRule ? 'Save changes' : 'Add rule'}
+                            {editingRule
+                                ? t('organization.show.save_changes_button')
+                                : t('organization.show.add_rule_button')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -16,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import { useTranslation } from '@/hooks/use-translation';
 import {
     show as workspaceShow,
     update as updateWorkspace,
@@ -53,6 +54,7 @@ type Props = {
 };
 
 export default function WorkspaceShow({ workspace, isAdmin, usage }: Props) {
+    const t = useTranslation();
     const [renameOpen, setRenameOpen] = useState(false);
     const form = useForm({ name: workspace.name });
 
@@ -76,10 +78,26 @@ export default function WorkspaceShow({ workspace, isAdmin, usage }: Props) {
         label: string;
         format: (n: number) => string;
     }[] = [
-        { key: 'storage', label: 'Storage', format: formatBytes },
-        { key: 'documents', label: 'Documents', format: (n) => `${n}` },
-        { key: 'users', label: 'Users', format: (n) => `${n}` },
-        { key: 'attachments', label: 'Attachments', format: (n) => `${n}` },
+        {
+            key: 'storage',
+            label: t('workspace.show.usage_storage_label'),
+            format: formatBytes,
+        },
+        {
+            key: 'documents',
+            label: t('workspace.show.usage_documents_label'),
+            format: (n) => `${n}`,
+        },
+        {
+            key: 'users',
+            label: t('workspace.show.usage_users_label'),
+            format: (n) => `${n}`,
+        },
+        {
+            key: 'attachments',
+            label: t('workspace.show.usage_attachments_label'),
+            format: (n) => `${n}`,
+        },
     ];
 
     return (
@@ -97,17 +115,21 @@ export default function WorkspaceShow({ workspace, isAdmin, usage }: Props) {
                         <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
                             <DialogTrigger asChild>
                                 <Button variant="outline" size="sm">
-                                    Rename
+                                    {t('workspace.show.rename_button')}
                                 </Button>
                             </DialogTrigger>
                             <DialogContent>
-                                <DialogTitle>Rename workspace</DialogTitle>
+                                <DialogTitle>
+                                    {t('workspace.show.rename_dialog_title')}
+                                </DialogTitle>
                                 <form
                                     onSubmit={submitRename}
                                     className="space-y-4"
                                 >
                                     <div className="grid gap-2">
-                                        <Label htmlFor="name">Name</Label>
+                                        <Label htmlFor="name">
+                                            {t('workspace.show.name_label')}
+                                        </Label>
                                         <Input
                                             id="name"
                                             value={form.data.name}
@@ -129,14 +151,16 @@ export default function WorkspaceShow({ workspace, isAdmin, usage }: Props) {
                                                 type="button"
                                                 variant="ghost"
                                             >
-                                                Cancel
+                                                {t(
+                                                    'workspace.show.cancel_button',
+                                                )}
                                             </Button>
                                         </DialogClose>
                                         <Button
                                             type="submit"
                                             disabled={form.processing}
                                         >
-                                            Save
+                                            {t('workspace.show.save_button')}
                                         </Button>
                                     </DialogFooter>
                                 </form>
@@ -152,9 +176,11 @@ export default function WorkspaceShow({ workspace, isAdmin, usage }: Props) {
                 >
                     <UsersIcon className="size-5 text-muted-foreground" />
                     <div>
-                        <div className="font-semibold">Users</div>
+                        <div className="font-semibold">
+                            {t('workspace.show.users_nav_title')}
+                        </div>
                         <div className="text-xs text-muted-foreground">
-                            Manage members and roles
+                            {t('workspace.show.users_nav_description')}
                         </div>
                     </div>
                 </button>
@@ -162,7 +188,9 @@ export default function WorkspaceShow({ workspace, isAdmin, usage }: Props) {
                 {usage && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>Usage</CardTitle>
+                            <CardTitle>
+                                {t('workspace.show.usage_card_title')}
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             {usageCards.map(({ key, label, format }) => {

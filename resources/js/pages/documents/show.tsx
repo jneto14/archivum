@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { useTranslation } from '@/hooks/use-translation';
 import {
     destroy as attachmentDestroy,
     show as attachmentShow,
@@ -80,6 +81,7 @@ export default function DocumentShow({
     canFile,
     locationSuggestions,
 }: Props) {
+    const t = useTranslation();
     const { workspace } = usePage().props;
     const [moveOpen, setMoveOpen] = useState(false);
     const [file, setFile] = useState<File | null>(null);
@@ -87,7 +89,7 @@ export default function DocumentShow({
     setLayoutProps({
         breadcrumbs: [
             {
-                title: 'Documents',
+                title: t('documents.show.breadcrumb_documents'),
                 href: workspace ? documentsIndex.url(workspace.id) : '#',
             },
             { title: document.title, href: '#' },
@@ -144,17 +146,19 @@ export default function DocumentShow({
                                 router.visit(documentEdit.url(document.id))
                             }
                         >
-                            Edit
+                            {t('documents.show.edit_button')}
                         </Button>
                         {canFile ? (
                             <Button size="sm" onClick={() => setMoveOpen(true)}>
                                 {document.current_location
-                                    ? 'Move document'
-                                    : 'Assign location'}
+                                    ? t('documents.show.move_document_button')
+                                    : t(
+                                          'documents.show.assign_location_button',
+                                      )}
                             </Button>
                         ) : (
                             <span className="text-xs text-muted-foreground">
-                                Filing is admin-only
+                                {t('documents.show.filing_admin_only')}
                             </span>
                         )}
                     </div>
@@ -164,14 +168,18 @@ export default function DocumentShow({
                     <div className="space-y-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Metadata</CardTitle>
+                                <CardTitle>
+                                    {t('documents.show.metadata_title')}
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="grid grid-cols-2 gap-4">
                                     {document.document_date && (
                                         <div>
                                             <div className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                                                Document date
+                                                {t(
+                                                    'documents.show.document_date_label',
+                                                )}
                                             </div>
                                             <div className="text-sm">
                                                 {document.document_date}
@@ -203,7 +211,9 @@ export default function DocumentShow({
 
                         <Card>
                             <CardHeader className="flex-row items-center justify-between">
-                                <CardTitle>Attachments</CardTitle>
+                                <CardTitle>
+                                    {t('documents.show.attachments_title')}
+                                </CardTitle>
                                 <div className="flex items-center gap-2">
                                     <Input
                                         type="file"
@@ -220,14 +230,14 @@ export default function DocumentShow({
                                         onClick={uploadAttachment}
                                         disabled={!file}
                                     >
-                                        Upload
+                                        {t('documents.show.upload_button')}
                                     </Button>
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-2">
                                 {(document.attachments ?? []).length === 0 && (
                                     <p className="text-sm text-muted-foreground">
-                                        No attachments yet.
+                                        {t('documents.show.no_attachments')}
                                     </p>
                                 )}
                                 {(document.attachments ?? []).map(
@@ -285,7 +295,11 @@ export default function DocumentShow({
                     <div className="space-y-4">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Physical location</CardTitle>
+                                <CardTitle>
+                                    {t(
+                                        'documents.show.physical_location_title',
+                                    )}
+                                </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 {document.current_location ? (
@@ -294,7 +308,9 @@ export default function DocumentShow({
                                     </div>
                                 ) : (
                                     <p className="text-sm text-muted-foreground">
-                                        Not yet assigned.
+                                        {t(
+                                            'documents.show.location_not_assigned',
+                                        )}
                                     </p>
                                 )}
                             </CardContent>
@@ -302,13 +318,17 @@ export default function DocumentShow({
 
                         <Card>
                             <CardHeader>
-                                <CardTitle>Location history</CardTitle>
+                                <CardTitle>
+                                    {t('documents.show.location_history_title')}
+                                </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 {(document.location_history ?? []).length ===
                                     0 && (
                                     <p className="text-sm text-muted-foreground">
-                                        No history yet.
+                                        {t(
+                                            'documents.show.no_location_history',
+                                        )}
                                     </p>
                                 )}
                                 {(document.location_history ?? []).map(
@@ -331,12 +351,13 @@ export default function DocumentShow({
 
             <Dialog open={moveOpen} onOpenChange={setMoveOpen}>
                 <DialogContent>
-                    <DialogTitle>Assign physical location</DialogTitle>
+                    <DialogTitle>
+                        {t('documents.show.assign_location_dialog_title')}
+                    </DialogTitle>
                     <div className="space-y-2">
                         {locationSuggestions.length === 0 && (
                             <p className="text-sm text-muted-foreground">
-                                No available positions found for this document's
-                                scheme.
+                                {t('documents.show.no_location_suggestions')}
                             </p>
                         )}
                         {locationSuggestions.map((suggestion) => {
@@ -364,14 +385,27 @@ export default function DocumentShow({
                                                 {suggestion.node.path}
                                             </span>
                                             {suggestion.recommended && (
-                                                <Badge>Suggested</Badge>
+                                                <Badge>
+                                                    {t(
+                                                        'documents.show.suggested_badge',
+                                                    )}
+                                                </Badge>
                                             )}
                                         </div>
                                         <div className="text-xs text-muted-foreground">
-                                            {suggestion.documentsCount} document
                                             {suggestion.documentsCount === 1
-                                                ? ''
-                                                : 's'}
+                                                ? t(
+                                                      'documents.show.location_suggestion_count_one',
+                                                      {
+                                                          count: suggestion.documentsCount,
+                                                      },
+                                                  )
+                                                : t(
+                                                      'documents.show.location_suggestion_count_other',
+                                                      {
+                                                          count: suggestion.documentsCount,
+                                                      },
+                                                  )}
                                             {suggestion.capacity !== null
                                                 ? ` / ${suggestion.capacity}`
                                                 : ''}
@@ -388,7 +422,9 @@ export default function DocumentShow({
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
-                            <Button variant="ghost">Cancel</Button>
+                            <Button variant="ghost">
+                                {t('documents.show.cancel_button')}
+                            </Button>
                         </DialogClose>
                     </DialogFooter>
                 </DialogContent>

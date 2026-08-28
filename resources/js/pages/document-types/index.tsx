@@ -27,6 +27,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useTranslation } from '@/hooks/use-translation';
 import { destroy, index, store, update } from '@/routes/document-types';
 
 type DocumentTypeRow = {
@@ -47,6 +48,7 @@ export default function DocumentTypeIndex({
     documentTypes,
     canManage,
 }: Props) {
+    const t = useTranslation();
     const { errors } = usePage().props;
     const [editing, setEditing] = useState<DocumentTypeRow | null>(null);
     const [createOpen, setCreateOpen] = useState(false);
@@ -58,7 +60,10 @@ export default function DocumentTypeIndex({
     setLayoutProps({
         breadcrumbs: [
             { title: workspace.name, href: '#' },
-            { title: 'Document types', href: index.url(workspace.id) },
+            {
+                title: t('document_types.index.breadcrumb'),
+                href: index.url(workspace.id),
+            },
         ],
     });
 
@@ -105,34 +110,49 @@ export default function DocumentTypeIndex({
 
     return (
         <>
-            <Head title="Document types" />
+            <Head title={t('document_types.index.head_title')} />
 
             <div className="mx-auto max-w-3xl space-y-6 p-6">
                 <div className="flex items-end justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight">
-                            Document types
+                            {t('document_types.index.title')}
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            {documentTypes.length} type
-                            {documentTypes.length === 1 ? '' : 's'}
+                            {documentTypes.length === 1
+                                ? t('document_types.index.type_count_one', {
+                                      count: documentTypes.length,
+                                  })
+                                : t('document_types.index.type_count_other', {
+                                      count: documentTypes.length,
+                                  })}
                         </p>
                     </div>
                     {canManage && (
                         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                             <DialogTrigger asChild>
                                 <Button size="sm" onClick={openCreate}>
-                                    New type
+                                    {t('document_types.index.new_type_button')}
                                 </Button>
                             </DialogTrigger>
                             <DialogContent>
-                                <DialogTitle>New document type</DialogTitle>
+                                <DialogTitle>
+                                    {t(
+                                        'document_types.index.create_dialog_title',
+                                    )}
+                                </DialogTitle>
                                 <div className="space-y-4">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="name">Name</Label>
+                                        <Label htmlFor="name">
+                                            {t(
+                                                'document_types.index.name_label',
+                                            )}
+                                        </Label>
                                         <Input
                                             id="name"
-                                            placeholder="Invoice"
+                                            placeholder={t(
+                                                'document_types.index.name_placeholder',
+                                            )}
                                             value={form.data.name}
                                             onChange={(event) =>
                                                 form.setData(
@@ -146,10 +166,16 @@ export default function DocumentTypeIndex({
                                         />
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label htmlFor="key">Key</Label>
+                                        <Label htmlFor="key">
+                                            {t(
+                                                'document_types.index.key_label',
+                                            )}
+                                        </Label>
                                         <Input
                                             id="key"
-                                            placeholder="invoice"
+                                            placeholder={t(
+                                                'document_types.index.key_placeholder',
+                                            )}
                                             value={form.data.key}
                                             onChange={(event) =>
                                                 form.setData(
@@ -163,13 +189,19 @@ export default function DocumentTypeIndex({
                                 </div>
                                 <DialogFooter>
                                     <DialogClose asChild>
-                                        <Button variant="ghost">Cancel</Button>
+                                        <Button variant="ghost">
+                                            {t(
+                                                'document_types.index.cancel_button',
+                                            )}
+                                        </Button>
                                     </DialogClose>
                                     <Button
                                         onClick={submitCreate}
                                         disabled={form.processing}
                                     >
-                                        Create
+                                        {t(
+                                            'document_types.index.create_button',
+                                        )}
                                     </Button>
                                 </DialogFooter>
                             </DialogContent>
@@ -186,12 +218,16 @@ export default function DocumentTypeIndex({
                 {documentTypes.length === 0 ? (
                     <div className="rounded-xl border border-dashed p-12 text-center">
                         <div className="font-semibold">
-                            No document types yet
+                            {t('document_types.index.empty_title')}
                         </div>
                         <div className="text-sm text-muted-foreground">
                             {canManage
-                                ? 'Create a type to start registering documents.'
-                                : 'An admin has not defined any document types yet.'}
+                                ? t(
+                                      'document_types.index.empty_description_manager',
+                                  )
+                                : t(
+                                      'document_types.index.empty_description_viewer',
+                                  )}
                         </div>
                     </div>
                 ) : (
@@ -199,9 +235,17 @@ export default function DocumentTypeIndex({
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Key</TableHead>
-                                    <TableHead>Documents</TableHead>
+                                    <TableHead>
+                                        {t('document_types.index.name_column')}
+                                    </TableHead>
+                                    <TableHead>
+                                        {t('document_types.index.key_column')}
+                                    </TableHead>
+                                    <TableHead>
+                                        {t(
+                                            'document_types.index.documents_column',
+                                        )}
+                                    </TableHead>
                                     {canManage && (
                                         <TableHead className="w-32" />
                                     )}
@@ -231,7 +275,9 @@ export default function DocumentTypeIndex({
                                                             openEdit(type)
                                                         }
                                                     >
-                                                        Edit
+                                                        {t(
+                                                            'document_types.index.edit_button',
+                                                        )}
                                                     </Button>
                                                     <Button
                                                         variant="ghost"
@@ -246,7 +292,9 @@ export default function DocumentTypeIndex({
                                                             )
                                                         }
                                                     >
-                                                        Delete
+                                                        {t(
+                                                            'document_types.index.delete_button',
+                                                        )}
                                                     </Button>
                                                 </div>
                                             </TableCell>
@@ -264,10 +312,14 @@ export default function DocumentTypeIndex({
                 onOpenChange={(open) => !open && setEditing(null)}
             >
                 <DialogContent>
-                    <DialogTitle>Edit document type</DialogTitle>
+                    <DialogTitle>
+                        {t('document_types.index.edit_dialog_title')}
+                    </DialogTitle>
                     <div className="space-y-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="edit_name">Name</Label>
+                            <Label htmlFor="edit_name">
+                                {t('document_types.index.name_label')}
+                            </Label>
                             <Input
                                 id="edit_name"
                                 value={form.data.name}
@@ -278,7 +330,9 @@ export default function DocumentTypeIndex({
                             <InputError message={form.errors.name} />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="edit_key">Key</Label>
+                            <Label htmlFor="edit_key">
+                                {t('document_types.index.key_label')}
+                            </Label>
                             <Input
                                 id="edit_key"
                                 value={form.data.key}
@@ -291,10 +345,12 @@ export default function DocumentTypeIndex({
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
-                            <Button variant="ghost">Cancel</Button>
+                            <Button variant="ghost">
+                                {t('document_types.index.cancel_button')}
+                            </Button>
                         </DialogClose>
                         <Button onClick={submitEdit} disabled={form.processing}>
-                            Save changes
+                            {t('document_types.index.save_changes_button')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -305,17 +361,22 @@ export default function DocumentTypeIndex({
                 onOpenChange={(open) => !open && setRemoveTarget(null)}
             >
                 <DialogContent>
-                    <DialogTitle>Delete this document type?</DialogTitle>
+                    <DialogTitle>
+                        {t('document_types.index.delete_dialog_title')}
+                    </DialogTitle>
                     <p className="text-sm text-muted-foreground">
-                        {removeTarget?.name} will no longer be available when
-                        registering documents.
+                        {t('document_types.index.delete_dialog_description', {
+                            name: removeTarget?.name ?? '',
+                        })}
                     </p>
                     <DialogFooter>
                         <DialogClose asChild>
-                            <Button variant="secondary">Cancel</Button>
+                            <Button variant="secondary">
+                                {t('document_types.index.cancel_button')}
+                            </Button>
                         </DialogClose>
                         <Button variant="destructive" onClick={confirmRemove}>
-                            Delete
+                            {t('document_types.index.delete_button')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

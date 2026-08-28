@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useTranslation } from '@/hooks/use-translation';
 import { index as documentsIndex } from '@/routes/documents';
 import { destroy, index, store, update } from '@/routes/tags';
 
@@ -20,6 +21,7 @@ type Props = {
 };
 
 export default function TagIndex({ workspace, tags }: Props) {
+    const t = useTranslation();
     const [newName, setNewName] = useState('');
     const [renamingId, setRenamingId] = useState<string | null>(null);
     const [renameValue, setRenameValue] = useState('');
@@ -27,7 +29,7 @@ export default function TagIndex({ workspace, tags }: Props) {
     setLayoutProps({
         breadcrumbs: [
             { title: workspace.name, href: '#' },
-            { title: 'Tags', href: index.url(workspace.id) },
+            { title: t('tags.index.title'), href: index.url(workspace.id) },
         ],
     });
 
@@ -70,22 +72,21 @@ export default function TagIndex({ workspace, tags }: Props) {
 
     return (
         <>
-            <Head title="Tags" />
+            <Head title={t('tags.index.title')} />
 
             <div className="mx-auto max-w-3xl space-y-6 p-6">
                 <div>
                     <h1 className="text-2xl font-semibold tracking-tight">
-                        Tags
+                        {t('tags.index.title')}
                     </h1>
                     <p className="text-sm text-muted-foreground">
-                        Tags are workspace-scoped and independent from document
-                        types and physical storage.
+                        {t('tags.index.description')}
                     </p>
                 </div>
 
                 <div className="flex flex-wrap gap-2.5">
                     <Input
-                        placeholder="New tag name"
+                        placeholder={t('tags.index.new_tag_placeholder')}
                         value={newName}
                         onChange={(event) => setNewName(event.target.value)}
                         onKeyDown={(event) =>
@@ -94,15 +95,17 @@ export default function TagIndex({ workspace, tags }: Props) {
                         className="max-w-xs"
                     />
                     <Button size="sm" onClick={createTag}>
-                        Create tag
+                        {t('tags.index.create_button')}
                     </Button>
                 </div>
 
                 {tags.length === 0 ? (
                     <div className="rounded-xl border border-dashed p-12 text-center">
-                        <div className="font-semibold">No tags yet</div>
+                        <div className="font-semibold">
+                            {t('tags.index.empty_title')}
+                        </div>
                         <div className="text-sm text-muted-foreground">
-                            Create a tag to start labeling documents.
+                            {t('tags.index.empty_description')}
                         </div>
                     </div>
                 ) : (
@@ -136,7 +139,7 @@ export default function TagIndex({ workspace, tags }: Props) {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            title="Save"
+                                            title={t('tags.index.save_action')}
                                             onClick={submitRename}
                                         >
                                             <CheckIcon className="size-3.5" />
@@ -144,7 +147,9 @@ export default function TagIndex({ workspace, tags }: Props) {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            title="Cancel"
+                                            title={t(
+                                                'tags.index.cancel_action',
+                                            )}
                                             onClick={() => setRenamingId(null)}
                                         >
                                             <XIcon className="size-3.5" />
@@ -154,28 +159,38 @@ export default function TagIndex({ workspace, tags }: Props) {
                                     <Badge variant="outline">{tag.name}</Badge>
                                 )}
                                 <span className="min-w-0 flex-1 text-xs text-muted-foreground">
-                                    {tag.documents_count} document
-                                    {tag.documents_count === 1 ? '' : 's'} ·
-                                    last used{' '}
+                                    {tag.documents_count === 1
+                                        ? t('tags.index.documents_count_one', {
+                                              count: tag.documents_count,
+                                          })
+                                        : t(
+                                              'tags.index.documents_count_other',
+                                              {
+                                                  count: tag.documents_count,
+                                              },
+                                          )}{' '}
+                                    · {t('tags.index.last_used_label')}{' '}
                                     {tag.last_used_at
                                         ? new Date(
                                               tag.last_used_at,
                                           ).toLocaleDateString()
-                                        : 'never'}
+                                        : t('tags.index.last_used_never')}
                                 </span>
                                 <button
                                     type="button"
                                     onClick={() => showDocuments(tag)}
                                     className="flex-none text-xs font-medium text-foreground underline decoration-foreground/40 underline-offset-4"
                                 >
-                                    Show documents
+                                    {t('tags.index.show_documents_button')}
                                 </button>
                                 {renamingId !== tag.id && (
                                     <div className="flex flex-none items-center gap-1">
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            title="Rename tag"
+                                            title={t(
+                                                'tags.index.rename_action',
+                                            )}
                                             onClick={() => startRename(tag)}
                                         >
                                             <PencilIcon className="size-3.5" />
@@ -183,7 +198,9 @@ export default function TagIndex({ workspace, tags }: Props) {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            title="Delete tag"
+                                            title={t(
+                                                'tags.index.delete_action',
+                                            )}
                                             onClick={() => removeTag(tag)}
                                         >
                                             <Trash2Icon className="size-3.5" />

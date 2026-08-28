@@ -1,11 +1,14 @@
 import { Head } from '@inertiajs/react';
 import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
+import { useTranslation } from '@/hooks/use-translation';
 import { dashboard } from '@/routes';
 
 export default function Dashboard() {
+    const t = useTranslation();
+
     return (
         <>
-            <Head title="Dashboard" />
+            <Head title={t('dashboard.head_title')} />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="grid auto-rows-min gap-4 md:grid-cols-3">
                     <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
@@ -26,6 +29,9 @@ export default function Dashboard() {
     );
 }
 
+// Static layout metadata is set outside the component, so it can't call
+// useTranslation(); left in English until the persistent-layout resolver
+// supports translated titles/descriptions.
 Dashboard.layout = {
     breadcrumbs: [
         {
