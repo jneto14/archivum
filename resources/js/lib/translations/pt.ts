@@ -141,6 +141,10 @@ export default {
     'document_types.index.documents_column': 'Documentos',
     'document_types.index.edit_button': 'Editar',
     'document_types.index.delete_button': 'Eliminar',
+    'document_types.index.delete_disabled_tooltip_one':
+        ':count documento ainda associado — reatribui-o ou remove-o primeiro.',
+    'document_types.index.delete_disabled_tooltip_other':
+        ':count documentos ainda associados — reatribui-os ou remove-os primeiro.',
     'document_types.index.edit_dialog_title': 'Editar tipo de documento',
     'document_types.index.save_changes_button': 'Guardar alterações',
     'document_types.index.delete_dialog_title':

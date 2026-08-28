@@ -136,6 +136,10 @@ export default {
     'document_types.index.documents_column': 'Documents',
     'document_types.index.edit_button': 'Edit',
     'document_types.index.delete_button': 'Delete',
+    'document_types.index.delete_disabled_tooltip_one':
+        ':count document still assigned — reassign or remove it first.',
+    'document_types.index.delete_disabled_tooltip_other':
+        ':count documents still assigned — reassign or remove them first.',
     'document_types.index.edit_dialog_title': 'Edit document type',
     'document_types.index.save_changes_button': 'Save changes',
     'document_types.index.delete_dialog_title': 'Delete this document type?',

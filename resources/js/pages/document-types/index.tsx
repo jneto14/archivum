@@ -27,6 +27,11 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useTranslation } from '@/hooks/use-translation';
 import { destroy, index, store, update } from '@/routes/document-types';
 
@@ -278,23 +283,58 @@ export default function DocumentTypeIndex({
                                                             'document_types.index.edit_button',
                                                         )}
                                                     </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        disabled={
-                                                            type.documents_count >
-                                                            0
-                                                        }
-                                                        onClick={() =>
-                                                            setRemoveTarget(
-                                                                type,
-                                                            )
-                                                        }
-                                                    >
-                                                        {t(
-                                                            'document_types.index.delete_button',
-                                                        )}
-                                                    </Button>
+                                                    {type.documents_count >
+                                                    0 ? (
+                                                        <Tooltip>
+                                                            <TooltipTrigger
+                                                                asChild
+                                                            >
+                                                                <span
+                                                                    tabIndex={0}
+                                                                >
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        disabled
+                                                                    >
+                                                                        {t(
+                                                                            'document_types.index.delete_button',
+                                                                        )}
+                                                                    </Button>
+                                                                </span>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                {type.documents_count ===
+                                                                1
+                                                                    ? t(
+                                                                          'document_types.index.delete_disabled_tooltip_one',
+                                                                          {
+                                                                              count: type.documents_count,
+                                                                          },
+                                                                      )
+                                                                    : t(
+                                                                          'document_types.index.delete_disabled_tooltip_other',
+                                                                          {
+                                                                              count: type.documents_count,
+                                                                          },
+                                                                      )}
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    ) : (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                setRemoveTarget(
+                                                                    type,
+                                                                )
+                                                            }
+                                                        >
+                                                            {t(
+                                                                'document_types.index.delete_button',
+                                                            )}
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                         )}
