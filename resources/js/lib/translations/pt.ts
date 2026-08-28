@@ -17,7 +17,7 @@ export default {
     'nav.documents': 'Documentos',
     'nav.physical_storage': 'Armazenamento físico',
     'nav.activity': 'Atividade',
-    'nav.jobs_ocr': 'Tarefas e OCR',
+    'nav.tasks': 'Tarefas',
     'nav.workspaces': 'Workspaces',
     'nav.document_types': 'Tipos de documento',
     'nav.tags': 'Etiquetas',
@@ -314,6 +314,25 @@ export default {
     'workspace.users.remove_dialog_description':
         ':name vai perder o acesso a este espaço de trabalho. Isto pode ser revertido com um novo convite.',
     'workspace.users.remove_confirm_button': 'Remover membro',
+
+    'workspace.tasks.title': 'Tarefas',
+    'workspace.tasks.description':
+        'Acompanha os trabalhos em segundo plano despoletados neste workspace.',
+    'workspace.tasks.export_button': 'Exportar documentos (CSV)',
+    'workspace.tasks.empty_title': 'Ainda sem tarefas',
+    'workspace.tasks.empty_description':
+        'Os trabalhos em segundo plano despoletados neste workspace, como exportações de documentos, aparecem aqui.',
+    'workspace.tasks.column_type': 'Tipo',
+    'workspace.tasks.column_status': 'Estado',
+    'workspace.tasks.column_triggered_by': 'Despoletado por',
+    'workspace.tasks.column_started': 'Iniciado',
+    'workspace.tasks.type_document_export': 'Exportação de documentos',
+    'workspace.tasks.status_queued': 'Em fila',
+    'workspace.tasks.status_processing': 'A processar',
+    'workspace.tasks.status_completed': 'Concluída',
+    'workspace.tasks.status_failed': 'Falhou',
+    'workspace.tasks.download_button': 'Transferir',
+    'workspace.tasks.retry_button': 'Repetir',
 
     'workspace.usage.title': 'Utilização e limites',
     'workspace.usage.description':

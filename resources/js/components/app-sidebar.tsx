@@ -8,6 +8,7 @@ import {
     Gauge,
     LayoutGrid,
     Layers,
+    ListChecks,
     RefreshCw,
     Settings,
     SlidersHorizontal,
@@ -39,6 +40,7 @@ import {
     usage as workspaceUsage,
 } from '@/routes/workspaces';
 import { show as workspaceSettingsShow } from '@/routes/workspaces/settings';
+import { index as tasksIndex } from '@/routes/workspaces/tasks';
 import { index as usersIndex } from '@/routes/workspaces/users';
 import type { NavItem } from '@/types';
 
@@ -80,16 +82,6 @@ export function AppSidebar() {
             icon: Activity,
             disabled: true,
         },
-        ...(isWorkspaceAdmin
-            ? ([
-                  {
-                      title: t('nav.jobs_ocr'),
-                      href: '#',
-                      icon: RefreshCw,
-                      disabled: true,
-                  },
-              ] as NavItem[])
-            : []),
     ];
 
     const configItems: NavItem[] = [
@@ -142,6 +134,16 @@ export function AppSidebar() {
             icon: Gauge,
             disabled: !workspace,
         },
+        ...(isWorkspaceAdmin
+            ? ([
+                  {
+                      title: t('nav.tasks'),
+                      href: workspace ? tasksIndex.url(workspace.id) : '#',
+                      icon: ListChecks,
+                      disabled: !workspace,
+                  },
+              ] as NavItem[])
+            : []),
         ...(isWorkspaceAdmin
             ? ([
                   {

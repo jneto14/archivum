@@ -16,7 +16,7 @@ export default {
     'nav.documents': 'Documents',
     'nav.physical_storage': 'Physical storage',
     'nav.activity': 'Activity',
-    'nav.jobs_ocr': 'Jobs & OCR',
+    'nav.tasks': 'Tasks',
     'nav.workspaces': 'Workspaces',
     'nav.document_types': 'Document types',
     'nav.tags': 'Tags',
@@ -304,6 +304,25 @@ export default {
     'workspace.users.remove_dialog_description':
         ':name will lose access to this workspace. This can be undone through a new invite.',
     'workspace.users.remove_confirm_button': 'Remove member',
+
+    'workspace.tasks.title': 'Tasks',
+    'workspace.tasks.description':
+        'Track background jobs triggered in this workspace.',
+    'workspace.tasks.export_button': 'Export documents (CSV)',
+    'workspace.tasks.empty_title': 'No tasks yet',
+    'workspace.tasks.empty_description':
+        'Background jobs triggered in this workspace, like document exports, will show up here.',
+    'workspace.tasks.column_type': 'Type',
+    'workspace.tasks.column_status': 'Status',
+    'workspace.tasks.column_triggered_by': 'Triggered by',
+    'workspace.tasks.column_started': 'Started',
+    'workspace.tasks.type_document_export': 'Document export',
+    'workspace.tasks.status_queued': 'Queued',
+    'workspace.tasks.status_processing': 'Processing',
+    'workspace.tasks.status_completed': 'Completed',
+    'workspace.tasks.status_failed': 'Failed',
+    'workspace.tasks.download_button': 'Download',
+    'workspace.tasks.retry_button': 'Retry',
 
     'workspace.usage.title': 'Usage & limits',
     'workspace.usage.description':
