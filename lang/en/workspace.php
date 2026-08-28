@@ -11,4 +11,6 @@ return [
     'member_added' => 'Member added.',
     'role_updated' => 'Role updated.',
     'member_removed' => 'Member removed.',
+    'deleted' => 'Workspace deleted.',
+    'cannot_delete_last_workspace' => 'Cannot delete the only workspace in this instance.',
 ];

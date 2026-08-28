@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Workspaces;
 
 use App\Actions\Workspace\CalculateWorkspaceUsage;
 use App\Actions\Workspace\CreateWorkspace;
+use App\Actions\Workspace\DeleteWorkspace;
 use App\Actions\Workspace\UpdateWorkspace;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Workspaces\StoreWorkspaceRequest;
@@ -14,6 +15,7 @@ use App\Models\Workspace;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -85,6 +87,28 @@ class WorkspaceController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('workspace.updated')]);
 
         return back();
+    }
+
+    /**
+     * Delete a workspace and all of its data.
+     *
+     * @param Workspace $workspace The workspace being deleted.
+     * @param DeleteWorkspace $action Purges attachment files from disk, then deletes the workspace and cascades every dependent row.
+     *
+     * @return RedirectResponse Redirect to the dashboard, since $workspace no longer exists.
+     *
+     * @throws AuthorizationException If the current user cannot delete $workspace.
+     * @throws ValidationException If $workspace is the only workspace in the instance.
+     */
+    public function destroy(Workspace $workspace, DeleteWorkspace $action): RedirectResponse
+    {
+        $this->authorize('delete', $workspace);
+
+        $action->handle($workspace);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('workspace.deleted')]);
+
+        return redirect()->route('dashboard');
     }
 
     /**

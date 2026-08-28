@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Settings\ApiTokenController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
 use Illuminate\Auth\Middleware\RequirePassword;
@@ -26,6 +27,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('user-password.update');
 
     Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');
+
+    Route::post('settings/tokens', [ApiTokenController::class, 'store'])->name('tokens.store');
+    Route::delete('settings/tokens/{token}', [ApiTokenController::class, 'destroy'])->name('tokens.destroy');
 });
 
 Route::get('.well-known/passkey-endpoints', function () {
