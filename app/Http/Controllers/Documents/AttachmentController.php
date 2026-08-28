@@ -14,6 +14,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttachmentController extends Controller
@@ -35,6 +36,8 @@ class AttachmentController extends Controller
         $this->authorize('create', [DocumentAttachment::class, $document]);
 
         $action->handle($document, $request->file('file'), $request->user());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('document.attachment_uploaded')]);
 
         return back();
     }
@@ -70,6 +73,8 @@ class AttachmentController extends Controller
         $this->authorize('delete', $attachment);
 
         $action->handle($attachment);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('document.attachment_deleted')]);
 
         return back();
     }

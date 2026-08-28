@@ -14,4 +14,10 @@ return [
     'tag_created' => 'Etiqueta criada.',
     'tag_updated' => 'Etiqueta atualizada.',
     'tag_deleted' => 'Etiqueta eliminada.',
+    'created' => 'Documento registado.',
+    'updated' => 'Documento atualizado.',
+    'deleted' => 'Documento eliminado.',
+    'attachment_uploaded' => 'Anexo carregado.',
+    'attachment_deleted' => 'Anexo eliminado.',
+    'moved' => 'Localização do documento atualizada.',
 ];
