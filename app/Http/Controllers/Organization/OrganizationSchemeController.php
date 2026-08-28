@@ -123,13 +123,6 @@ class OrganizationSchemeController extends Controller
                 ])->values()->all(),
             ],
             'canManage' => $canManage,
-            'otherSchemes' => $canManage
-                ? OrganizationScheme::query()
-                    ->where('workspace_id', $scheme->workspace_id)
-                    ->whereKeyNot($scheme->id)
-                    ->orderBy('name')
-                    ->get(['id', 'name'])
-                : [],
         ]);
     }
 

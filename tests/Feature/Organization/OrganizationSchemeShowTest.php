@@ -37,8 +37,7 @@ class OrganizationSchemeShowTest extends TestCase
                 ->where('scheme.name', 'Traditional Archive')
                 ->has('scheme.levels', 1)
                 ->where('scheme.levels.0.name', 'Cover')
-                ->where('canManage', false)
-                ->where('otherSchemes', []),
+                ->where('canManage', false),
             );
     }
 
@@ -53,26 +52,6 @@ class OrganizationSchemeShowTest extends TestCase
         $this->actingAs($outsider->user)
             ->get(route('organization.schemes.show', $scheme))
             ->assertForbidden();
-    }
-
-    public function test_admin_sees_other_workspace_schemes_as_migration_targets()
-    {
-        $workspace = Workspace::factory()->create();
-        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
-        $scheme = app(CreateScheme::class)->handle($workspace, 'Source', [
-            ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
-        ]);
-        $other = app(CreateScheme::class)->handle($workspace, 'Target', [
-            ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
-        ]);
-
-        $this->actingAs($admin->user)
-            ->get(route('organization.schemes.show', $scheme))
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('canManage', true)
-                ->has('otherSchemes', 1)
-                ->where('otherSchemes.0.id', $other->id),
-            );
     }
 
     public function test_leaf_level_nodes_report_their_current_document_count()

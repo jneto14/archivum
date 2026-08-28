@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Organization;
 
+use App\Actions\Organization\CreateOrganizationNode;
 use App\Actions\Organization\CreateOrganizationRule;
 use App\Actions\Organization\CreateScheme;
 use App\Enums\NodeValueStrategy;
@@ -58,13 +59,15 @@ class OrganizationIsolationTest extends TestCase
 
     public function test_a_rule_belonging_to_a_different_scheme_than_the_url_returns_not_found()
     {
-        $workspace = Workspace::factory()->create();
-        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $workspaceA = Workspace::factory()->create();
+        $workspaceB = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspaceA)->create(['role' => WorkspaceRole::Admin]);
+        WorkspaceUser::factory()->for($workspaceB)->create(['role' => WorkspaceRole::Admin, 'user_id' => $admin->user_id]);
 
-        $schemeA = app(CreateScheme::class)->handle($workspace, 'Scheme A', [
+        $schemeA = app(CreateScheme::class)->handle($workspaceA, 'Scheme A', [
             ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
         ]);
-        $schemeB = app(CreateScheme::class)->handle($workspace, 'Scheme B', [
+        $schemeB = app(CreateScheme::class)->handle($workspaceB, 'Scheme B', [
             ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
         ]);
 
@@ -78,6 +81,29 @@ class OrganizationIsolationTest extends TestCase
 
         $response = $this->actingAs($admin->user)->delete(
             route('organization.schemes.rules.destroy', [$schemeB, $ruleOnSchemeA]),
+        );
+
+        $response->assertNotFound();
+    }
+
+    public function test_a_node_belonging_to_a_different_scheme_than_the_url_returns_not_found()
+    {
+        $workspaceA = Workspace::factory()->create();
+        $workspaceB = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspaceA)->create(['role' => WorkspaceRole::Admin]);
+        WorkspaceUser::factory()->for($workspaceB)->create(['role' => WorkspaceRole::Admin, 'user_id' => $admin->user_id]);
+
+        $schemeA = app(CreateScheme::class)->handle($workspaceA, 'Scheme A', [
+            ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
+        ]);
+        $schemeB = app(CreateScheme::class)->handle($workspaceB, 'Scheme B', [
+            ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
+        ]);
+
+        $nodeOnSchemeA = app(CreateOrganizationNode::class)->handle($schemeA->levels->first(), null, '001');
+
+        $response = $this->actingAs($admin->user)->delete(
+            route('organization.schemes.nodes.destroy', [$schemeB, $nodeOnSchemeA]),
         );
 
         $response->assertNotFound();

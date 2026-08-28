@@ -24,7 +24,6 @@ import {
 import {
     edit as schemeEdit,
     index as schemesIndex,
-    migrate as migrateScheme,
 } from '@/routes/organization/schemes';
 import nodes from '@/routes/organization/schemes/nodes';
 import rules from '@/routes/organization/schemes/rules';
@@ -70,14 +69,9 @@ type Props = {
         rules: Rule[];
     };
     canManage: boolean;
-    otherSchemes: { id: string; name: string }[];
 };
 
-export default function OrganizationSchemeShow({
-    scheme,
-    canManage,
-    otherSchemes,
-}: Props) {
+export default function OrganizationSchemeShow({ scheme, canManage }: Props) {
     const { workspace } = usePage().props;
     const [addNodeLevel, setAddNodeLevel] = useState<Level | null>(null);
     const [nodeParentId, setNodeParentId] = useState('');
@@ -90,9 +84,6 @@ export default function OrganizationSchemeShow({
         target_level_id: scheme.levels[0]?.id ?? '',
         preferred_value: '',
     });
-    const [migrateOpen, setMigrateOpen] = useState(false);
-    const [targetSchemeId, setTargetSchemeId] = useState('');
-
     setLayoutProps({
         breadcrumbs: [
             {
@@ -175,18 +166,6 @@ export default function OrganizationSchemeShow({
         });
     };
 
-    const submitMigration = () => {
-        if (targetSchemeId === '') {
-            return;
-        }
-
-        router.post(
-            migrateScheme.url(scheme.id),
-            { target_scheme_id: targetSchemeId },
-            { preserveScroll: true, onSuccess: () => setMigrateOpen(false) },
-        );
-    };
-
     return (
         <>
             <Head title={scheme.name} />
@@ -215,15 +194,6 @@ export default function OrganizationSchemeShow({
                             >
                                 Edit
                             </Button>
-                            {otherSchemes.length > 0 && (
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setMigrateOpen(true)}
-                                >
-                                    Migrate documents
-                                </Button>
-                            )}
                         </div>
                     )}
                 </div>
@@ -540,48 +510,6 @@ export default function OrganizationSchemeShow({
                         <Button onClick={submitRule}>
                             {editingRule ? 'Save changes' : 'Add rule'}
                         </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={migrateOpen} onOpenChange={setMigrateOpen}>
-                <DialogContent>
-                    <DialogTitle>
-                        Migrate documents to another scheme
-                    </DialogTitle>
-                    <div className="space-y-4">
-                        <p className="text-sm text-muted-foreground">
-                            Queues a background job that relocates every
-                            document currently filed under this scheme onto the
-                            selected one.
-                        </p>
-                        <div className="grid gap-2">
-                            <Label>Target scheme</Label>
-                            <Select
-                                value={targetSchemeId}
-                                onValueChange={setTargetSchemeId}
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select a scheme" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {otherSchemes.map((other) => (
-                                        <SelectItem
-                                            key={other.id}
-                                            value={other.id}
-                                        >
-                                            {other.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button variant="ghost">Cancel</Button>
-                        </DialogClose>
-                        <Button onClick={submitMigration}>Migrate</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
