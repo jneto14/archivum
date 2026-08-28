@@ -20,6 +20,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useTranslation } from '@/hooks/use-translation';
 import {
     create as documentCreate,
     index as documentsIndex,
@@ -55,6 +56,7 @@ export default function DocumentIndex({
     filters,
     documentTypes,
 }: Props) {
+    const t = useTranslation();
     const { workspace } = usePage().props;
     const [layout, setLayout] = useState<'table' | 'cards'>('table');
     const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -62,7 +64,7 @@ export default function DocumentIndex({
     setLayoutProps({
         breadcrumbs: [
             {
-                title: 'Documents',
+                title: t('documents.index.title'),
                 href: workspace ? documentsIndex.url(workspace.id) : '#',
             },
         ],
@@ -98,17 +100,22 @@ export default function DocumentIndex({
 
     return (
         <>
-            <Head title="Documents" />
+            <Head title={t('documents.index.title')} />
 
             <div className="space-y-6 p-6">
                 <div className="flex items-end justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight">
-                            Documents
+                            {t('documents.index.title')}
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            {documents.data.length} document
-                            {documents.data.length === 1 ? '' : 's'}
+                            {documents.data.length === 1
+                                ? t('documents.index.document_count_one', {
+                                      count: documents.data.length,
+                                  })
+                                : t('documents.index.document_count_other', {
+                                      count: documents.data.length,
+                                  })}
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -121,7 +128,7 @@ export default function DocumentIndex({
                                 size="sm"
                                 onClick={() => setLayout('table')}
                             >
-                                Table
+                                {t('documents.index.view_table')}
                             </Button>
                             <Button
                                 type="button"
@@ -131,7 +138,7 @@ export default function DocumentIndex({
                                 size="sm"
                                 onClick={() => setLayout('cards')}
                             >
-                                Cards
+                                {t('documents.index.view_cards')}
                             </Button>
                         </div>
                         <Button
@@ -140,14 +147,14 @@ export default function DocumentIndex({
                                 router.visit(documentCreate.url(workspace.id))
                             }
                         >
-                            New document
+                            {t('documents.index.new_document')}
                         </Button>
                     </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
                     <Input
-                        placeholder="Search title…"
+                        placeholder={t('documents.index.search_placeholder')}
                         defaultValue={filters.q ?? ''}
                         className="max-w-xs"
                         onChange={(event) =>
@@ -163,10 +170,16 @@ export default function DocumentIndex({
                         }
                     >
                         <SelectTrigger className="w-44">
-                            <SelectValue placeholder="Type" />
+                            <SelectValue
+                                placeholder={t(
+                                    'documents.index.filter_type_placeholder',
+                                )}
+                            />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value={ALL}>All types</SelectItem>
+                            <SelectItem value={ALL}>
+                                {t('documents.index.filter_all_types')}
+                            </SelectItem>
                             {documentTypes.map((type) => (
                                 <SelectItem key={type.id} value={type.id}>
                                     {type.name}
@@ -195,33 +208,37 @@ export default function DocumentIndex({
                 {selected.size > 0 && (
                     <div className="flex items-center gap-3 rounded-lg border border-primary bg-secondary px-3.5 py-2.5">
                         <span className="text-sm font-medium">
-                            {selected.size} selected
+                            {t('documents.index.selected_count', {
+                                count: selected.size,
+                            })}
                         </span>
                         <div className="flex-1" />
                         <Button size="sm" disabled>
-                            Bulk move
+                            {t('documents.index.bulk_move')}
                         </Button>
                         <Button variant="outline" size="sm" disabled>
-                            Add tag
+                            {t('documents.index.add_tag')}
                         </Button>
                         <Button variant="outline" size="sm" disabled>
-                            Export
+                            {t('documents.index.export')}
                         </Button>
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setSelected(new Set())}
                         >
-                            Clear
+                            {t('documents.index.clear')}
                         </Button>
                     </div>
                 )}
 
                 {documents.data.length === 0 && (
                     <div className="rounded-xl border border-dashed p-12 text-center">
-                        <div className="font-semibold">No documents match</div>
+                        <div className="font-semibold">
+                            {t('documents.index.empty_title')}
+                        </div>
                         <div className="text-sm text-muted-foreground">
-                            Try a different search term or clear the filters.
+                            {t('documents.index.empty_description')}
                         </div>
                     </div>
                 )}
@@ -248,10 +265,18 @@ export default function DocumentIndex({
                                             }
                                         />
                                     </TableHead>
-                                    <TableHead>Document</TableHead>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Physical location</TableHead>
+                                    <TableHead>
+                                        {t('documents.index.column_document')}
+                                    </TableHead>
+                                    <TableHead>
+                                        {t('documents.index.column_type')}
+                                    </TableHead>
+                                    <TableHead>
+                                        {t('documents.index.column_date')}
+                                    </TableHead>
+                                    <TableHead>
+                                        {t('documents.index.column_location')}
+                                    </TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -327,7 +352,8 @@ export default function DocumentIndex({
                                 </div>
                                 <div className="flex items-center justify-between border-t pt-2.5 text-xs text-muted-foreground">
                                     <span className="font-mono">
-                                        {doc.current_location ?? 'Unfiled'}
+                                        {doc.current_location ??
+                                            t('documents.index.unfiled')}
                                     </span>
                                     <span>{doc.document_date ?? ''}</span>
                                 </div>

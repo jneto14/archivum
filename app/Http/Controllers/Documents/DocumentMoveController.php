@@ -15,6 +15,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 use LogicException;
 
 class DocumentMoveController extends Controller
@@ -46,6 +47,8 @@ class DocumentMoveController extends Controller
             : $this->resolveAutoNode($document, $findAvailableLocation, $request->validated('scheme_id'), $request->validated('criteria') ?? []);
 
         $action->handle($document, $node);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('document.moved')]);
 
         return back();
     }

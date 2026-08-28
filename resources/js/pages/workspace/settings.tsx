@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useTranslation } from '@/hooks/use-translation';
 import {
     create as schemeCreate,
     show as schemeShow,
@@ -56,6 +57,8 @@ export default function WorkspaceSettings({
     instance,
     tokens: apiTokens,
 }: Props) {
+    const t = useTranslation();
+
     const [renameOpen, setRenameOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [deleteConfirmName, setDeleteConfirmName] = useState('');
@@ -67,7 +70,7 @@ export default function WorkspaceSettings({
     setLayoutProps({
         breadcrumbs: [
             { title: workspace.name, href: workspaceShow.url(workspace.id) },
-            { title: 'Settings', href: '#' },
+            { title: t('workspace.settings.title'), href: '#' },
         ],
     });
 
@@ -113,18 +116,22 @@ export default function WorkspaceSettings({
     return (
         <div className="mx-auto max-w-3xl space-y-6 p-6">
             <Heading
-                title="Settings"
-                description="Manage this workspace's configuration, API tokens, and account."
+                title={t('workspace.settings.title')}
+                description={t('workspace.settings.description')}
             />
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Workspace</CardTitle>
+                    <CardTitle>
+                        {t('workspace.settings.workspace_section_title')}
+                    </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between gap-4">
                         <div>
-                            <div className="text-sm font-medium">Name</div>
+                            <div className="text-sm font-medium">
+                                {t('workspace.settings.name_label')}
+                            </div>
                             <div className="text-sm text-muted-foreground">
                                 {workspace.name}
                             </div>
@@ -132,17 +139,23 @@ export default function WorkspaceSettings({
                         <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
                             <DialogTrigger asChild>
                                 <Button variant="outline" size="sm">
-                                    Rename
+                                    {t('workspace.settings.rename_button')}
                                 </Button>
                             </DialogTrigger>
                             <DialogContent>
-                                <DialogTitle>Rename workspace</DialogTitle>
+                                <DialogTitle>
+                                    {t(
+                                        'workspace.settings.rename_dialog_title',
+                                    )}
+                                </DialogTitle>
                                 <form
                                     onSubmit={submitRename}
                                     className="space-y-4"
                                 >
                                     <div className="grid gap-2">
-                                        <Label htmlFor="name">Name</Label>
+                                        <Label htmlFor="name">
+                                            {t('workspace.settings.name_label')}
+                                        </Label>
                                         <Input
                                             id="name"
                                             value={renameForm.data.name}
@@ -164,14 +177,18 @@ export default function WorkspaceSettings({
                                                 type="button"
                                                 variant="ghost"
                                             >
-                                                Cancel
+                                                {t(
+                                                    'workspace.settings.cancel_button',
+                                                )}
                                             </Button>
                                         </DialogClose>
                                         <Button
                                             type="submit"
                                             disabled={renameForm.processing}
                                         >
-                                            Save
+                                            {t(
+                                                'workspace.settings.save_button',
+                                            )}
                                         </Button>
                                     </DialogFooter>
                                 </form>
@@ -182,10 +199,14 @@ export default function WorkspaceSettings({
                     <div className="flex items-center justify-between gap-4 border-t pt-4">
                         <div>
                             <div className="text-sm font-medium">
-                                Organization scheme
+                                {t(
+                                    'workspace.settings.organization_scheme_label',
+                                )}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                                {scheme ? scheme.name : 'No scheme created yet'}
+                                {scheme
+                                    ? scheme.name
+                                    : t('workspace.settings.no_scheme_text')}
                             </div>
                         </div>
                         <Button variant="outline" size="sm" asChild>
@@ -196,7 +217,11 @@ export default function WorkspaceSettings({
                                         : schemeCreate.url(workspace.id)
                                 }
                             >
-                                {scheme ? 'View' : 'Create'}
+                                {scheme
+                                    ? t('workspace.settings.scheme_view_button')
+                                    : t(
+                                          'workspace.settings.scheme_create_button',
+                                      )}
                             </Link>
                         </Button>
                     </div>
@@ -205,14 +230,18 @@ export default function WorkspaceSettings({
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Instance</CardTitle>
+                    <CardTitle>
+                        {t('workspace.settings.instance_section_title')}
+                    </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                     <p className="text-xs text-muted-foreground">
-                        Set via environment configuration — not editable here.
+                        {t('workspace.settings.instance_description')}
                     </p>
                     <div className="flex items-center justify-between">
-                        <span className="text-sm">Multi-workspace</span>
+                        <span className="text-sm">
+                            {t('workspace.settings.multi_workspace_label')}
+                        </span>
                         <Badge
                             variant={
                                 instance.multi_workspace_enabled
@@ -221,12 +250,14 @@ export default function WorkspaceSettings({
                             }
                         >
                             {instance.multi_workspace_enabled
-                                ? 'Enabled'
-                                : 'Disabled'}
+                                ? t('workspace.settings.enabled_badge')
+                                : t('workspace.settings.disabled_badge')}
                         </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-sm">Attachments disk</span>
+                        <span className="text-sm">
+                            {t('workspace.settings.attachments_disk_label')}
+                        </span>
                         <Badge variant="secondary">
                             {instance.attachments_disk}
                         </Badge>
@@ -236,12 +267,14 @@ export default function WorkspaceSettings({
 
             <Card>
                 <CardHeader>
-                    <CardTitle>API tokens</CardTitle>
+                    <CardTitle>
+                        {t('workspace.settings.api_tokens_section_title')}
+                    </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     {apiTokens.length === 0 && (
                         <p className="text-sm text-muted-foreground">
-                            No API tokens yet.
+                            {t('workspace.settings.no_tokens_text')}
                         </p>
                     )}
                     {apiTokens.map((token) => (
@@ -254,10 +287,15 @@ export default function WorkspaceSettings({
                                     {token.name}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
-                                    Created {token.created_at_diff} ·{' '}
+                                    {t(
+                                        'workspace.settings.token_created_prefix',
+                                    )}{' '}
+                                    {token.created_at_diff} ·{' '}
                                     {token.last_used_at_diff
-                                        ? `Last used ${token.last_used_at_diff}`
-                                        : 'Never used'}
+                                        ? `${t('workspace.settings.token_last_used_prefix')} ${token.last_used_at_diff}`
+                                        : t(
+                                              'workspace.settings.token_never_used',
+                                          )}
                                 </div>
                             </div>
                             <Button
@@ -276,10 +314,14 @@ export default function WorkspaceSettings({
                         className="flex items-end gap-2 rounded-md border border-dashed p-3"
                     >
                         <div className="grid flex-1 gap-2">
-                            <Label htmlFor="token_name">New token name</Label>
+                            <Label htmlFor="token_name">
+                                {t('workspace.settings.new_token_name_label')}
+                            </Label>
                             <Input
                                 id="token_name"
-                                placeholder="CLI access"
+                                placeholder={t(
+                                    'workspace.settings.new_token_placeholder',
+                                )}
                                 value={tokenForm.data.name}
                                 onChange={(event) =>
                                     tokenForm.setData(
@@ -295,7 +337,8 @@ export default function WorkspaceSettings({
                             size="sm"
                             disabled={tokenForm.processing}
                         >
-                            <PlusIcon /> Create token
+                            <PlusIcon />{' '}
+                            {t('workspace.settings.create_token_button')}
                         </Button>
                     </form>
                 </CardContent>
@@ -303,30 +346,40 @@ export default function WorkspaceSettings({
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Your account</CardTitle>
+                    <CardTitle>
+                        {t('workspace.settings.account_section_title')}
+                    </CardTitle>
                 </CardHeader>
                 <CardContent className="flex gap-2">
                     <Button variant="outline" size="sm" asChild>
-                        <Link href={editProfile()}>Profile</Link>
+                        <Link href={editProfile()}>
+                            {t('workspace.settings.profile_link')}
+                        </Link>
                     </Button>
                     <Button variant="outline" size="sm" asChild>
-                        <Link href={editSecurity()}>Security</Link>
+                        <Link href={editSecurity()}>
+                            {t('workspace.settings.security_link')}
+                        </Link>
                     </Button>
                 </CardContent>
             </Card>
 
             <Card className="border-red-100 dark:border-red-200/10">
                 <CardHeader>
-                    <CardTitle>Delete workspace</CardTitle>
+                    <CardTitle>
+                        {t('workspace.settings.delete_workspace_card_title')}
+                    </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">
                         <div className="space-y-0.5 text-red-600 dark:text-red-100">
-                            <p className="font-medium">Warning</p>
+                            <p className="font-medium">
+                                {t('workspace.settings.delete_warning_title')}
+                            </p>
                             <p className="text-sm">
-                                Please proceed with caution, this cannot be
-                                undone. All documents, attachments, and the
-                                organization scheme will be permanently deleted.
+                                {t(
+                                    'workspace.settings.delete_warning_description',
+                                )}
                             </p>
                         </div>
 
@@ -342,19 +395,26 @@ export default function WorkspaceSettings({
                         >
                             <DialogTrigger asChild>
                                 <Button variant="destructive">
-                                    Delete workspace
+                                    {t(
+                                        'workspace.settings.delete_workspace_button',
+                                    )}
                                 </Button>
                             </DialogTrigger>
                             <DialogContent>
                                 <DialogTitle>
-                                    Are you sure you want to delete{' '}
-                                    {workspace.name}?
+                                    {t(
+                                        'workspace.settings.delete_confirm_title',
+                                        { name: workspace.name },
+                                    )}
                                 </DialogTitle>
                                 <DialogDescription>
-                                    This will permanently delete the workspace
-                                    and all of its data. Type{' '}
-                                    <strong>{workspace.name}</strong> to
-                                    confirm.
+                                    {t(
+                                        'workspace.settings.delete_confirm_description',
+                                    )}{' '}
+                                    <strong>{workspace.name}</strong>{' '}
+                                    {t(
+                                        'workspace.settings.delete_confirm_suffix',
+                                    )}
                                 </DialogDescription>
                                 <form
                                     onSubmit={submitDelete}
@@ -365,7 +425,9 @@ export default function WorkspaceSettings({
                                             htmlFor="confirm_name"
                                             className="sr-only"
                                         >
-                                            Workspace name
+                                            {t(
+                                                'workspace.settings.confirm_name_label',
+                                            )}
                                         </Label>
                                         <Input
                                             id="confirm_name"
@@ -380,7 +442,9 @@ export default function WorkspaceSettings({
                                     <DialogFooter className="gap-2">
                                         <DialogClose asChild>
                                             <Button variant="secondary">
-                                                Cancel
+                                                {t(
+                                                    'workspace.settings.cancel_button',
+                                                )}
                                             </Button>
                                         </DialogClose>
                                         <Button
@@ -391,7 +455,9 @@ export default function WorkspaceSettings({
                                                 workspace.name
                                             }
                                         >
-                                            Delete workspace
+                                            {t(
+                                                'workspace.settings.delete_workspace_button',
+                                            )}
                                         </Button>
                                     </DialogFooter>
                                 </form>
@@ -406,9 +472,13 @@ export default function WorkspaceSettings({
                 onOpenChange={(open) => !open && setRevealedToken(null)}
             >
                 <DialogContent>
-                    <DialogTitle>API token created</DialogTitle>
+                    <DialogTitle>
+                        {t('workspace.settings.token_created_dialog_title')}
+                    </DialogTitle>
                     <DialogDescription>
-                        Copy this token now — it won&apos;t be shown again.
+                        {t(
+                            'workspace.settings.token_created_dialog_description',
+                        )}
                     </DialogDescription>
                     <div className="flex items-center gap-2">
                         <Input readOnly value={revealedToken ?? ''} />
@@ -426,7 +496,9 @@ export default function WorkspaceSettings({
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
-                            <Button>Done</Button>
+                            <Button>
+                                {t('workspace.settings.done_button')}
+                            </Button>
                         </DialogClose>
                     </DialogFooter>
                 </DialogContent>

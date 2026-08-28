@@ -14,12 +14,8 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTranslation } from '@/hooks/use-translation';
 import workspaces from '@/routes/workspaces';
-
-const roleLabels: Record<string, string> = {
-    admin: 'Admin',
-    user: 'Member',
-};
 
 function Tile() {
     return (
@@ -30,6 +26,7 @@ function Tile() {
 }
 
 export function WorkspaceSwitcher() {
+    const t = useTranslation();
     const {
         workspace,
         workspaces: memberships,
@@ -38,6 +35,11 @@ export function WorkspaceSwitcher() {
     const { state } = useSidebar();
     const isMobile = useIsMobile();
 
+    const roleLabels: Record<string, string> = {
+        admin: t('nav.workspace_switcher.role_admin'),
+        user: t('nav.workspace_switcher.role_member'),
+    };
+
     if (!workspace) {
         return (
             <SidebarMenu>
@@ -45,7 +47,7 @@ export function WorkspaceSwitcher() {
                     <SidebarMenuButton size="lg" disabled>
                         <Tile />
                         <span className="flex-1 truncate text-sm text-muted-foreground">
-                            No workspace yet
+                            {t('nav.workspace_switcher.no_workspace_yet')}
                         </span>
                     </SidebarMenuButton>
                 </SidebarMenuItem>

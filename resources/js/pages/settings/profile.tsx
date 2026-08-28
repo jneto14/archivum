@@ -1,4 +1,4 @@
-import { Form, Head, usePage } from '@inertiajs/react';
+import { Form, Head, setLayoutProps, usePage } from '@inertiajs/react';
 import { Link } from '@inertiajs/react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/delete-user';
@@ -14,6 +14,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useTranslation } from '@/hooks/use-translation';
 import { edit } from '@/routes/profile';
 
 const timezones =
@@ -36,7 +37,17 @@ export default function Profile({
     status?: string;
     locales: Record<string, string>;
 }) {
+    const t = useTranslation();
     const { auth } = usePage<PageProps>().props;
+
+    setLayoutProps({
+        breadcrumbs: [
+            {
+                title: t('settings.profile.head_title'),
+                href: edit(),
+            },
+        ],
+    });
 
     const browserLocale =
         typeof navigator !== 'undefined'
@@ -50,15 +61,15 @@ export default function Profile({
 
     return (
         <>
-            <Head title="Profile settings" />
+            <Head title={t('settings.profile.head_title')} />
 
-            <h1 className="sr-only">Profile settings</h1>
+            <h1 className="sr-only">{t('settings.profile.head_title')}</h1>
 
             <div className="space-y-6">
                 <Heading
                     variant="small"
-                    title="Profile"
-                    description="Update your name and email address"
+                    title={t('settings.profile.heading_title')}
+                    description={t('settings.profile.heading_description')}
                 />
 
                 <Form
@@ -71,7 +82,9 @@ export default function Profile({
                     {({ processing, errors }) => (
                         <>
                             <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
+                                <Label htmlFor="name">
+                                    {t('settings.profile.name_label')}
+                                </Label>
 
                                 <Input
                                     id="name"
@@ -80,7 +93,9 @@ export default function Profile({
                                     name="name"
                                     required
                                     autoComplete="name"
-                                    placeholder="Full name"
+                                    placeholder={t(
+                                        'settings.profile.name_placeholder',
+                                    )}
                                 />
 
                                 <InputError
@@ -90,7 +105,9 @@ export default function Profile({
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email">
+                                    {t('settings.profile.email_label')}
+                                </Label>
 
                                 <Input
                                     id="email"
@@ -100,7 +117,9 @@ export default function Profile({
                                     name="email"
                                     required
                                     autoComplete="username"
-                                    placeholder="Email address"
+                                    placeholder={t(
+                                        'settings.profile.email_placeholder',
+                                    )}
                                 />
 
                                 <InputError
@@ -110,7 +129,9 @@ export default function Profile({
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="timezone">Timezone</Label>
+                                <Label htmlFor="timezone">
+                                    {t('settings.profile.timezone_label')}
+                                </Label>
 
                                 <Select
                                     name="timezone"
@@ -124,7 +145,11 @@ export default function Profile({
                                         id="timezone"
                                         className="w-full"
                                     >
-                                        <SelectValue placeholder="Select a timezone" />
+                                        <SelectValue
+                                            placeholder={t(
+                                                'settings.profile.timezone_placeholder',
+                                            )}
+                                        />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {timezones.map((timezone) => (
@@ -145,7 +170,9 @@ export default function Profile({
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="locale">Language</Label>
+                                <Label htmlFor="locale">
+                                    {t('settings.profile.locale_label')}
+                                </Label>
 
                                 <Select
                                     name="locale"
@@ -155,7 +182,11 @@ export default function Profile({
                                         id="locale"
                                         className="w-full"
                                     >
-                                        <SelectValue placeholder="Select a language" />
+                                        <SelectValue
+                                            placeholder={t(
+                                                'settings.profile.locale_placeholder',
+                                            )}
+                                        />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {Object.entries(locales).map(
@@ -181,22 +212,26 @@ export default function Profile({
                                 auth.user.email_verified_at === null && (
                                     <div>
                                         <p className="-mt-4 text-sm text-muted-foreground">
-                                            Your email address is unverified.{' '}
+                                            {t(
+                                                'settings.profile.email_unverified_text',
+                                            )}{' '}
                                             <Link
                                                 href={send()}
                                                 as="button"
                                                 className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
                                             >
-                                                Click here to re-send the
-                                                verification email.
+                                                {t(
+                                                    'settings.profile.resend_verification_link',
+                                                )}
                                             </Link>
                                         </p>
 
                                         {status ===
                                             'verification-link-sent' && (
                                             <div className="mt-2 text-sm font-medium text-green-600">
-                                                A new verification link has been
-                                                sent to your email address.
+                                                {t(
+                                                    'settings.profile.verification_link_sent',
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -207,7 +242,7 @@ export default function Profile({
                                     disabled={processing}
                                     data-test="update-profile-button"
                                 >
-                                    Save
+                                    {t('settings.profile.save')}
                                 </Button>
                             </div>
                         </>
@@ -219,12 +254,3 @@ export default function Profile({
         </>
     );
 }
-
-Profile.layout = {
-    breadcrumbs: [
-        {
-            title: 'Profile settings',
-            href: edit(),
-        },
-    ],
-};
