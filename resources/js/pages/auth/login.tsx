@@ -1,4 +1,4 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, setLayoutProps } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import PasskeyVerify from '@/components/passkey-verify';
 import PasswordInput from '@/components/password-input';
@@ -19,6 +19,11 @@ type Props = {
 
 export default function Login({ status, canResetPassword }: Props) {
     const t = useTranslation();
+
+    setLayoutProps({
+        title: t('auth.login.title'),
+        description: t('auth.login.description'),
+    });
 
     return (
         <>
@@ -111,11 +116,3 @@ export default function Login({ status, canResetPassword }: Props) {
         </>
     );
 }
-
-// Static layout metadata is set outside the component, so it can't call
-// useTranslation(); left in English until the persistent-layout resolver
-// supports translated titles/descriptions.
-Login.layout = {
-    title: 'Log in to your account',
-    description: 'Enter your email and password below to log in',
-};

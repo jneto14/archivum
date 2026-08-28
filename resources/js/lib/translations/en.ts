@@ -343,4 +343,215 @@ export default {
     'workspace.settings.token_created_dialog_description':
         "Copy this token now — it won't be shown again.",
     'workspace.settings.done_button': 'Done',
+
+    'auth.accept_invitation.head_title': 'Accept invitation',
+    'auth.accept_invitation.layout_title': 'Welcome to Archivum',
+    'auth.accept_invitation.layout_description':
+        'Set a password below to activate your account',
+    'auth.accept_invitation.email_label': 'Email',
+    'auth.accept_invitation.password_label': 'Password',
+    'auth.accept_invitation.password_placeholder': 'Password',
+    'auth.accept_invitation.confirm_password_label': 'Confirm password',
+    'auth.accept_invitation.confirm_password_placeholder': 'Confirm password',
+    'auth.accept_invitation.submit': 'Activate account',
+
+    'auth.confirm_password.head_title': 'Confirm password',
+    'auth.confirm_password.description':
+        'This is a secure area of the application. Please confirm your password before continuing.',
+    'auth.confirm_password.passkey_button_label': 'Confirm with passkey',
+    'auth.confirm_password.passkey_loading_label': 'Confirming...',
+    'auth.confirm_password.passkey_separator': 'Or confirm with password',
+    'auth.confirm_password.password_label': 'Password',
+    'auth.confirm_password.password_placeholder': 'Password',
+    'auth.confirm_password.submit': 'Confirm password',
+
+    'auth.forgot_password.head_title': 'Forgot password',
+    'auth.forgot_password.description':
+        'Enter your email to receive a password reset link',
+    'auth.forgot_password.email_label': 'Email address',
+    'auth.forgot_password.submit': 'Email password reset link',
+    'auth.forgot_password.return_to_prefix': 'Or, return to',
+    'auth.forgot_password.log_in': 'log in',
+
+    'auth.reset_password.head_title': 'Reset password',
+    'auth.reset_password.description': 'Please enter your new password below',
+    'auth.reset_password.email_label': 'Email',
+    'auth.reset_password.password_label': 'Password',
+    'auth.reset_password.password_placeholder': 'Password',
+    'auth.reset_password.confirm_password_label': 'Confirm password',
+    'auth.reset_password.confirm_password_placeholder': 'Confirm password',
+    'auth.reset_password.submit': 'Reset password',
+
+    'auth.two_factor_challenge.head_title': 'Two-factor authentication',
+    'auth.two_factor_challenge.recovery_title': 'Recovery code',
+    'auth.two_factor_challenge.recovery_description':
+        'Please confirm access to your account by entering one of your emergency recovery codes.',
+    'auth.two_factor_challenge.recovery_toggle_text':
+        'login using an authentication code',
+    'auth.two_factor_challenge.code_title': 'Authentication code',
+    'auth.two_factor_challenge.code_description':
+        'Enter the authentication code provided by your authenticator application.',
+    'auth.two_factor_challenge.code_toggle_text': 'login using a recovery code',
+    'auth.two_factor_challenge.recovery_code_placeholder':
+        'Enter recovery code',
+    'auth.two_factor_challenge.submit': 'Continue',
+    'auth.two_factor_challenge.toggle_prefix': 'or you can ',
+
+    'auth.verify_email.head_title': 'Email verification',
+    'auth.verify_email.description':
+        'Please verify your email address by clicking on the link we just emailed to you.',
+    'auth.verify_email.link_sent':
+        'A new verification link has been sent to the email address you provided during registration.',
+    'auth.verify_email.resend': 'Resend verification email',
+    'auth.verify_email.log_out': 'Log out',
+
+    'settings.layout.title': 'Settings',
+    'settings.layout.description': 'Manage your profile and account settings',
+    'settings.layout.tab_profile': 'Profile',
+    'settings.layout.tab_security': 'Security',
+    'settings.layout.tab_appearance': 'Appearance',
+
+    'settings.appearance.head_title': 'Appearance settings',
+    'settings.appearance.title': 'Appearance settings',
+    'settings.appearance.description':
+        'Update the appearance settings for your account',
+    'settings.appearance.tabs.light': 'Light',
+    'settings.appearance.tabs.dark': 'Dark',
+    'settings.appearance.tabs.system': 'System',
+
+    'settings.profile.head_title': 'Profile settings',
+    'settings.profile.heading_title': 'Profile',
+    'settings.profile.heading_description':
+        'Update your name and email address',
+    'settings.profile.name_label': 'Name',
+    'settings.profile.name_placeholder': 'Full name',
+    'settings.profile.email_label': 'Email address',
+    'settings.profile.email_placeholder': 'Email address',
+    'settings.profile.timezone_label': 'Timezone',
+    'settings.profile.timezone_placeholder': 'Select a timezone',
+    'settings.profile.locale_label': 'Language',
+    'settings.profile.locale_placeholder': 'Select a language',
+    'settings.profile.email_unverified_text':
+        'Your email address is unverified.',
+    'settings.profile.resend_verification_link':
+        'Click here to re-send the verification email.',
+    'settings.profile.verification_link_sent':
+        'A new verification link has been sent to your email address.',
+    'settings.profile.save': 'Save',
+    'settings.profile.delete_account.heading_title': 'Delete account',
+    'settings.profile.delete_account.heading_description':
+        'Delete your account and all of its resources',
+    'settings.profile.delete_account.warning_title': 'Warning',
+    'settings.profile.delete_account.warning_text':
+        'Please proceed with caution, this cannot be undone.',
+    'settings.profile.delete_account.trigger_button': 'Delete account',
+    'settings.profile.delete_account.dialog_title':
+        'Are you sure you want to delete your account?',
+    'settings.profile.delete_account.dialog_description':
+        'Once your account is deleted, all of its resources and data will also be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.',
+    'settings.profile.delete_account.password_label': 'Password',
+    'settings.profile.delete_account.password_placeholder': 'Password',
+    'settings.profile.delete_account.cancel': 'Cancel',
+    'settings.profile.delete_account.confirm_button': 'Delete account',
+
+    'settings.security.head_title': 'Security settings',
+    'settings.security.update_password_title': 'Update password',
+    'settings.security.update_password_description':
+        'Ensure your account is using a long, random password to stay secure',
+    'settings.security.current_password_label': 'Current password',
+    'settings.security.current_password_placeholder': 'Current password',
+    'settings.security.new_password_label': 'New password',
+    'settings.security.new_password_placeholder': 'New password',
+    'settings.security.confirm_password_label': 'Confirm password',
+    'settings.security.confirm_password_placeholder': 'Confirm password',
+    'settings.security.save_button': 'Save',
+
+    'settings.security.two_factor.heading_title': 'Two-factor authentication',
+    'settings.security.two_factor.heading_description':
+        'Manage your two-factor authentication settings',
+    'settings.security.two_factor.enabled_description':
+        'You will be prompted for a secure, random pin during login, which you can retrieve from the TOTP-supported application on your phone.',
+    'settings.security.two_factor.disable_button': 'Disable 2FA',
+    'settings.security.two_factor.disabled_description':
+        'When you enable two-factor authentication, you will be prompted for a secure pin during login. This pin can be retrieved from a TOTP-supported application on your phone.',
+    'settings.security.two_factor.continue_setup_button': 'Continue setup',
+    'settings.security.two_factor.enable_button': 'Enable 2FA',
+
+    'settings.security.two_factor.recovery_codes.title': '2FA recovery codes',
+    'settings.security.two_factor.recovery_codes.description':
+        'Recovery codes let you regain access if you lose your 2FA device. Store them in a secure password manager.',
+    'settings.security.two_factor.recovery_codes.hide_button':
+        'Hide recovery codes',
+    'settings.security.two_factor.recovery_codes.view_button':
+        'View recovery codes',
+    'settings.security.two_factor.recovery_codes.regenerate_button':
+        'Regenerate codes',
+    'settings.security.two_factor.recovery_codes.list_aria_label':
+        'Recovery codes',
+    'settings.security.two_factor.recovery_codes.loading_aria_label':
+        'Loading recovery codes',
+    'settings.security.two_factor.recovery_codes.regenerate_warning_before':
+        'Each recovery code can be used once to access your account and will be removed after use. If you need more, click',
+    'settings.security.two_factor.recovery_codes.regenerate_warning_after':
+        'above.',
+
+    'settings.security.two_factor.setup.manual_entry_divider':
+        'or, enter the code manually',
+    'settings.security.two_factor.setup.back_button': 'Back',
+    'settings.security.two_factor.setup.confirm_button': 'Confirm',
+    'settings.security.two_factor.setup.enabled_title':
+        'Two-factor authentication enabled',
+    'settings.security.two_factor.setup.enabled_description':
+        'Two-factor authentication is now enabled. Scan the QR code or enter the setup key in your authenticator app.',
+    'settings.security.two_factor.setup.close_button': 'Close',
+    'settings.security.two_factor.setup.verify_title':
+        'Verify authentication code',
+    'settings.security.two_factor.setup.verify_description':
+        'Enter the 6-digit code from your authenticator app',
+    'settings.security.two_factor.setup.continue_button': 'Continue',
+    'settings.security.two_factor.setup.enable_title':
+        'Enable two-factor authentication',
+    'settings.security.two_factor.setup.enable_description':
+        'To finish enabling two-factor authentication, scan the QR code or enter the setup key in your authenticator app',
+
+    'settings.security.passkeys.title': 'Passkeys',
+    'settings.security.passkeys.description':
+        'Manage your passkeys for passwordless sign-in',
+    'settings.security.passkeys.empty_title': 'No passkeys yet',
+    'settings.security.passkeys.empty_description':
+        'Add a passkey to sign in without a password',
+    'settings.security.passkeys.register.not_supported':
+        'Passkeys are not supported in this browser.',
+    'settings.security.passkeys.register.add_button': 'Add passkey',
+    'settings.security.passkeys.register.name_label': 'Passkey name',
+    'settings.security.passkeys.register.name_placeholder':
+        'e.g., MacBook Pro, iPhone',
+    'settings.security.passkeys.register.name_hint':
+        'A name helps you identify this passkey later.',
+    'settings.security.passkeys.register.submitting': 'Registering...',
+    'settings.security.passkeys.register.submit': 'Register passkey',
+    'settings.security.passkeys.register.cancel': 'Cancel',
+    'settings.security.passkeys.verify.authenticating': 'Authenticating...',
+    'settings.security.passkeys.verify.sign_in_label': 'Sign in with a passkey',
+    'settings.security.passkeys.verify.separator': 'Or continue with email',
+    'settings.security.passkeys.item.remove_sr_label': 'Remove',
+    'settings.security.passkeys.item.remove_dialog_title': 'Remove passkey',
+    'settings.security.passkeys.item.remove_dialog_description':
+        'Are you sure you want to remove the ":name" passkey? You will no longer be able to use it to sign in.',
+    'settings.security.passkeys.item.cancel': 'Cancel',
+    'settings.security.passkeys.item.removing': 'Removing...',
+    'settings.security.passkeys.item.remove_button': 'Remove passkey',
+    'settings.security.passkeys.item.added_prefix': 'Added',
+    'settings.security.passkeys.item.last_used_prefix': 'Last used',
+
+    'welcome.head_title': 'Welcome',
+    'welcome.dashboard_link': 'Dashboard',
+    'welcome.login_link': 'Log in',
+    'welcome.hero_title': "Let's get started",
+    'welcome.hero_subtitle_line1': 'Laravel has an incredibly rich ecosystem.',
+    'welcome.hero_subtitle_line2': 'We suggest starting with the following.',
+    'welcome.read_docs_prefix': 'Read the',
+    'welcome.documentation_link': 'Documentation',
+    'welcome.watch_tutorials_prefix': 'Watch video tutorials at',
+    'welcome.deploy_now': 'Deploy now',
 };

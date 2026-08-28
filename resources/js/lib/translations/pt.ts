@@ -353,4 +353,222 @@ export default {
     'workspace.settings.token_created_dialog_description':
         'Copia este token agora — não voltará a ser mostrado.',
     'workspace.settings.done_button': 'Concluído',
+
+    'auth.accept_invitation.head_title': 'Aceitar convite',
+    'auth.accept_invitation.layout_title': 'Bem-vindo ao Archivum',
+    'auth.accept_invitation.layout_description':
+        'Define uma password abaixo para ativares a tua conta',
+    'auth.accept_invitation.email_label': 'Email',
+    'auth.accept_invitation.password_label': 'Password',
+    'auth.accept_invitation.password_placeholder': 'Password',
+    'auth.accept_invitation.confirm_password_label': 'Confirmar password',
+    'auth.accept_invitation.confirm_password_placeholder': 'Confirmar password',
+    'auth.accept_invitation.submit': 'Ativar conta',
+
+    'auth.confirm_password.head_title': 'Confirmar password',
+    'auth.confirm_password.description':
+        'Esta é uma área segura da aplicação. Confirma a tua password antes de continuar.',
+    'auth.confirm_password.passkey_button_label': 'Confirmar com uma passkey',
+    'auth.confirm_password.passkey_loading_label': 'A confirmar...',
+    'auth.confirm_password.passkey_separator': 'Ou confirma com a password',
+    'auth.confirm_password.password_label': 'Password',
+    'auth.confirm_password.password_placeholder': 'Password',
+    'auth.confirm_password.submit': 'Confirmar password',
+
+    'auth.forgot_password.head_title': 'Esqueceste-te da password',
+    'auth.forgot_password.description':
+        'Introduz o teu email para receberes um link de redefinição de password',
+    'auth.forgot_password.email_label': 'Endereço de email',
+    'auth.forgot_password.submit': 'Enviar link de redefinição de password',
+    'auth.forgot_password.return_to_prefix': 'Ou, regressa a',
+    'auth.forgot_password.log_in': 'iniciar sessão',
+
+    'auth.reset_password.head_title': 'Repor password',
+    'auth.reset_password.description': 'Introduz a tua nova password abaixo',
+    'auth.reset_password.email_label': 'Email',
+    'auth.reset_password.password_label': 'Password',
+    'auth.reset_password.password_placeholder': 'Password',
+    'auth.reset_password.confirm_password_label': 'Confirmar password',
+    'auth.reset_password.confirm_password_placeholder': 'Confirmar password',
+    'auth.reset_password.submit': 'Repor password',
+
+    'auth.two_factor_challenge.head_title': 'Autenticação de dois fatores',
+    'auth.two_factor_challenge.recovery_title': 'Código de recuperação',
+    'auth.two_factor_challenge.recovery_description':
+        'Confirma o acesso à tua conta introduzindo um dos teus códigos de recuperação de emergência.',
+    'auth.two_factor_challenge.recovery_toggle_text':
+        'iniciar sessão com um código de autenticação',
+    'auth.two_factor_challenge.code_title': 'Código de autenticação',
+    'auth.two_factor_challenge.code_description':
+        'Introduz o código de autenticação fornecido pela tua aplicação de autenticação.',
+    'auth.two_factor_challenge.code_toggle_text':
+        'iniciar sessão com um código de recuperação',
+    'auth.two_factor_challenge.recovery_code_placeholder':
+        'Introduz o código de recuperação',
+    'auth.two_factor_challenge.submit': 'Continuar',
+    'auth.two_factor_challenge.toggle_prefix': 'ou podes ',
+
+    'auth.verify_email.head_title': 'Verificação de email',
+    'auth.verify_email.description':
+        'Verifica o teu endereço de email clicando no link que te acabámos de enviar.',
+    'auth.verify_email.link_sent':
+        'Foi enviado um novo link de verificação para o endereço de email que forneceste no registo.',
+    'auth.verify_email.resend': 'Reenviar email de verificação',
+    'auth.verify_email.log_out': 'Terminar sessão',
+
+    'settings.layout.title': 'Definições',
+    'settings.layout.description':
+        'Gere as definições do teu perfil e da tua conta',
+    'settings.layout.tab_profile': 'Perfil',
+    'settings.layout.tab_security': 'Segurança',
+    'settings.layout.tab_appearance': 'Aparência',
+
+    'settings.appearance.head_title': 'Definições de aparência',
+    'settings.appearance.title': 'Definições de aparência',
+    'settings.appearance.description':
+        'Atualiza as definições de aparência da tua conta',
+    'settings.appearance.tabs.light': 'Claro',
+    'settings.appearance.tabs.dark': 'Escuro',
+    'settings.appearance.tabs.system': 'Sistema',
+
+    'settings.profile.head_title': 'Definições do perfil',
+    'settings.profile.heading_title': 'Perfil',
+    'settings.profile.heading_description':
+        'Atualiza o teu nome e endereço de email',
+    'settings.profile.name_label': 'Nome',
+    'settings.profile.name_placeholder': 'Nome completo',
+    'settings.profile.email_label': 'Endereço de email',
+    'settings.profile.email_placeholder': 'Endereço de email',
+    'settings.profile.timezone_label': 'Fuso horário',
+    'settings.profile.timezone_placeholder': 'Seleciona um fuso horário',
+    'settings.profile.locale_label': 'Idioma',
+    'settings.profile.locale_placeholder': 'Seleciona um idioma',
+    'settings.profile.email_unverified_text':
+        'O teu endereço de email não está verificado.',
+    'settings.profile.resend_verification_link':
+        'Clica aqui para reenviar o email de verificação.',
+    'settings.profile.verification_link_sent':
+        'Foi enviada uma nova ligação de verificação para o teu endereço de email.',
+    'settings.profile.save': 'Guardar',
+    'settings.profile.delete_account.heading_title': 'Eliminar conta',
+    'settings.profile.delete_account.heading_description':
+        'Elimina a tua conta e todos os seus recursos',
+    'settings.profile.delete_account.warning_title': 'Aviso',
+    'settings.profile.delete_account.warning_text':
+        'Procede com cautela, esta ação não pode ser revertida.',
+    'settings.profile.delete_account.trigger_button': 'Eliminar conta',
+    'settings.profile.delete_account.dialog_title':
+        'Tens a certeza de que queres eliminar a tua conta?',
+    'settings.profile.delete_account.dialog_description':
+        'Assim que a tua conta for eliminada, todos os seus recursos e dados serão também permanentemente eliminados. Introduz a tua password para confirmares que pretendes eliminar permanentemente a tua conta.',
+    'settings.profile.delete_account.password_label': 'Password',
+    'settings.profile.delete_account.password_placeholder': 'Password',
+    'settings.profile.delete_account.cancel': 'Cancelar',
+    'settings.profile.delete_account.confirm_button': 'Eliminar conta',
+
+    'settings.security.head_title': 'Definições de segurança',
+    'settings.security.update_password_title': 'Atualizar password',
+    'settings.security.update_password_description':
+        'Garante que a tua conta usa uma password longa e aleatória para se manter segura',
+    'settings.security.current_password_label': 'Password atual',
+    'settings.security.current_password_placeholder': 'Password atual',
+    'settings.security.new_password_label': 'Nova password',
+    'settings.security.new_password_placeholder': 'Nova password',
+    'settings.security.confirm_password_label': 'Confirmar password',
+    'settings.security.confirm_password_placeholder': 'Confirmar password',
+    'settings.security.save_button': 'Guardar',
+
+    'settings.security.two_factor.heading_title':
+        'Autenticação de dois fatores',
+    'settings.security.two_factor.heading_description':
+        'Gere as definições de autenticação de dois fatores',
+    'settings.security.two_factor.enabled_description':
+        'Ser-te-á pedido um pin seguro e aleatório durante o início de sessão, que podes obter na aplicação TOTP no teu telemóvel.',
+    'settings.security.two_factor.disable_button': 'Desativar 2FA',
+    'settings.security.two_factor.disabled_description':
+        'Ao ativares a autenticação de dois fatores, ser-te-á pedido um pin seguro durante o início de sessão. Este pin pode ser obtido numa aplicação TOTP no teu telemóvel.',
+    'settings.security.two_factor.continue_setup_button':
+        'Continuar configuração',
+    'settings.security.two_factor.enable_button': 'Ativar 2FA',
+
+    'settings.security.two_factor.recovery_codes.title':
+        'Códigos de recuperação 2FA',
+    'settings.security.two_factor.recovery_codes.description':
+        'Os códigos de recuperação permitem-te recuperar o acesso caso percas o teu dispositivo 2FA. Guarda-os num gestor de passwords seguro.',
+    'settings.security.two_factor.recovery_codes.hide_button':
+        'Ocultar códigos de recuperação',
+    'settings.security.two_factor.recovery_codes.view_button':
+        'Ver códigos de recuperação',
+    'settings.security.two_factor.recovery_codes.regenerate_button':
+        'Regenerar códigos',
+    'settings.security.two_factor.recovery_codes.list_aria_label':
+        'Códigos de recuperação',
+    'settings.security.two_factor.recovery_codes.loading_aria_label':
+        'A carregar códigos de recuperação',
+    'settings.security.two_factor.recovery_codes.regenerate_warning_before':
+        'Cada código de recuperação só pode ser usado uma vez para aceder à tua conta e será removido após a utilização. Se precisares de mais, clica em',
+    'settings.security.two_factor.recovery_codes.regenerate_warning_after':
+        'acima.',
+
+    'settings.security.two_factor.setup.manual_entry_divider':
+        'ou, introduz o código manualmente',
+    'settings.security.two_factor.setup.back_button': 'Voltar',
+    'settings.security.two_factor.setup.confirm_button': 'Confirmar',
+    'settings.security.two_factor.setup.enabled_title':
+        'Autenticação de dois fatores ativada',
+    'settings.security.two_factor.setup.enabled_description':
+        'A autenticação de dois fatores está agora ativada. Digitaliza o código QR ou introduz a chave de configuração na tua aplicação de autenticação.',
+    'settings.security.two_factor.setup.close_button': 'Fechar',
+    'settings.security.two_factor.setup.verify_title':
+        'Verificar código de autenticação',
+    'settings.security.two_factor.setup.verify_description':
+        'Introduz o código de 6 dígitos da tua aplicação de autenticação',
+    'settings.security.two_factor.setup.continue_button': 'Continuar',
+    'settings.security.two_factor.setup.enable_title':
+        'Ativar autenticação de dois fatores',
+    'settings.security.two_factor.setup.enable_description':
+        'Para terminar a ativação da autenticação de dois fatores, digitaliza o código QR ou introduz a chave de configuração na tua aplicação de autenticação',
+
+    'settings.security.passkeys.title': 'Passkeys',
+    'settings.security.passkeys.description':
+        'Gere as tuas passkeys para iniciares sessão sem password',
+    'settings.security.passkeys.empty_title': 'Ainda não há passkeys',
+    'settings.security.passkeys.empty_description':
+        'Adiciona uma passkey para iniciares sessão sem password',
+    'settings.security.passkeys.register.not_supported':
+        'As passkeys não são suportadas neste navegador.',
+    'settings.security.passkeys.register.add_button': 'Adicionar passkey',
+    'settings.security.passkeys.register.name_label': 'Nome da passkey',
+    'settings.security.passkeys.register.name_placeholder':
+        'P. ex., MacBook Pro, iPhone',
+    'settings.security.passkeys.register.name_hint':
+        'Um nome ajuda-te a identificar esta passkey mais tarde.',
+    'settings.security.passkeys.register.submitting': 'A registar...',
+    'settings.security.passkeys.register.submit': 'Registar passkey',
+    'settings.security.passkeys.register.cancel': 'Cancelar',
+    'settings.security.passkeys.verify.authenticating': 'A autenticar...',
+    'settings.security.passkeys.verify.sign_in_label':
+        'Iniciar sessão com uma passkey',
+    'settings.security.passkeys.verify.separator': 'Ou continuar com o email',
+    'settings.security.passkeys.item.remove_sr_label': 'Remover',
+    'settings.security.passkeys.item.remove_dialog_title': 'Remover passkey',
+    'settings.security.passkeys.item.remove_dialog_description':
+        'Tens a certeza de que queres remover a passkey ":name"? Deixarás de poder usá-la para iniciar sessão.',
+    'settings.security.passkeys.item.cancel': 'Cancelar',
+    'settings.security.passkeys.item.removing': 'A remover...',
+    'settings.security.passkeys.item.remove_button': 'Remover passkey',
+    'settings.security.passkeys.item.added_prefix': 'Adicionado',
+    'settings.security.passkeys.item.last_used_prefix': 'Última utilização',
+
+    'welcome.head_title': 'Bem-vindo',
+    'welcome.dashboard_link': 'Painel',
+    'welcome.login_link': 'Iniciar sessão',
+    'welcome.hero_title': 'Vamos começar',
+    'welcome.hero_subtitle_line1':
+        'O Laravel tem um ecossistema incrivelmente rico.',
+    'welcome.hero_subtitle_line2': 'Sugerimos que comeces pelo seguinte.',
+    'welcome.read_docs_prefix': 'Lê a',
+    'welcome.documentation_link': 'Documentação',
+    'welcome.watch_tutorials_prefix': 'Vê tutoriais em vídeo em',
+    'welcome.deploy_now': 'Publicar agora',
 };
