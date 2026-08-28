@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
 import {
     Select,
     SelectContent,
@@ -21,27 +20,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    edit as schemeEdit,
-    index as schemesIndex,
-    migrate as migrateScheme,
-} from '@/routes/organization/schemes';
-import nodes from '@/routes/organization/schemes/nodes';
+import { edit as schemeEdit } from '@/routes/organization/schemes';
 import rules from '@/routes/organization/schemes/rules';
-
-const VALUE_STRATEGY_LABELS: Record<string, string> = {
-    manual: 'Manual',
-    sequential: 'Sequential',
-    alphabetical: 'Alphabetical',
-};
-
-type Node = {
-    id: string;
-    value: string;
-    path: string;
-    parent_id: string | null;
-    documents_count: number | null;
-};
 
 type Level = {
     id: string;
@@ -51,7 +31,6 @@ type Level = {
     capacity: number | null;
     value_strategy: string;
     is_leaf: boolean;
-    nodes: Node[];
 };
 
 type Rule = {
@@ -62,6 +41,11 @@ type Rule = {
     preferred_value: string;
 };
 
+type ResultingPath = {
+    levels: { level_id: string; level_name: string; sample: string | null }[];
+    path: string;
+};
+
 type Props = {
     scheme: {
         id: string;
@@ -70,18 +54,21 @@ type Props = {
         rules: Rule[];
     };
     canManage: boolean;
-    otherSchemes: { id: string; name: string }[];
+    resultingPath: ResultingPath;
+};
+
+const STRATEGY_DESCRIPTIONS: Record<string, string> = {
+    manual: 'Value entered manually for each location',
+    sequential: 'Auto-generated: 001, 002…',
+    alphabetical: 'Auto-generated: A, B…',
 };
 
 export default function OrganizationSchemeShow({
     scheme,
     canManage,
-    otherSchemes,
+    resultingPath,
 }: Props) {
     const { workspace } = usePage().props;
-    const [addNodeLevel, setAddNodeLevel] = useState<Level | null>(null);
-    const [nodeParentId, setNodeParentId] = useState('');
-    const [nodeValue, setNodeValue] = useState('');
     const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
     const [editingRule, setEditingRule] = useState<Rule | null>(null);
     const [ruleForm, setRuleForm] = useState({
@@ -90,43 +77,13 @@ export default function OrganizationSchemeShow({
         target_level_id: scheme.levels[0]?.id ?? '',
         preferred_value: '',
     });
-    const [migrateOpen, setMigrateOpen] = useState(false);
-    const [targetSchemeId, setTargetSchemeId] = useState('');
 
     setLayoutProps({
         breadcrumbs: [
-            {
-                title: 'Organization',
-                href: workspace ? schemesIndex.url(workspace.id) : '#',
-            },
-            { title: scheme.name, href: '#' },
+            { title: workspace?.name ?? '', href: '#' },
+            { title: 'Organization scheme', href: '#' },
         ],
     });
-
-    const openAddNode = (level: Level) => {
-        setAddNodeLevel(level);
-        setNodeParentId('');
-        setNodeValue('');
-    };
-
-    const parentLevelFor = (level: Level): Level | null =>
-        scheme.levels.find((l) => l.position === level.position - 1) ?? null;
-
-    const submitNode = () => {
-        if (addNodeLevel === null) {
-            return;
-        }
-
-        router.post(
-            nodes.store.url(scheme.id),
-            {
-                level_id: addNodeLevel.id,
-                parent_id: nodeParentId || null,
-                value: nodeValue.trim() === '' ? null : nodeValue,
-            },
-            { preserveScroll: true, onSuccess: () => setAddNodeLevel(null) },
-        );
-    };
 
     const openAddRule = () => {
         setEditingRule(null);
@@ -175,280 +132,189 @@ export default function OrganizationSchemeShow({
         });
     };
 
-    const submitMigration = () => {
-        if (targetSchemeId === '') {
-            return;
-        }
-
-        router.post(
-            migrateScheme.url(scheme.id),
-            { target_scheme_id: targetSchemeId },
-            { preserveScroll: true, onSuccess: () => setMigrateOpen(false) },
-        );
-    };
-
     return (
         <>
-            <Head title={scheme.name} />
+            <Head title="Organization scheme" />
 
-            <div className="mx-auto max-w-4xl space-y-6 p-6">
+            <div className="mx-auto max-w-5xl space-y-6 p-6">
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight">
-                            {scheme.name}
+                            Organization scheme
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            {scheme.levels.length} level
-                            {scheme.levels.length === 1 ? '' : 's'} ·{' '}
-                            {scheme.rules.length} rule
-                            {scheme.rules.length === 1 ? '' : 's'}
+                            Levels define the physical hierarchy. Nothing here
+                            is hard-coded in the application.
                         </p>
                     </div>
                     {canManage && (
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                    router.visit(schemeEdit.url(scheme.id))
-                                }
-                            >
-                                Edit
-                            </Button>
-                            {otherSchemes.length > 0 && (
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setMigrateOpen(true)}
-                                >
-                                    Migrate documents
-                                </Button>
-                            )}
-                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                                router.visit(schemeEdit.url(scheme.id))
+                            }
+                        >
+                            Edit
+                        </Button>
                     )}
                 </div>
 
-                <div className="space-y-4">
-                    {scheme.levels.map((level) => (
-                        <Card key={level.id}>
-                            <CardHeader className="flex-row items-center justify-between">
+                <div className="grid items-start gap-4 lg:grid-cols-[1.6fr_1fr]">
+                    <div className="space-y-4">
+                        <Card className="overflow-hidden py-0">
+                            <CardHeader className="flex-row items-center justify-between border-b py-4">
                                 <div>
-                                    <CardTitle>{level.name}</CardTitle>
-                                    <div className="mt-1 flex items-center gap-1.5">
-                                        <Badge variant="outline">
-                                            {level.key}
-                                        </Badge>
-                                        <Badge variant="secondary">
+                                    <CardTitle>{scheme.name}</CardTitle>
+                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                        Active scheme · {scheme.levels.length}{' '}
+                                        level
+                                        {scheme.levels.length === 1 ? '' : 's'}
+                                    </p>
+                                </div>
+                                <Badge variant="secondary">Active</Badge>
+                            </CardHeader>
+                            <CardContent className="space-y-0 p-0">
+                                {scheme.levels.map((level) => (
+                                    <div
+                                        key={level.id}
+                                        className="flex flex-wrap items-center gap-3 border-b p-4 last:border-b-0"
+                                    >
+                                        <span className="flex size-6 flex-none items-center justify-center rounded-md bg-secondary font-mono text-xs font-semibold">
+                                            {level.position}
+                                        </span>
+                                        <span className="min-w-30 flex-1 space-y-0.5">
+                                            <span className="block text-sm font-medium">
+                                                {level.name}
+                                            </span>
+                                            <span className="block font-mono text-xs text-muted-foreground">
+                                                key: {level.key}
+                                            </span>
+                                        </span>
+                                        <span className="flex-1 text-xs text-muted-foreground">
                                             {
-                                                VALUE_STRATEGY_LABELS[
+                                                STRATEGY_DESCRIPTIONS[
                                                     level.value_strategy
                                                 ]
                                             }
-                                        </Badge>
-                                        <Badge variant="secondary">
+                                        </span>
+                                        <span className="ml-auto flex-none text-xs text-muted-foreground">
                                             {level.capacity !== null
                                                 ? `Capacity ${level.capacity}`
                                                 : 'Unlimited'}
-                                        </Badge>
+                                        </span>
                                     </div>
+                                ))}
+                                <p className="p-4 text-xs text-muted-foreground">
+                                    Levels can only be defined when a scheme is
+                                    created.
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="overflow-hidden py-0">
+                            <CardHeader className="flex-row items-center justify-between border-b py-4">
+                                <div>
+                                    <CardTitle>Organization rules</CardTitle>
+                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                        Recommendations, not constraints.
+                                    </p>
                                 </div>
                                 {canManage && (
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => openAddNode(level)}
+                                        onClick={openAddRule}
                                     >
-                                        <PlusIcon /> Add location
+                                        <PlusIcon /> Add rule
                                     </Button>
                                 )}
                             </CardHeader>
-                            <CardContent className="space-y-2">
-                                {level.nodes.length === 0 && (
-                                    <p className="text-sm text-muted-foreground">
-                                        No locations yet.
+                            <CardContent className="space-y-0 p-0">
+                                {scheme.rules.length === 0 && (
+                                    <p className="p-4 text-sm text-muted-foreground">
+                                        No rules yet — documents will file into
+                                        the first available location.
                                     </p>
                                 )}
-                                {level.nodes.map((node) => {
-                                    const pct =
-                                        level.capacity !== null &&
-                                        node.documents_count !== null
-                                            ? Math.round(
-                                                  (node.documents_count /
-                                                      level.capacity) *
-                                                      100,
-                                              )
-                                            : null;
-
-                                    return (
-                                        <div
-                                            key={node.id}
-                                            className="flex items-center gap-3 rounded-md border p-2"
-                                        >
-                                            <div className="min-w-0 flex-1">
-                                                <div className="truncate font-mono text-sm font-medium">
-                                                    {node.path}
-                                                </div>
-                                                {level.is_leaf && (
-                                                    <div className="text-xs text-muted-foreground">
-                                                        {node.documents_count}{' '}
-                                                        document
-                                                        {node.documents_count ===
-                                                        1
-                                                            ? ''
-                                                            : 's'}
-                                                        {level.capacity !== null
-                                                            ? ` / ${level.capacity}`
-                                                            : ''}
-                                                    </div>
-                                                )}
+                                {scheme.rules.map((rule) => (
+                                    <div
+                                        key={rule.id}
+                                        className="flex items-center gap-3 border-b p-4 text-sm last:border-b-0"
+                                    >
+                                        <Badge variant="secondary">
+                                            {rule.matcher_value}
+                                        </Badge>
+                                        <span className="text-muted-foreground">
+                                            →
+                                        </span>
+                                        <span className="flex-1 font-mono text-xs">
+                                            {rule.target_level.name}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {rule.preferred_value}
+                                        </span>
+                                        {canManage && (
+                                            <div className="flex items-center gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        openEditRule(rule)
+                                                    }
+                                                >
+                                                    Edit
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        deleteRule(rule)
+                                                    }
+                                                >
+                                                    <Trash2Icon />
+                                                </Button>
                                             </div>
-                                            {pct !== null && (
-                                                <div className="w-24">
-                                                    <Progress value={pct} />
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
+                                        )}
+                                    </div>
+                                ))}
                             </CardContent>
                         </Card>
-                    ))}
-                </div>
-
-                <Card>
-                    <CardHeader className="flex-row items-center justify-between">
-                        <CardTitle>Matching rules</CardTitle>
-                        {canManage && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={openAddRule}
-                            >
-                                <PlusIcon /> Add rule
-                            </Button>
-                        )}
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        {scheme.rules.length === 0 && (
-                            <p className="text-sm text-muted-foreground">
-                                No rules yet — documents will file into the
-                                first available location.
-                            </p>
-                        )}
-                        {scheme.rules.map((rule) => (
-                            <div
-                                key={rule.id}
-                                className="flex items-center gap-3 rounded-md border p-2 text-sm"
-                            >
-                                <div className="min-w-0 flex-1">
-                                    <span className="font-mono">
-                                        {rule.matcher_key} ={' '}
-                                        {rule.matcher_value}
-                                    </span>
-                                    <span className="mx-2 text-muted-foreground">
-                                        →
-                                    </span>
-                                    <span>{rule.target_level.name}</span>
-                                    <span className="mx-1 text-muted-foreground">
-                                        :
-                                    </span>
-                                    <span className="font-mono">
-                                        {rule.preferred_value}
-                                    </span>
-                                </div>
-                                {canManage && (
-                                    <div className="flex items-center gap-1">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => openEditRule(rule)}
-                                        >
-                                            Edit
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => deleteRule(rule)}
-                                        >
-                                            <Trash2Icon />
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
-            </div>
-
-            <Dialog
-                open={addNodeLevel !== null}
-                onOpenChange={(open) => !open && setAddNodeLevel(null)}
-            >
-                <DialogContent>
-                    <DialogTitle>
-                        Add location to {addNodeLevel?.name}
-                    </DialogTitle>
-                    <div className="space-y-4">
-                        {addNodeLevel &&
-                            parentLevelFor(addNodeLevel) !== null && (
-                                <div className="grid gap-2">
-                                    <Label>Parent location</Label>
-                                    <Select
-                                        value={nodeParentId}
-                                        onValueChange={setNodeParentId}
-                                    >
-                                        <SelectTrigger className="w-full">
-                                            <SelectValue placeholder="Select a parent" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {parentLevelFor(
-                                                addNodeLevel,
-                                            )?.nodes.map((parent) => (
-                                                <SelectItem
-                                                    key={parent.id}
-                                                    value={parent.id}
-                                                >
-                                                    {parent.path}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
-                        {addNodeLevel?.value_strategy === 'manual' && (
-                            <div className="grid gap-2">
-                                <Label htmlFor="node_value">Value</Label>
-                                <Input
-                                    id="node_value"
-                                    value={nodeValue}
-                                    onChange={(event) =>
-                                        setNodeValue(event.target.value)
-                                    }
-                                    placeholder="A"
-                                />
-                            </div>
-                        )}
-                        {addNodeLevel &&
-                            addNodeLevel.value_strategy !== 'manual' && (
-                                <p className="text-sm text-muted-foreground">
-                                    The value will be generated automatically (
-                                    {
-                                        VALUE_STRATEGY_LABELS[
-                                            addNodeLevel.value_strategy
-                                        ]
-                                    }
-                                    ).
-                                </p>
-                            )}
                     </div>
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button variant="ghost">Cancel</Button>
-                        </DialogClose>
-                        <Button onClick={submitNode}>Add</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+
+                    <Card className="sticky top-6">
+                        <CardHeader>
+                            <CardTitle>Resulting path</CardTitle>
+                            <p className="text-xs text-muted-foreground">
+                                Preview using the first matching rule per level.
+                            </p>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            {resultingPath.levels.map((level) => (
+                                <div
+                                    key={level.level_id}
+                                    className="flex items-center justify-between gap-3 rounded-md border bg-muted px-3 py-2"
+                                >
+                                    <span className="text-xs text-muted-foreground">
+                                        {level.level_name}
+                                    </span>
+                                    <span className="font-mono text-sm font-medium">
+                                        {level.sample ?? '···'}
+                                    </span>
+                                </div>
+                            ))}
+                            <div className="border-t pt-4 text-center">
+                                <p className="mb-1.5 text-xs text-muted-foreground">
+                                    Full location
+                                </p>
+                                <p className="font-mono text-lg font-semibold">
+                                    {resultingPath.path}
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
 
             <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
                 <DialogContent>
@@ -540,48 +406,6 @@ export default function OrganizationSchemeShow({
                         <Button onClick={submitRule}>
                             {editingRule ? 'Save changes' : 'Add rule'}
                         </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={migrateOpen} onOpenChange={setMigrateOpen}>
-                <DialogContent>
-                    <DialogTitle>
-                        Migrate documents to another scheme
-                    </DialogTitle>
-                    <div className="space-y-4">
-                        <p className="text-sm text-muted-foreground">
-                            Queues a background job that relocates every
-                            document currently filed under this scheme onto the
-                            selected one.
-                        </p>
-                        <div className="grid gap-2">
-                            <Label>Target scheme</Label>
-                            <Select
-                                value={targetSchemeId}
-                                onValueChange={setTargetSchemeId}
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select a scheme" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {otherSchemes.map((other) => (
-                                        <SelectItem
-                                            key={other.id}
-                                            value={other.id}
-                                        >
-                                            {other.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button variant="ghost">Cancel</Button>
-                        </DialogClose>
-                        <Button onClick={submitMigration}>Migrate</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

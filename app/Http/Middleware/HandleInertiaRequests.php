@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Actions\Workspace\CalculateWorkspaceUsage;
 use App\Enums\WorkspaceRole;
+use App\Models\OrganizationScheme;
 use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -79,6 +80,9 @@ class HandleInertiaRequests extends Middleware
             'canSwitchWorkspace' => (bool) config('archivum.multi_workspace_enabled'),
             'isWorkspaceAdmin' => $currentRole === WorkspaceRole::Admin,
             'documentsCount' => $workspace ? app(CalculateWorkspaceUsage::class)->documents($workspace) : null,
+            'organizationSchemeId' => $workspace
+                ? OrganizationScheme::query()->where('workspace_id', $workspace->id)->value('id')
+                : null,
         ];
     }
 }

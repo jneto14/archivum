@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Organization;
 
+use App\Actions\Documents\CreateDocument;
+use App\Actions\Documents\MoveDocument;
 use App\Actions\Organization\CreateOrganizationNode;
 use App\Actions\Organization\CreateScheme;
 use App\Enums\NodeValueStrategy;
 use App\Enums\WorkspaceRole;
+use App\Models\DocumentType;
 use App\Models\OrganizationScheme;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
@@ -97,6 +100,64 @@ class OrganizationNodeTest extends TestCase
         ]);
 
         $response->assertSessionHasErrors('capacity');
+    }
+
+    public function test_workspace_admin_can_delete_a_leaf_node()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $scheme = $this->createScheme($workspace);
+        $node = app(CreateOrganizationNode::class)->handle($scheme->levels->first(), null, '001');
+
+        $response = $this->actingAs($admin->user)->delete(route('organization.schemes.nodes.destroy', [$scheme, $node]));
+
+        $response->assertRedirect();
+        $this->assertDatabaseMissing('organization_nodes', ['id' => $node->id]);
+    }
+
+    public function test_non_admin_member_cannot_delete_a_node()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $scheme = $this->createScheme($workspace);
+        $node = app(CreateOrganizationNode::class)->handle($scheme->levels->first(), null, '001');
+
+        $response = $this->actingAs($member->user)->delete(route('organization.schemes.nodes.destroy', [$scheme, $node]));
+
+        $response->assertForbidden();
+        $this->assertDatabaseHas('organization_nodes', ['id' => $node->id]);
+    }
+
+    public function test_a_node_with_children_cannot_be_deleted()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $scheme = $this->createScheme($workspace);
+        $levels = $scheme->levels()->orderBy('position')->get();
+        $action = app(CreateOrganizationNode::class);
+        $cover = $action->handle($levels[0], null, '001');
+        $action->handle($levels[1], $cover, 'A');
+
+        $response = $this->actingAs($admin->user)->delete(route('organization.schemes.nodes.destroy', [$scheme, $cover]));
+
+        $response->assertSessionHasErrors('node');
+        $this->assertDatabaseHas('organization_nodes', ['id' => $cover->id]);
+    }
+
+    public function test_a_node_with_documents_currently_located_at_it_cannot_be_deleted()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $scheme = $this->createScheme($workspace);
+        $node = app(CreateOrganizationNode::class)->handle($scheme->levels->first(), null, '001');
+        $type = DocumentType::factory()->for($workspace)->create();
+        $document = app(CreateDocument::class)->handle($workspace, $admin->user, $type, 'Filed', null, null);
+        app(MoveDocument::class)->handle($document, $node);
+
+        $response = $this->actingAs($admin->user)->delete(route('organization.schemes.nodes.destroy', [$scheme, $node]));
+
+        $response->assertSessionHasErrors('node');
+        $this->assertDatabaseHas('organization_nodes', ['id' => $node->id]);
     }
 
     private function createScheme(Workspace $workspace, ?int $coverCapacity = null): OrganizationScheme

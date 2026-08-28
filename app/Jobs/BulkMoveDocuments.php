@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Actions\Organization\MigrateSchemeDocuments;
-use App\Models\OrganizationScheme;
+use App\Actions\Organization\MigrateNodeDocuments;
+use App\Models\OrganizationNode;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -14,8 +14,8 @@ use Illuminate\Queue\SerializesModels;
 use InvalidArgumentException;
 
 /**
- * Queues the migration of every document under one organization scheme to
- * another, off the request cycle since a scheme can hold a large number of
+ * Queues the migration of every document under one organization node to
+ * another, off the request cycle since a node can hold a large number of
  * documents.
  */
 class BulkMoveDocuments implements ShouldQueue
@@ -23,24 +23,24 @@ class BulkMoveDocuments implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * @param OrganizationScheme $source The scheme documents are currently organized under.
-     * @param OrganizationScheme $target The scheme documents are moved into.
+     * @param OrganizationNode $source The node documents are currently located at.
+     * @param OrganizationNode $target The node documents are moved onto.
      */
     public function __construct(
-        public readonly OrganizationScheme $source,
-        public readonly OrganizationScheme $target,
+        public readonly OrganizationNode $source,
+        public readonly OrganizationNode $target,
     ) {}
 
     /**
-     * @param MigrateSchemeDocuments $action Resolved from the container by the queue worker.
+     * @param MigrateNodeDocuments $action Resolved from the container by the queue worker.
      *
      * @return void No return value; documents are relocated as a side effect.
      *
-     * @throws InvalidArgumentException If the source and target scheme are the same, or belong to
+     * @throws InvalidArgumentException If the source and target node are the same, or belong to
      *                                  different workspaces (should not happen if dispatched via the
      *                                  controller, which validates this first — defense in depth).
      */
-    public function handle(MigrateSchemeDocuments $action): void
+    public function handle(MigrateNodeDocuments $action): void
     {
         $action->handle($this->source, $this->target);
     }
