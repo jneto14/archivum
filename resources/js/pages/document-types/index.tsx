@@ -27,6 +27,11 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { destroy, index, store, update } from '@/routes/document-types';
 
 type DocumentTypeRow = {
@@ -233,21 +238,52 @@ export default function DocumentTypeIndex({
                                                     >
                                                         Edit
                                                     </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        disabled={
-                                                            type.documents_count >
-                                                            0
-                                                        }
-                                                        onClick={() =>
-                                                            setRemoveTarget(
-                                                                type,
-                                                            )
-                                                        }
-                                                    >
-                                                        Delete
-                                                    </Button>
+                                                    {type.documents_count >
+                                                    0 ? (
+                                                        <Tooltip>
+                                                            <TooltipTrigger
+                                                                asChild
+                                                            >
+                                                                <span
+                                                                    tabIndex={0}
+                                                                >
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        disabled
+                                                                    >
+                                                                        Delete
+                                                                    </Button>
+                                                                </span>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                {
+                                                                    type.documents_count
+                                                                }{' '}
+                                                                document
+                                                                {type.documents_count ===
+                                                                1
+                                                                    ? ''
+                                                                    : 's'}{' '}
+                                                                still assigned —
+                                                                reassign or
+                                                                remove them
+                                                                first.
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    ) : (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                setRemoveTarget(
+                                                                    type,
+                                                                )
+                                                            }
+                                                        >
+                                                            Delete
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                         )}
