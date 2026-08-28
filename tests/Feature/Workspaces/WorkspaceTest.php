@@ -15,11 +15,11 @@ class WorkspaceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_authenticated_user_can_create_a_workspace()
+    public function test_platform_admin_can_create_a_workspace()
     {
-        $user = User::factory()->create();
+        $platformAdmin = User::factory()->create(['is_platform_admin' => true]);
 
-        $response = $this->actingAs($user)->post(route('workspaces.store'), [
+        $response = $this->actingAs($platformAdmin)->post(route('workspaces.store'), [
             'name' => 'Company A',
         ]);
 
@@ -27,14 +27,12 @@ class WorkspaceTest extends TestCase
 
         $workspace = Workspace::query()->where('name', 'Company A')->firstOrFail();
 
-        $this->assertTrue($workspace->isAdmin($user));
+        $this->assertTrue($workspace->isAdmin($platformAdmin));
         $this->assertSame($workspace->id, session('current_workspace_id'));
     }
 
-    public function test_workspace_creation_is_blocked_when_multi_workspace_is_disabled()
+    public function test_non_platform_admin_cannot_create_a_workspace()
     {
-        config(['archivum.multi_workspace_enabled' => false]);
-
         $user = User::factory()->create();
 
         $response = $this->actingAs($user)->post(route('workspaces.store'), [
@@ -42,6 +40,20 @@ class WorkspaceTest extends TestCase
         ]);
 
         $response->assertForbidden();
+        $this->assertDatabaseMissing('workspaces', ['name' => 'Company A']);
+    }
+
+    public function test_workspace_creation_is_blocked_when_multi_workspace_is_disabled()
+    {
+        config(['archivum.multi_workspace_enabled' => false]);
+
+        $platformAdmin = User::factory()->create(['is_platform_admin' => true]);
+
+        $response = $this->actingAs($platformAdmin)->post(route('workspaces.store'), [
+            'name' => 'Company A',
+        ]);
+
+        $response->assertNotFound();
         $this->assertDatabaseMissing('workspaces', ['name' => 'Company A']);
     }
 

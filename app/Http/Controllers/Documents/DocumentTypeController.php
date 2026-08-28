@@ -46,7 +46,7 @@ class DocumentTypeController extends Controller
                 'key' => $type->key,
                 'documents_count' => $type->documents_count,
             ])->values()->all(),
-            'canManage' => $workspace->isAdmin($request->user()),
+            'canManage' => $workspace->isManageableBy($request->user()),
         ]);
     }
 

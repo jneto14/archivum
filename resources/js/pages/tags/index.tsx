@@ -28,7 +28,6 @@ export default function TagIndex({ workspace, tags }: Props) {
 
     setLayoutProps({
         breadcrumbs: [
-            { title: workspace.name, href: '#' },
             { title: t('tags.index.title'), href: index.url(workspace.id) },
         ],
     });

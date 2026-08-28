@@ -91,4 +91,20 @@ class DashboardTest extends TestCase
             ->get(route('dashboard'))
             ->assertInertia(fn (Assert $page) => $page->where('isWorkspaceAdmin', true));
     }
+
+    public function test_dashboard_shares_admin_status_for_a_platform_admin_managing_a_foreign_workspace()
+    {
+        $workspace = Workspace::factory()->create();
+        $platformAdmin = User::factory()->create(['is_platform_admin' => true]);
+
+        $this->actingAs($platformAdmin)->post(route('workspaces.switch', $workspace))->assertRedirect();
+
+        $this->actingAs($platformAdmin)
+            ->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('workspace.id', $workspace->id)
+                ->where('workspaces', [])
+                ->where('isWorkspaceAdmin', true),
+            );
+    }
 }

@@ -106,7 +106,7 @@ class DocumentController extends Controller
             'creator',
         ]);
 
-        $canFile = $document->workspace->isAdmin($request->user());
+        $canFile = $document->workspace->isManageableBy($request->user());
         $scheme = $document->currentLocation?->node?->level->scheme
             ?? OrganizationScheme::query()->where('workspace_id', $document->workspace_id)->oldest()->first();
 

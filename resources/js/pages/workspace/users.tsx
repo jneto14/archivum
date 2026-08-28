@@ -34,7 +34,6 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { useTranslation } from '@/hooks/use-translation';
-import { show as workspaceShow } from '@/routes/workspaces';
 import { destroy, index, store, update } from '@/routes/workspaces/users';
 
 type Member = {
@@ -58,7 +57,6 @@ export default function WorkspaceUsers({ workspace, members }: Props) {
 
     setLayoutProps({
         breadcrumbs: [
-            { title: workspace.name, href: workspaceShow.url(workspace.id) },
             {
                 title: t('workspace.users.heading'),
                 href: index.url(workspace.id),

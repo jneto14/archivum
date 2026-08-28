@@ -28,9 +28,9 @@ import { edit as editSecurity } from '@/routes/security';
 import tokens from '@/routes/tokens';
 import {
     destroy as destroyWorkspace,
-    show as workspaceShow,
     update as updateWorkspace,
 } from '@/routes/workspaces';
+import { update as updateWorkspaceLimits } from '@/routes/workspaces/limits';
 
 type Scheme = { id: string; name: string } | null;
 
@@ -41,6 +41,13 @@ type Token = {
     last_used_at_diff: string | null;
 };
 
+type WorkspaceLimits = {
+    storage_bytes: number | null;
+    users: number | null;
+    documents: number | null;
+    attachments: number | null;
+};
+
 type Props = {
     workspace: { id: string; name: string };
     scheme: Scheme;
@@ -49,13 +56,19 @@ type Props = {
         attachments_disk: string;
     };
     tokens: Token[];
+    isPlatformAdmin: boolean;
+    limits: WorkspaceLimits | null;
 };
+
+const BYTES_PER_MB = 1024 * 1024;
 
 export default function WorkspaceSettings({
     workspace,
     scheme,
     instance,
     tokens: apiTokens,
+    isPlatformAdmin,
+    limits,
 }: Props) {
     const t = useTranslation();
 
@@ -66,12 +79,19 @@ export default function WorkspaceSettings({
 
     const renameForm = useForm({ name: workspace.name });
     const tokenForm = useForm({ name: '' });
+    const limitsForm = useForm({
+        storage_mb:
+            limits?.storage_bytes != null
+                ? String(Math.round(limits.storage_bytes / BYTES_PER_MB))
+                : '',
+        users: limits?.users != null ? String(limits.users) : '',
+        documents: limits?.documents != null ? String(limits.documents) : '',
+        attachments:
+            limits?.attachments != null ? String(limits.attachments) : '',
+    });
 
     setLayoutProps({
-        breadcrumbs: [
-            { title: workspace.name, href: workspaceShow.url(workspace.id) },
-            { title: t('workspace.settings.title'), href: '#' },
-        ],
+        breadcrumbs: [{ title: t('workspace.settings.title'), href: '#' }],
     });
 
     useEffect(() => {
@@ -91,6 +111,25 @@ export default function WorkspaceSettings({
         renameForm.patch(updateWorkspace.url(workspace.id), {
             preserveScroll: true,
             onSuccess: () => setRenameOpen(false),
+        });
+    };
+
+    const submitLimits = (event: FormEvent) => {
+        event.preventDefault();
+
+        limitsForm.transform((data) => ({
+            storage_bytes:
+                data.storage_mb === ''
+                    ? null
+                    : Number(data.storage_mb) * BYTES_PER_MB,
+            users: data.users === '' ? null : Number(data.users),
+            documents: data.documents === '' ? null : Number(data.documents),
+            attachments:
+                data.attachments === '' ? null : Number(data.attachments),
+        }));
+
+        limitsForm.patch(updateWorkspaceLimits.url(workspace.id), {
+            preserveScroll: true,
         });
     };
 
@@ -227,6 +266,126 @@ export default function WorkspaceSettings({
                     </div>
                 </CardContent>
             </Card>
+
+            {isPlatformAdmin && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>
+                            {t('workspace.settings.limits_section_title')}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <p className="text-xs text-muted-foreground">
+                            {t('workspace.settings.limits_section_description')}
+                        </p>
+                        <form
+                            onSubmit={submitLimits}
+                            className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+                        >
+                            <div className="grid gap-2">
+                                <Label htmlFor="storage_mb">
+                                    {t(
+                                        'workspace.settings.limits_storage_label',
+                                    )}
+                                </Label>
+                                <Input
+                                    id="storage_mb"
+                                    type="number"
+                                    min={0}
+                                    value={limitsForm.data.storage_mb}
+                                    onChange={(event) =>
+                                        limitsForm.setData(
+                                            'storage_mb',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError
+                                    message={
+                                        (
+                                            limitsForm.errors as Record<
+                                                string,
+                                                string | undefined
+                                            >
+                                        ).storage_bytes
+                                    }
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="users_limit">
+                                    {t('workspace.settings.limits_users_label')}
+                                </Label>
+                                <Input
+                                    id="users_limit"
+                                    type="number"
+                                    min={1}
+                                    value={limitsForm.data.users}
+                                    onChange={(event) =>
+                                        limitsForm.setData(
+                                            'users',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError message={limitsForm.errors.users} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="documents_limit">
+                                    {t(
+                                        'workspace.settings.limits_documents_label',
+                                    )}
+                                </Label>
+                                <Input
+                                    id="documents_limit"
+                                    type="number"
+                                    min={0}
+                                    value={limitsForm.data.documents}
+                                    onChange={(event) =>
+                                        limitsForm.setData(
+                                            'documents',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError
+                                    message={limitsForm.errors.documents}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="attachments_limit">
+                                    {t(
+                                        'workspace.settings.limits_attachments_label',
+                                    )}
+                                </Label>
+                                <Input
+                                    id="attachments_limit"
+                                    type="number"
+                                    min={0}
+                                    value={limitsForm.data.attachments}
+                                    onChange={(event) =>
+                                        limitsForm.setData(
+                                            'attachments',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError
+                                    message={limitsForm.errors.attachments}
+                                />
+                            </div>
+                            <div className="sm:col-span-2">
+                                <Button
+                                    type="submit"
+                                    size="sm"
+                                    disabled={limitsForm.processing}
+                                >
+                                    {t('workspace.settings.limits_save_button')}
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
+            )}
 
             <Card>
                 <CardHeader>

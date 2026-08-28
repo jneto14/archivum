@@ -105,4 +105,67 @@ class WorkspaceLimitTest extends TestCase
         $response->assertRedirect();
         $this->assertTrue($workspace->isMember($newUser));
     }
+
+    public function test_platform_admin_can_set_a_workspaces_limits()
+    {
+        $workspace = Workspace::factory()->create();
+        $platformAdmin = User::factory()->create(['is_platform_admin' => true]);
+
+        $response = $this->actingAs($platformAdmin)->patch(route('workspaces.limits.update', $workspace), [
+            'storage_bytes' => 1024 * 1024 * 1024,
+            'users' => 10,
+            'documents' => 500,
+            'attachments' => 1000,
+        ]);
+
+        $response->assertRedirect();
+
+        $limits = $workspace->limits()->sole();
+        $this->assertSame(1024 * 1024 * 1024, $limits->storage_bytes);
+        $this->assertSame(10, $limits->users);
+        $this->assertSame(500, $limits->documents);
+        $this->assertSame(1000, $limits->attachments);
+    }
+
+    public function test_platform_admin_can_clear_a_workspaces_limits_to_unlimited()
+    {
+        $workspace = Workspace::factory()->create();
+        WorkspaceLimit::factory()->for($workspace)->create(['users' => 5]);
+        $platformAdmin = User::factory()->create(['is_platform_admin' => true]);
+
+        $response = $this->actingAs($platformAdmin)->patch(route('workspaces.limits.update', $workspace), [
+            'storage_bytes' => null,
+            'users' => null,
+            'documents' => null,
+            'attachments' => null,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertNull($workspace->limits()->sole()->users);
+    }
+
+    public function test_workspace_admin_cannot_update_their_own_workspaces_limits()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+
+        $response = $this->actingAs($admin->user)->patch(route('workspaces.limits.update', $workspace), [
+            'users' => 10,
+        ]);
+
+        $response->assertForbidden();
+        $this->assertNull($workspace->limits()->first());
+    }
+
+    public function test_updating_limits_rejects_negative_values()
+    {
+        $workspace = Workspace::factory()->create();
+        $platformAdmin = User::factory()->create(['is_platform_admin' => true]);
+
+        $response = $this->actingAs($platformAdmin)->patch(route('workspaces.limits.update', $workspace), [
+            'documents' => -1,
+        ]);
+
+        $response->assertSessionHasErrors('documents');
+    }
 }
