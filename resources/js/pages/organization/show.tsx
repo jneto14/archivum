@@ -205,10 +205,6 @@ export default function OrganizationSchemeShow({
                                         </span>
                                     </div>
                                 ))}
-                                <p className="p-4 text-xs text-muted-foreground">
-                                    Levels can only be defined when a scheme is
-                                    created.
-                                </p>
                             </CardContent>
                         </Card>
 

@@ -86,7 +86,7 @@ class OrganizationSchemeController extends Controller
     }
 
     /**
-     * Show the form for renaming an existing organization scheme.
+     * Show the form for editing an existing organization scheme's name and levels.
      *
      * @param OrganizationScheme $scheme The scheme being edited.
      *
@@ -98,9 +98,23 @@ class OrganizationSchemeController extends Controller
     {
         $this->authorize('update', $scheme);
 
+        $scheme->load(['levels' => fn ($query) => $query->orderBy('position')]);
+
         return Inertia::render('organization/form', [
             'workspaceId' => $scheme->workspace_id,
-            'scheme' => ['id' => $scheme->id, 'name' => $scheme->name],
+            'scheme' => [
+                'id' => $scheme->id,
+                'name' => $scheme->name,
+                'levels' => $scheme->levels->map(fn (OrganizationLevel $level) => [
+                    'id' => $level->id,
+                    'name' => $level->name,
+                    'key' => $level->key,
+                    'position' => $level->position,
+                    'capacity' => $level->capacity,
+                    'value_strategy' => $level->value_strategy->value,
+                    'has_nodes' => $level->nodes()->exists(),
+                ])->values()->all(),
+            ],
         ]);
     }
 
