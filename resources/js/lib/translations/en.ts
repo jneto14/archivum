@@ -305,6 +305,17 @@ export default {
         ':name will lose access to this workspace. This can be undone through a new invite.',
     'workspace.users.remove_confirm_button': 'Remove member',
 
+    'workspace.usage.title': 'Usage & limits',
+    'workspace.usage.description':
+        'See how :workspace is using its allotted resources.',
+    'workspace.usage.card_title': 'Resource usage',
+    'workspace.usage.storage_label': 'Storage',
+    'workspace.usage.users_label': 'Users',
+    'workspace.usage.documents_label': 'Documents',
+    'workspace.usage.attachments_label': 'Attachments',
+    'workspace.usage.used_of_limit': ':used of :limit',
+    'workspace.usage.unlimited': ':used (unlimited)',
+
     'workspace.settings.title': 'Settings',
     'workspace.settings.description':
         "Manage this workspace's configuration, API tokens, and account.",

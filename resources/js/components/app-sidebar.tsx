@@ -34,7 +34,10 @@ import {
 } from '@/routes/organization/schemes';
 import { edit as editProfile } from '@/routes/profile';
 import { index as tagsIndex } from '@/routes/tags';
-import { index as workspacesIndex } from '@/routes/workspaces';
+import {
+    index as workspacesIndex,
+    usage as workspaceUsage,
+} from '@/routes/workspaces';
 import { show as workspaceSettingsShow } from '@/routes/workspaces/settings';
 import { index as usersIndex } from '@/routes/workspaces/users';
 import type { NavItem } from '@/types';
@@ -135,9 +138,9 @@ export function AppSidebar() {
         },
         {
             title: t('nav.usage_limits'),
-            href: '#',
+            href: workspace ? workspaceUsage.url(workspace.id) : '#',
             icon: Gauge,
-            disabled: true,
+            disabled: !workspace,
         },
         ...(isWorkspaceAdmin
             ? ([

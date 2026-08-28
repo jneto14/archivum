@@ -14,6 +14,7 @@ use App\Models\WorkspaceUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class WorkspaceUsageTest extends TestCase
@@ -31,16 +32,18 @@ class WorkspaceUsageTest extends TestCase
         app(UploadAttachment::class)->handle($document, UploadedFile::fake()->create('scan.pdf', 10, 'application/pdf'), $admin->user);
         WorkspaceLimit::factory()->for($workspace)->create(['documents' => 100, 'users' => null]);
 
-        $response = $this->actingAs($admin->user)->getJson(route('workspaces.usage', $workspace));
+        $response = $this->actingAs($admin->user)->get(route('workspaces.usage', $workspace));
 
         $response->assertOk();
-        $response->assertJsonPath('documents.used', 1);
-        $response->assertJsonPath('documents.limit', 100);
-        $response->assertJsonPath('attachments.used', 1);
-        $response->assertJsonPath('users.used', 1);
-        $response->assertJsonPath('users.limit', null);
-        $response->assertJsonPath('storage.limit', null);
-        $this->assertGreaterThan(0, $response->json('storage.used'));
+        $response->assertInertia(fn (Assert $page) => $page
+            ->where('usage.documents.used', 1)
+            ->where('usage.documents.limit', 100)
+            ->where('usage.attachments.used', 1)
+            ->where('usage.users.used', 1)
+            ->where('usage.users.limit', null)
+            ->where('usage.storage.limit', null)
+            ->where('usage.storage.used', fn (int $used) => $used > 0),
+        );
     }
 
     public function test_workspace_without_configured_limits_reports_null_limits()
@@ -48,13 +51,15 @@ class WorkspaceUsageTest extends TestCase
         $workspace = Workspace::factory()->create();
         $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
 
-        $response = $this->actingAs($admin->user)->getJson(route('workspaces.usage', $workspace));
+        $response = $this->actingAs($admin->user)->get(route('workspaces.usage', $workspace));
 
         $response->assertOk();
-        $response->assertJsonPath('storage.limit', null);
-        $response->assertJsonPath('users.limit', null);
-        $response->assertJsonPath('documents.limit', null);
-        $response->assertJsonPath('attachments.limit', null);
+        $response->assertInertia(fn (Assert $page) => $page
+            ->where('usage.storage.limit', null)
+            ->where('usage.users.limit', null)
+            ->where('usage.documents.limit', null)
+            ->where('usage.attachments.limit', null),
+        );
     }
 
     public function test_non_admin_member_cannot_view_workspace_usage()
@@ -62,7 +67,7 @@ class WorkspaceUsageTest extends TestCase
         $workspace = Workspace::factory()->create();
         $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
 
-        $response = $this->actingAs($member->user)->getJson(route('workspaces.usage', $workspace));
+        $response = $this->actingAs($member->user)->get(route('workspaces.usage', $workspace));
 
         $response->assertForbidden();
     }
@@ -72,7 +77,7 @@ class WorkspaceUsageTest extends TestCase
         $workspace = Workspace::factory()->create();
         $outsider = WorkspaceUser::factory()->create(['role' => WorkspaceRole::Admin]);
 
-        $response = $this->actingAs($outsider->user)->getJson(route('workspaces.usage', $workspace));
+        $response = $this->actingAs($outsider->user)->get(route('workspaces.usage', $workspace));
 
         $response->assertForbidden();
     }
