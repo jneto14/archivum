@@ -33,10 +33,25 @@ class TagTest extends TestCase
                 ->component('tags/index')
                 ->has('tags', 1)
                 ->where('tags.0.name', 'Urgent')
-                ->where('tags.0.documents_count', 1),
+                ->where('tags.0.documents_count', 1)
+                ->whereNot('tags.0.last_used_at', null),
             );
 
         $this->assertNotNull($document);
+    }
+
+    public function test_a_tag_with_no_documents_reports_no_last_used_date()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        Tag::factory()->for($workspace)->create(['name' => 'Unused']);
+
+        $this->actingAs($member->user)
+            ->get(route('tags.index', $workspace))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('tags.0.documents_count', 0)
+                ->where('tags.0.last_used_at', null),
+            );
     }
 
     public function test_non_member_cannot_list_tags()

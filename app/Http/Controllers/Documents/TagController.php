@@ -7,10 +7,12 @@ namespace App\Http\Controllers\Documents;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Documents\StoreTagRequest;
 use App\Http\Requests\Documents\UpdateTagRequest;
+use App\Models\DocumentTag;
 use App\Models\Tag;
 use App\Models\Workspace;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -35,12 +37,21 @@ class TagController extends Controller
             ->orderBy('name')
             ->get();
 
+        $lastUsedAt = DocumentTag::query()
+            ->whereIn('tag_id', $tags->pluck('id'))
+            ->selectRaw('tag_id, MAX(created_at) as last_used_at')
+            ->groupBy('tag_id')
+            ->pluck('last_used_at', 'tag_id');
+
         return Inertia::render('tags/index', [
             'workspace' => ['id' => $workspace->id, 'name' => $workspace->name],
             'tags' => $tags->map(fn (Tag $tag) => [
                 'id' => $tag->id,
                 'name' => $tag->name,
                 'documents_count' => $tag->documents_count,
+                'last_used_at' => ($value = $lastUsedAt->get($tag->id)) !== null
+                    ? Carbon::parse($value)->toISOString()
+                    : null,
             ])->values()->all(),
         ]);
     }
