@@ -1,6 +1,8 @@
 import { Form, Head, setLayoutProps } from '@inertiajs/react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
+import PasswordStrengthMeter from '@/components/password-strength-meter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +18,7 @@ type Props = {
 
 export default function ResetPassword({ token, email, passwordRules }: Props) {
     const t = useTranslation();
+    const [password, setPassword] = useState('');
 
     setLayoutProps({
         title: t('auth.reset_password.head_title'),
@@ -66,7 +69,11 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                                     'auth.reset_password.password_placeholder',
                                 )}
                                 passwordrules={passwordRules}
+                                onChange={(event) =>
+                                    setPassword(event.target.value)
+                                }
                             />
+                            <PasswordStrengthMeter password={password} />
                             <InputError message={errors.password} />
                         </div>
 

@@ -78,8 +78,8 @@ class WorkspaceMembershipTest extends TestCase
             $response = $this->post(route('password.update'), [
                 'token' => $notification->token,
                 'email' => $invited->email,
-                'password' => 'password',
-                'password_confirmation' => 'password',
+                'password' => 'Str0ng!Passw0rd',
+                'password_confirmation' => 'Str0ng!Passw0rd',
             ]);
 
             $response

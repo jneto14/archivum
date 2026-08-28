@@ -1,5 +1,5 @@
 import { Form, Head, setLayoutProps } from '@inertiajs/react';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import SecurityController from '@/actions/App/Http/Controllers/Settings/SecurityController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -8,6 +8,7 @@ import ManagePasskeys from '@/components/manage-passkeys';
 import type { Props as ManageTwoFactorProps } from '@/components/manage-two-factor';
 import ManageTwoFactor from '@/components/manage-two-factor';
 import PasswordInput from '@/components/password-input';
+import PasswordStrengthMeter from '@/components/password-strength-meter';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useTranslation } from '@/hooks/use-translation';
@@ -31,6 +32,7 @@ export default function Security(props: Props) {
     });
     const passwordInput = useRef<HTMLInputElement>(null);
     const currentPasswordInput = useRef<HTMLInputElement>(null);
+    const [password, setPassword] = useState('');
 
     return (
         <>
@@ -58,7 +60,10 @@ export default function Security(props: Props) {
                         'current_password',
                     ]}
                     resetOnSuccess
+                    onSuccess={() => setPassword('')}
                     onError={(errors) => {
+                        setPassword('');
+
                         if (errors.password) {
                             passwordInput.current?.focus();
                         }
@@ -107,7 +112,11 @@ export default function Security(props: Props) {
                                         'settings.security.new_password_placeholder',
                                     )}
                                     passwordrules={props.passwordRules}
+                                    onChange={(event) =>
+                                        setPassword(event.target.value)
+                                    }
                                 />
+                                <PasswordStrengthMeter password={password} />
 
                                 <InputError message={errors.password} />
                             </div>

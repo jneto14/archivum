@@ -371,6 +371,17 @@ export default {
         'Copia este token agora — não voltará a ser mostrado.',
     'workspace.settings.done_button': 'Concluído',
 
+    'password_strength.level_very_weak': 'Muito fraca',
+    'password_strength.level_weak': 'Fraca',
+    'password_strength.level_fair': 'Razoável',
+    'password_strength.level_good': 'Boa',
+    'password_strength.level_strong': 'Forte',
+    'password_strength.requirement_length': 'Pelo menos 12 caracteres',
+    'password_strength.requirement_lowercase': 'Uma letra minúscula',
+    'password_strength.requirement_uppercase': 'Uma letra maiúscula',
+    'password_strength.requirement_number': 'Um número',
+    'password_strength.requirement_symbol': 'Um símbolo',
+
     'auth.accept_invitation.head_title': 'Aceitar convite',
     'auth.accept_invitation.layout_title': 'Bem-vindo ao Archivum',
     'auth.accept_invitation.layout_description':
