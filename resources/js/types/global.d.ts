@@ -20,6 +20,7 @@ declare module '@inertiajs/core' {
             canSwitchWorkspace: boolean;
             isWorkspaceAdmin: boolean;
             documentsCount: number | null;
+            organizationSchemeId: string | null;
             [key: string]: unknown;
         };
     }

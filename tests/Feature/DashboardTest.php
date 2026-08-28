@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Actions\Organization\CreateScheme;
+use App\Enums\NodeValueStrategy;
 use App\Enums\WorkspaceRole;
 use App\Models\Document;
 use App\Models\User;
@@ -42,7 +44,8 @@ class DashboardTest extends TestCase
                 ->where('workspace', null)
                 ->where('workspaces', [])
                 ->where('isWorkspaceAdmin', false)
-                ->where('documentsCount', null),
+                ->where('documentsCount', null)
+                ->where('organizationSchemeId', null),
             );
     }
 
@@ -61,6 +64,21 @@ class DashboardTest extends TestCase
                 ->where('workspaces.0.role', WorkspaceRole::User->value)
                 ->where('isWorkspaceAdmin', false)
                 ->where('documentsCount', 2),
+            );
+    }
+
+    public function test_dashboard_shares_the_workspace_organization_scheme_id_when_one_exists()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $scheme = app(CreateScheme::class)->handle($workspace, 'Traditional Archive', [
+            ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
+        ]);
+
+        $this->actingAs($member->user)
+            ->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('organizationSchemeId', $scheme->id),
             );
     }
 

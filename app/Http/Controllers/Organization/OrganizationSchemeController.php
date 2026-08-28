@@ -10,8 +10,8 @@ use App\Enums\NodeValueStrategy;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Organization\StoreOrganizationSchemeRequest;
 use App\Http\Requests\Organization\UpdateOrganizationSchemeRequest;
-use App\Models\Document;
-use App\Models\OrganizationNode;
+use App\Models\OrganizationLevel;
+use App\Models\OrganizationRule;
 use App\Models\OrganizationScheme;
 use App\Models\Workspace;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -23,37 +23,6 @@ use Inertia\Response;
 
 class OrganizationSchemeController extends Controller
 {
-    /**
-     * List the organization schemes configured in the given workspace.
-     *
-     * @param Request $request The incoming request, used to resolve the acting user.
-     * @param Workspace $workspace The workspace whose schemes are listed.
-     *
-     * @return Response The rendered organization schemes index page.
-     *
-     * @throws AuthorizationException If the current user isn't a member of $workspace.
-     */
-    public function index(Request $request, Workspace $workspace): Response
-    {
-        $this->authorize('viewAny', [OrganizationScheme::class, $workspace]);
-
-        $schemes = OrganizationScheme::query()
-            ->where('workspace_id', $workspace->id)
-            ->withCount(['levels', 'rules'])
-            ->orderBy('name')
-            ->get();
-
-        return Inertia::render('organization/index', [
-            'schemes' => $schemes->map(fn (OrganizationScheme $scheme) => [
-                'id' => $scheme->id,
-                'name' => $scheme->name,
-                'levels_count' => $scheme->levels_count,
-                'rules_count' => $scheme->rules_count,
-            ])->values()->all(),
-            'canManage' => $workspace->isAdmin($request->user()),
-        ]);
-    }
-
     /**
      * Show the form for creating a new organization scheme.
      *
@@ -74,7 +43,8 @@ class OrganizationSchemeController extends Controller
     }
 
     /**
-     * Show a single organization scheme's levels, locations and matching rules.
+     * Show a scheme's levels and matching rules, together with a preview of
+     * the resulting path they produce.
      *
      * @param Request $request The incoming request, used to resolve the acting user.
      * @param OrganizationScheme $scheme The scheme being viewed.
@@ -87,18 +57,13 @@ class OrganizationSchemeController extends Controller
     {
         $this->authorize('view', $scheme);
 
-        $scheme->load([
-            'levels' => fn ($query) => $query->orderBy('position')->with('nodes'),
-            'rules.targetLevel',
-        ]);
-
-        $canManage = $scheme->workspace->isAdmin($request->user());
+        $scheme->load(['levels' => fn ($query) => $query->orderBy('position'), 'rules.targetLevel']);
 
         return Inertia::render('organization/show', [
             'scheme' => [
                 'id' => $scheme->id,
                 'name' => $scheme->name,
-                'levels' => $scheme->levels->map(fn ($level) => [
+                'levels' => $scheme->levels->map(fn (OrganizationLevel $level) => [
                     'id' => $level->id,
                     'name' => $level->name,
                     'key' => $level->key,
@@ -106,15 +71,8 @@ class OrganizationSchemeController extends Controller
                     'capacity' => $level->capacity,
                     'value_strategy' => $level->value_strategy->value,
                     'is_leaf' => $level->isLeaf(),
-                    'nodes' => $level->nodes->map(fn (OrganizationNode $node) => [
-                        'id' => $node->id,
-                        'value' => $node->value,
-                        'path' => $node->path(),
-                        'parent_id' => $node->parent_id,
-                        'documents_count' => $level->isLeaf() ? $this->documentsAtNode($node) : null,
-                    ])->values()->all(),
                 ])->values()->all(),
-                'rules' => $scheme->rules->map(fn ($rule) => [
+                'rules' => $scheme->rules->map(fn (OrganizationRule $rule) => [
                     'id' => $rule->id,
                     'matcher_key' => $rule->matcher_key,
                     'matcher_value' => $rule->matcher_value,
@@ -122,14 +80,8 @@ class OrganizationSchemeController extends Controller
                     'preferred_value' => $rule->preferred_value,
                 ])->values()->all(),
             ],
-            'canManage' => $canManage,
-            'otherSchemes' => $canManage
-                ? OrganizationScheme::query()
-                    ->where('workspace_id', $scheme->workspace_id)
-                    ->whereKeyNot($scheme->id)
-                    ->orderBy('name')
-                    ->get(['id', 'name'])
-                : [],
+            'canManage' => $scheme->workspace->isAdmin($request->user()),
+            'resultingPath' => $this->resultingPath($scheme),
         ]);
     }
 
@@ -162,7 +114,7 @@ class OrganizationSchemeController extends Controller
      * @return RedirectResponse Redirect to the newly created scheme's show page.
      *
      * @throws AuthorizationException If the current user cannot create schemes in $workspace.
-     * @throws ValidationException If no levels are given, or level keys are duplicated.
+     * @throws ValidationException If $workspace already has a scheme, no levels are given, or level keys are duplicated.
      */
     public function store(StoreOrganizationSchemeRequest $request, Workspace $workspace, CreateScheme $action): RedirectResponse
     {
@@ -198,17 +150,30 @@ class OrganizationSchemeController extends Controller
     }
 
     /**
-     * Count documents whose current location is the given node.
+     * Preview, for each level, the value a matching rule would assign it, so
+     * an admin can see the effect of the scheme's rules without filing a
+     * real document.
      *
-     * @param OrganizationNode $node The node to count filed documents at.
+     * @param OrganizationScheme $scheme The scheme whose levels and rules are previewed.
      *
-     * @return int The number of documents currently located at $node.
+     * @return array{levels: array<int, array{level_id: string, level_name: string, sample: string|null}>, path: string} Per-level samples and the joined preview path.
      */
-    private function documentsAtNode(OrganizationNode $node): int
+    private function resultingPath(OrganizationScheme $scheme): array
     {
-        return Document::query()
-            ->whereHas('currentLocation', fn ($query) => $query->where('organization_node_id', $node->id))
-            ->count();
+        $samples = $scheme->levels->map(function (OrganizationLevel $level) use ($scheme) {
+            $rule = $scheme->rules->first(fn (OrganizationRule $rule) => $rule->target_level_id === $level->id);
+
+            return [
+                'level_id' => $level->id,
+                'level_name' => $level->name,
+                'sample' => $rule?->preferred_value,
+            ];
+        })->values()->all();
+
+        return [
+            'levels' => $samples,
+            'path' => implode('-', array_map(fn (array $sample) => $sample['sample'] ?? '···', $samples)),
+        ];
     }
 
     /**

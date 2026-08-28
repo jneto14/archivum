@@ -22,10 +22,11 @@ class CreateScheme
      *
      * @return OrganizationScheme The newly created scheme with its levels persisted.
      *
-     * @throws ValidationException If $levels is empty, or contains duplicate level keys.
+     * @throws ValidationException If $workspace already has a scheme, $levels is empty, or $levels contains duplicate level keys.
      */
     public function handle(Workspace $workspace, string $name, array $levels): OrganizationScheme
     {
+        $this->assertWorkspaceHasNoScheme($workspace);
         $this->assertLevelsAreConsistent($levels);
 
         return DB::transaction(function () use ($workspace, $name, $levels): OrganizationScheme {
@@ -49,6 +50,26 @@ class CreateScheme
 
             return $scheme;
         });
+    }
+
+    /**
+     * @param Workspace $workspace The workspace to check.
+     *
+     * @return void No return value when the workspace has no scheme yet.
+     *
+     * @throws ValidationException If $workspace already has an OrganizationScheme.
+     */
+    private function assertWorkspaceHasNoScheme(Workspace $workspace): void
+    {
+        $exists = OrganizationScheme::query()
+            ->where('workspace_id', $workspace->id)
+            ->exists();
+
+        if ($exists) {
+            throw ValidationException::withMessages([
+                'name' => __('organization.scheme_already_exists'),
+            ]);
+        }
     }
 
     /**

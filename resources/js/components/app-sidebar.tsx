@@ -25,7 +25,11 @@ import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import { dashboard } from '@/routes';
 import { index as documentTypesIndex } from '@/routes/document-types';
 import { index as documentsIndex } from '@/routes/documents';
-import { index as schemesIndex } from '@/routes/organization/schemes';
+import {
+    create as schemeCreate,
+    show as schemeShow,
+    storage as schemeStorage,
+} from '@/routes/organization/schemes';
 import { edit as editProfile } from '@/routes/profile';
 import { index as tagsIndex } from '@/routes/tags';
 import { show as workspaceShow } from '@/routes/workspaces';
@@ -33,8 +37,13 @@ import { index as usersIndex } from '@/routes/workspaces/users';
 import type { NavItem } from '@/types';
 
 export function AppSidebar() {
-    const { isWorkspaceAdmin, canSwitchWorkspace, documentsCount, workspace } =
-        usePage().props;
+    const {
+        isWorkspaceAdmin,
+        canSwitchWorkspace,
+        documentsCount,
+        workspace,
+        organizationSchemeId,
+    } = usePage().props;
 
     const archiveItems: NavItem[] = [
         { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
@@ -45,7 +54,14 @@ export function AppSidebar() {
             disabled: !workspace,
             badge: documentsCount,
         },
-        { title: 'Physical storage', href: '#', icon: Archive, disabled: true },
+        {
+            title: 'Physical storage',
+            href: organizationSchemeId
+                ? schemeStorage.url(organizationSchemeId)
+                : '#',
+            icon: Archive,
+            disabled: !organizationSchemeId,
+        },
         { title: 'Activity', href: '#', icon: Activity, disabled: true },
         ...(isWorkspaceAdmin
             ? ([
@@ -90,7 +106,11 @@ export function AppSidebar() {
         },
         {
             title: 'Organization scheme',
-            href: workspace ? schemesIndex.url(workspace.id) : '#',
+            href: !workspace
+                ? '#'
+                : organizationSchemeId
+                  ? schemeShow.url(organizationSchemeId)
+                  : schemeCreate.url(workspace.id),
             icon: FolderTree,
             disabled: !workspace,
         },

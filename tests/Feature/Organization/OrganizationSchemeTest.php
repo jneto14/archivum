@@ -55,6 +55,23 @@ class OrganizationSchemeTest extends TestCase
         $this->assertDatabaseMissing('organization_schemes', ['name' => 'Traditional Archive']);
     }
 
+    public function test_a_second_scheme_cannot_be_created_in_a_workspace_that_already_has_one()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        OrganizationScheme::factory()->for($workspace)->create();
+
+        $response = $this->actingAs($admin->user)->post(route('organization.schemes.store', $workspace), [
+            'name' => 'Second Scheme',
+            'levels' => [
+                ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential->value],
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('name');
+        $this->assertDatabaseMissing('organization_schemes', ['name' => 'Second Scheme']);
+    }
+
     public function test_non_admin_member_cannot_create_a_scheme()
     {
         $workspace = Workspace::factory()->create();
