@@ -15,10 +15,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import {
-    index as schemesIndex,
-    show as schemeShow,
-} from '@/routes/organization/schemes';
+import { dashboard } from '@/routes';
+import { show as schemeShow } from '@/routes/organization/schemes';
 
 const VALUE_STRATEGIES = [
     { value: 'manual', label: 'Manual' },
@@ -45,11 +43,10 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
 
     setLayoutProps({
         breadcrumbs: [
-            { title: 'Organization', href: schemesIndex.url(workspaceId) },
             isEditing
                 ? { title: scheme.name, href: schemeShow.url(scheme.id) }
-                : { title: 'New scheme', href: schemesIndex.url(workspaceId) },
-            ...(isEditing ? [{ title: 'Edit', href: '#' }] : []),
+                : { title: 'Organization scheme', href: '#' },
+            { title: isEditing ? 'Edit' : 'New scheme', href: '#' },
         ],
     });
 
@@ -278,7 +275,7 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                 router.visit(
                                     isEditing
                                         ? schemeShow.url(scheme.id)
-                                        : schemesIndex.url(workspaceId),
+                                        : dashboard(),
                                 )
                             }
                         >
