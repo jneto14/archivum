@@ -570,15 +570,4 @@ export default {
     'settings.security.passkeys.item.remove_button': 'Remove passkey',
     'settings.security.passkeys.item.added_prefix': 'Added',
     'settings.security.passkeys.item.last_used_prefix': 'Last used',
-
-    'welcome.head_title': 'Welcome',
-    'welcome.dashboard_link': 'Dashboard',
-    'welcome.login_link': 'Log in',
-    'welcome.hero_title': "Let's get started",
-    'welcome.hero_subtitle_line1': 'Laravel has an incredibly rich ecosystem.',
-    'welcome.hero_subtitle_line2': 'We suggest starting with the following.',
-    'welcome.read_docs_prefix': 'Read the',
-    'welcome.documentation_link': 'Documentation',
-    'welcome.watch_tutorials_prefix': 'Watch video tutorials at',
-    'welcome.deploy_now': 'Deploy now',
 };
