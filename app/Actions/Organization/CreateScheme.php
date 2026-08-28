@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Organization;
 
+use App\Actions\Organization\Concerns\ValidatesAlphabeticalCapacity;
 use App\Enums\NodeValueStrategy;
 use App\Models\OrganizationLevel;
 use App\Models\OrganizationScheme;
@@ -13,12 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 class CreateScheme
 {
-    /**
-     * The practical maximum for an Alphabetical-strategy level: A through Z.
-     * Beyond this, node values would overflow into double letters (AA, AB, …),
-     * which doesn't make sense for a physical letter-divider system.
-     */
-    private const int ALPHABETICAL_MAX_CAPACITY = 26;
+    use ValidatesAlphabeticalCapacity;
 
     /**
      * Create a new OrganizationScheme together with its ordered levels.
@@ -35,7 +31,7 @@ class CreateScheme
     {
         $this->assertWorkspaceHasNoScheme($workspace);
         $this->assertLevelsAreConsistent($levels);
-        $this->assertAlphabeticalCapacityWithinRange($levels);
+        $this->assertLevelsAlphabeticalCapacityWithinRange($levels);
 
         return DB::transaction(function () use ($workspace, $name, $levels): OrganizationScheme {
             $scheme = OrganizationScheme::query()->create([
@@ -49,7 +45,7 @@ class CreateScheme
                     'name' => $level['name'],
                     'key' => $level['key'],
                     'position' => $index + 1,
-                    'capacity' => $this->normalizeCapacity($level['value_strategy'], $level['capacity'] ?? null),
+                    'capacity' => $this->normalizeAlphabeticalCapacity($level['value_strategy'], $level['capacity'] ?? null),
                     'value_strategy' => $level['value_strategy'],
                     'display_settings' => $level['display_settings'] ?? null,
                     'metadata' => $level['metadata'] ?? null,
@@ -111,34 +107,10 @@ class CreateScheme
      *
      * @throws ValidationException If an Alphabetical-strategy level's capacity exceeds 26.
      */
-    private function assertAlphabeticalCapacityWithinRange(array $levels): void
+    private function assertLevelsAlphabeticalCapacityWithinRange(array $levels): void
     {
         foreach ($levels as $level) {
-            $capacity = $level['capacity'] ?? null;
-
-            if ($level['value_strategy'] === NodeValueStrategy::Alphabetical && $capacity !== null && $capacity > self::ALPHABETICAL_MAX_CAPACITY) {
-                throw ValidationException::withMessages([
-                    'levels' => __('organization.alphabetical_capacity_max'),
-                ]);
-            }
+            $this->assertAlphabeticalCapacityWithinRange($level['value_strategy'], $level['capacity'] ?? null);
         }
-    }
-
-    /**
-     * Alphabetical-strategy levels default to a capacity of 26 (A–Z) when
-     * none is given, instead of generating unboundedly into double letters.
-     *
-     * @param NodeValueStrategy $strategy The level's value strategy.
-     * @param int|null $capacity The level's requested capacity.
-     *
-     * @return int|null The capacity to persist.
-     */
-    private function normalizeCapacity(NodeValueStrategy $strategy, ?int $capacity): ?int
-    {
-        if ($strategy !== NodeValueStrategy::Alphabetical) {
-            return $capacity;
-        }
-
-        return $capacity ?? self::ALPHABETICAL_MAX_CAPACITY;
     }
 }
