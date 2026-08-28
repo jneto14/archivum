@@ -11,4 +11,7 @@ return [
     'member_added' => 'Membro adicionado.',
     'role_updated' => 'Função atualizada.',
     'member_removed' => 'Membro removido.',
+    'deleted' => 'Workspace eliminado.',
+    'cannot_delete_last_workspace' => 'Não é possível eliminar o único workspace desta instância.',
+    'limits_updated' => 'Limites do workspace atualizados.',
 ];

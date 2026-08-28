@@ -14,12 +14,9 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTranslation } from '@/hooks/use-translation';
+import { dashboard } from '@/routes';
 import workspaces from '@/routes/workspaces';
-
-const roleLabels: Record<string, string> = {
-    admin: 'Admin',
-    user: 'Member',
-};
 
 function Tile() {
     return (
@@ -30,13 +27,20 @@ function Tile() {
 }
 
 export function WorkspaceSwitcher() {
+    const t = useTranslation();
     const {
+        auth,
         workspace,
         workspaces: memberships,
         canSwitchWorkspace,
     } = usePage().props;
     const { state } = useSidebar();
     const isMobile = useIsMobile();
+
+    const roleLabels: Record<string, string> = {
+        admin: t('nav.workspace_switcher.role_admin'),
+        user: t('nav.workspace_switcher.role_member'),
+    };
 
     if (!workspace) {
         return (
@@ -45,7 +49,7 @@ export function WorkspaceSwitcher() {
                     <SidebarMenuButton size="lg" disabled>
                         <Tile />
                         <span className="flex-1 truncate text-sm text-muted-foreground">
-                            No workspace yet
+                            {t('nav.workspace_switcher.no_workspace_yet')}
                         </span>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -54,7 +58,9 @@ export function WorkspaceSwitcher() {
     }
 
     const current = memberships.find((w) => w.id === workspace.id);
-    const canSwitch = canSwitchWorkspace && memberships.length > 1;
+    const canSwitch =
+        canSwitchWorkspace &&
+        (auth.user.is_platform_admin || memberships.length > 1);
 
     const trigger = (
         <SidebarMenuButton
@@ -67,7 +73,11 @@ export function WorkspaceSwitcher() {
                     {workspace.name}
                 </span>
                 <span className="block truncate text-xs text-muted-foreground">
-                    {current ? roleLabels[current.role] : null}
+                    {current
+                        ? roleLabels[current.role]
+                        : auth.user.is_platform_admin
+                          ? t('nav.workspace_switcher.role_platform_admin')
+                          : null}
                 </span>
             </span>
             {canSwitch && <ChevronsUpDown className="ml-auto size-4" />}
@@ -101,8 +111,16 @@ export function WorkspaceSwitcher() {
                         {memberships.map((w) => (
                             <DropdownMenuItem
                                 key={w.id}
+                                disabled={w.id === workspace.id}
                                 onClick={() =>
-                                    router.post(workspaces.switch.url(w.id))
+                                    router.post(
+                                        workspaces.switch.url(w.id),
+                                        {},
+                                        {
+                                            onSuccess: () =>
+                                                router.visit(dashboard()),
+                                        },
+                                    )
                                 }
                                 className="justify-between"
                             >

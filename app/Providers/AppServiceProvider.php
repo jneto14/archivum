@@ -12,6 +12,7 @@ use App\Models\WorkspaceUser;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Passkeys\Passkeys;
@@ -38,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         $this->configureWorkspaceMembership();
         $this->configurePasskeys();
+        $this->configurePlatformAdminAccess();
     }
 
     /**
@@ -99,5 +101,17 @@ class AppServiceProvider extends ServiceProvider
     protected function configurePasskeys(): void
     {
         Passkeys::usePasskeyModel(Passkey::class);
+    }
+
+    /**
+     * Platform admins bypass every workspace-scoped Policy check regardless of
+     * their own membership, rather than duplicating an `is_platform_admin`
+     * check inside each Policy method.
+     *
+     * @return void No return value; registers a Gate::before callback as a side effect.
+     */
+    protected function configurePlatformAdminAccess(): void
+    {
+        Gate::before(fn (User $user, string $ability): ?bool => $user->is_platform_admin ? true : null);
     }
 }

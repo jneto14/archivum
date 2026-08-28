@@ -14,4 +14,10 @@ return [
     'tag_created' => 'Tag created.',
     'tag_updated' => 'Tag updated.',
     'tag_deleted' => 'Tag deleted.',
+    'created' => 'Document registered.',
+    'updated' => 'Document updated.',
+    'deleted' => 'Document deleted.',
+    'attachment_uploaded' => 'Attachment uploaded.',
+    'attachment_deleted' => 'Attachment deleted.',
+    'moved' => 'Document location updated.',
 ];

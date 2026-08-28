@@ -5,6 +5,7 @@ declare(strict_types=1);
 return [
     'levels_required' => 'At least one level is required.',
     'duplicate_level_keys' => 'Level keys must be unique within a scheme.',
+    'alphabetical_capacity_max' => 'A level using the Alphabetical strategy cannot have a capacity greater than 26 (A–Z).',
     'capacity_reached' => 'This level has reached its configured capacity.',
     'value_required' => 'A value is required for levels using the Manual strategy.',
     'root_node_cannot_have_parent' => 'A node at the first level cannot have a parent.',
@@ -20,6 +21,10 @@ return [
     'node_deleted' => 'Location deleted.',
     'node_has_children' => 'This location still has child locations and cannot be deleted.',
     'node_has_documents' => 'This location still has documents assigned to it. Migrate them to another location first.',
+    'level_created' => 'Level added.',
+    'level_deleted' => 'Level deleted.',
+    'level_not_last' => 'Only the last level of a scheme can be removed.',
+    'level_has_nodes' => 'This level still has locations and cannot be removed.',
     'rule_created' => 'Rule created.',
     'rule_updated' => 'Rule updated.',
     'rule_deleted' => 'Rule deleted.',

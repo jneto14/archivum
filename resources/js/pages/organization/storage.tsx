@@ -6,6 +6,7 @@ import {
     Trash2Icon,
 } from 'lucide-react';
 import { useState } from 'react';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -24,6 +25,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useTranslation } from '@/hooks/use-translation';
 import nodeActions from '@/routes/organization/nodes';
 import nodes from '@/routes/organization/schemes/nodes';
 
@@ -65,13 +67,22 @@ function nodesAtDepth(nodes: StorageNode[], depth: number): StorageNode[] {
     return nodes.flatMap((node) => nodesAtDepth(node.children, depth - 1));
 }
 
+function firstEmptyLevel(levels: Level[], tree: StorageNode[]): Level | null {
+    return (
+        levels.find(
+            (level) => nodesAtDepth(tree, level.position - 1).length === 0,
+        ) ?? null
+    );
+}
+
 export default function OrganizationStorage({
     scheme,
     levels,
     tree,
     canManage,
 }: Props) {
-    const { workspace } = usePage().props;
+    const t = useTranslation();
+    const { errors } = usePage().props;
     const [view, setView] = useState<'tree' | 'columns'>('tree');
     const [columnSelection, setColumnSelection] = useState<StorageNode[]>([]);
 
@@ -84,10 +95,7 @@ export default function OrganizationStorage({
     const [moveTargetId, setMoveTargetId] = useState('');
 
     setLayoutProps({
-        breadcrumbs: [
-            { title: workspace?.name ?? '', href: '#' },
-            { title: 'Physical storage', href: '#' },
-        ],
+        breadcrumbs: [{ title: t('organization.storage.title'), href: '#' }],
     });
 
     const nodeCount = countNodes(tree);
@@ -98,9 +106,13 @@ export default function OrganizationStorage({
     const addParentOptions = addLevel
         ? nodesAtDepth(tree, addLevel.position - 2)
         : [];
+    const isLevelAddable = (level: Level) =>
+        level.position === 1 ||
+        nodesAtDepth(tree, level.position - 2).length > 0;
 
     const openAdd = () => {
-        setAddLevelId(leafLevel?.id ?? levels[0]?.id ?? '');
+        const target = firstEmptyLevel(levels, tree) ?? leafLevel ?? levels[0];
+        setAddLevelId(target?.id ?? '');
         setAddParentId('');
         setAddValue('');
         setAddOpen(true);
@@ -151,13 +163,13 @@ export default function OrganizationStorage({
 
     return (
         <>
-            <Head title="Physical storage" />
+            <Head title={t('organization.storage.title')} />
 
             <div className="max-w-6xl space-y-5 p-6">
                 <div className="flex flex-wrap items-end justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight">
-                            Physical storage
+                            {t('organization.storage.title')}
                         </h1>
                         <p className="text-sm text-muted-foreground">
                             {scheme.name} ·{' '}
@@ -171,7 +183,7 @@ export default function OrganizationStorage({
                             variant={view === 'tree' ? 'secondary' : 'ghost'}
                             onClick={() => setView('tree')}
                         >
-                            Tree
+                            {t('organization.storage.view_tree')}
                         </Button>
                         <Button
                             type="button"
@@ -179,7 +191,7 @@ export default function OrganizationStorage({
                             variant={view === 'columns' ? 'secondary' : 'ghost'}
                             onClick={() => setView('columns')}
                         >
-                            Columns
+                            {t('organization.storage.view_columns')}
                         </Button>
                     </div>
                 </div>
@@ -188,17 +200,23 @@ export default function OrganizationStorage({
                     <div className="overflow-hidden rounded-xl border">
                         <div className="flex items-center justify-between border-b bg-muted px-4 py-3">
                             <span className="text-xs font-medium text-muted-foreground">
-                                {nodeCount} node{nodeCount === 1 ? '' : 's'}
+                                {t(
+                                    nodeCount === 1
+                                        ? 'organization.storage.node_count_one'
+                                        : 'organization.storage.node_count_other',
+                                    { count: nodeCount },
+                                )}
                             </span>
                             {canManage && (
                                 <Button size="sm" onClick={openAdd}>
-                                    <PlusIcon /> Add node
+                                    <PlusIcon />{' '}
+                                    {t('organization.storage.add_node')}
                                 </Button>
                             )}
                         </div>
                         {nodeCount === 0 && (
                             <p className="p-6 text-center text-sm text-muted-foreground">
-                                No locations yet.
+                                {t('organization.storage.empty_state')}
                             </p>
                         )}
                         <TreeRows
@@ -307,10 +325,14 @@ export default function OrganizationStorage({
 
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
                 <DialogContent>
-                    <DialogTitle>Add node</DialogTitle>
+                    <DialogTitle>
+                        {t('organization.storage.add_node')}
+                    </DialogTitle>
                     <div className="space-y-4">
                         <div className="grid gap-2">
-                            <Label>Level</Label>
+                            <Label>
+                                {t('organization.storage.level_label')}
+                            </Label>
                             <Select
                                 value={addLevelId}
                                 onValueChange={(value) => {
@@ -319,29 +341,45 @@ export default function OrganizationStorage({
                                 }}
                             >
                                 <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select a level" />
+                                    <SelectValue
+                                        placeholder={t(
+                                            'organization.storage.select_level_placeholder',
+                                        )}
+                                    />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {levels.map((level) => (
+                                    {levels.map((level, index) => (
                                         <SelectItem
                                             key={level.id}
                                             value={level.id}
+                                            disabled={!isLevelAddable(level)}
                                         >
                                             {level.name}
+                                            {!isLevelAddable(level) &&
+                                                ` ${t('organization.storage.add_level_first_hint', { level: levels[index - 1]?.name ?? '' })}`}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
+                            <InputError message={errors.level_id} />
                         </div>
                         {addLevel && addLevel.position > 1 && (
                             <div className="grid gap-2">
-                                <Label>Parent location</Label>
+                                <Label>
+                                    {t(
+                                        'organization.storage.parent_location_label',
+                                    )}
+                                </Label>
                                 <Select
                                     value={addParentId}
                                     onValueChange={setAddParentId}
                                 >
                                     <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select a parent" />
+                                        <SelectValue
+                                            placeholder={t(
+                                                'organization.storage.select_parent_placeholder',
+                                            )}
+                                        />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {addParentOptions.map((parent) => (
@@ -354,11 +392,12 @@ export default function OrganizationStorage({
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                <InputError message={errors.parent_id} />
                             </div>
                         )}
                         <div className="grid gap-2">
                             <Label htmlFor="node_value">
-                                Value (leave blank to auto-generate)
+                                {t('organization.storage.value_label')}
                             </Label>
                             <Input
                                 id="node_value"
@@ -368,13 +407,19 @@ export default function OrganizationStorage({
                                 }
                                 placeholder="A"
                             />
+                            <InputError message={errors.value} />
+                            <InputError message={errors.capacity} />
                         </div>
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
-                            <Button variant="ghost">Cancel</Button>
+                            <Button variant="ghost">
+                                {t('organization.storage.cancel_button')}
+                            </Button>
                         </DialogClose>
-                        <Button onClick={submitAdd}>Add</Button>
+                        <Button onClick={submitAdd}>
+                            {t('organization.storage.add_button')}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -385,22 +430,30 @@ export default function OrganizationStorage({
             >
                 <DialogContent>
                     <DialogTitle>
-                        Move documents from {moveSource?.path}
+                        {t('organization.storage.move_dialog_title', {
+                            path: moveSource?.path ?? '',
+                        })}
                     </DialogTitle>
                     <div className="space-y-4">
                         <p className="text-sm text-muted-foreground">
-                            Queues a background job that relocates every
-                            document currently filed at this location onto the
-                            selected one.
+                            {t('organization.storage.move_description')}
                         </p>
                         <div className="grid gap-2">
-                            <Label>Target location</Label>
+                            <Label>
+                                {t(
+                                    'organization.storage.target_location_label',
+                                )}
+                            </Label>
                             <Select
                                 value={moveTargetId}
                                 onValueChange={setMoveTargetId}
                             >
                                 <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select a location" />
+                                    <SelectValue
+                                        placeholder={t(
+                                            'organization.storage.select_location_placeholder',
+                                        )}
+                                    />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {leafNodes
@@ -418,13 +471,18 @@ export default function OrganizationStorage({
                                         ))}
                                 </SelectContent>
                             </Select>
+                            <InputError message={errors.target_node_id} />
                         </div>
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
-                            <Button variant="ghost">Cancel</Button>
+                            <Button variant="ghost">
+                                {t('organization.storage.cancel_button')}
+                            </Button>
                         </DialogClose>
-                        <Button onClick={submitMove}>Move</Button>
+                        <Button onClick={submitMove}>
+                            {t('organization.storage.move_button')}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -449,6 +507,7 @@ function TreeRows({
     onDelete,
     onMove,
 }: TreeRowsProps) {
+    const t = useTranslation();
     const level = levels[depth];
 
     if (!level) {
@@ -482,8 +541,18 @@ function TreeRows({
                             </span>
                             <span className="flex-1 truncate text-xs text-muted-foreground">
                                 {level.is_leaf
-                                    ? `${node.documents_count} document${node.documents_count === 1 ? '' : 's'}${level.capacity !== null ? ` / ${level.capacity}` : ''}`
-                                    : `${node.children.length} location${node.children.length === 1 ? '' : 's'}`}
+                                    ? `${t(
+                                          node.documents_count === 1
+                                              ? 'organization.storage.documents_count_one'
+                                              : 'organization.storage.documents_count_other',
+                                          { count: node.documents_count ?? 0 },
+                                      )}${level.capacity !== null ? ` / ${level.capacity}` : ''}`
+                                    : t(
+                                          node.children.length === 1
+                                              ? 'organization.storage.locations_count_one'
+                                              : 'organization.storage.locations_count_other',
+                                          { count: node.children.length },
+                                      )}
                             </span>
                             {pct !== null && (
                                 <div className="w-24 flex-none">
@@ -496,7 +565,9 @@ function TreeRows({
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            title="Move documents"
+                                            title={t(
+                                                'organization.storage.move_documents_tooltip',
+                                            )}
                                             onClick={() => onMove(node)}
                                         >
                                             <ArrowRightLeftIcon className="size-3.5" />
@@ -505,7 +576,9 @@ function TreeRows({
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        title="Delete location"
+                                        title={t(
+                                            'organization.storage.delete_location_tooltip',
+                                        )}
                                         onClick={() => onDelete(node)}
                                     >
                                         <Trash2Icon className="size-3.5" />

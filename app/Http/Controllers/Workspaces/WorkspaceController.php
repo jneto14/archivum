@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Workspaces;
 
-use App\Actions\Workspace\CalculateWorkspaceUsage;
 use App\Actions\Workspace\CreateWorkspace;
+use App\Actions\Workspace\DeleteWorkspace;
 use App\Actions\Workspace\UpdateWorkspace;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Workspaces\StoreWorkspaceRequest;
@@ -14,33 +14,38 @@ use App\Models\Workspace;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class WorkspaceController extends Controller
 {
     /**
-     * Show a workspace's overview, including its current resource usage
-     * against its configured limits for admins.
+     * List every workspace on the instance, for platform admins to browse and
+     * manage regardless of their own membership. Only meaningful in
+     * multi-workspace mode — in single-workspace mode the whole instance is
+     * one workspace, so there is nothing else to browse.
      *
      * @param Request $request The incoming request, used to resolve the acting user.
-     * @param Workspace $workspace The workspace being viewed.
-     * @param CalculateWorkspaceUsage $action Computes the workspace's current storage, user, document, and attachment counts.
      *
-     * @return Response The rendered workspace overview page.
-     *
-     * @throws AuthorizationException If the current user isn't a member of $workspace.
+     * @return Response The rendered workspace index page.
      */
-    public function show(Request $request, Workspace $workspace, CalculateWorkspaceUsage $action): Response
+    public function index(Request $request): Response
     {
-        $this->authorize('view', $workspace);
+        abort_unless(config('archivum.multi_workspace_enabled'), 404);
+        abort_unless($request->user()->is_platform_admin, 403);
 
-        $isAdmin = $workspace->isAdmin($request->user());
-
-        return Inertia::render('workspace/show', [
-            'workspace' => ['id' => $workspace->id, 'name' => $workspace->name],
-            'isAdmin' => $isAdmin,
-            'usage' => $isAdmin ? $this->usage($workspace, $action) : null,
+        return Inertia::render('workspace/index', [
+            'workspaces' => Workspace::query()
+                ->withCount('users')
+                ->orderBy('name')
+                ->get()
+                ->map(fn (Workspace $workspace) => [
+                    'id' => $workspace->id,
+                    'name' => $workspace->name,
+                    'usersCount' => $workspace->users_count,
+                    'createdAtDiff' => $workspace->created_at?->diffForHumans(),
+                ])->all(),
         ]);
     }
 
@@ -56,6 +61,8 @@ class WorkspaceController extends Controller
      */
     public function store(StoreWorkspaceRequest $request, CreateWorkspace $action): RedirectResponse
     {
+        abort_unless(config('archivum.multi_workspace_enabled'), 404);
+
         $this->authorize('create', Workspace::class);
 
         $workspace = $action->handle($request->user(), $request->validated('name'));
@@ -88,23 +95,24 @@ class WorkspaceController extends Controller
     }
 
     /**
-     * Compute a workspace's current usage figures alongside its configured limits.
+     * Delete a workspace and all of its data.
      *
-     * @param Workspace $workspace The workspace to report usage for.
-     * @param CalculateWorkspaceUsage $action Computes the workspace's current storage, user, document, and attachment counts.
+     * @param Workspace $workspace The workspace being deleted.
+     * @param DeleteWorkspace $action Purges attachment files from disk, then deletes the workspace and cascades every dependent row.
      *
-     * @return array{storage: array{used: int, limit: int|null}, users: array{used: int, limit: int|null}, documents: array{used: int, limit: int|null}, attachments: array{used: int, limit: int|null}} The usage and limit figures for storage, users, documents, and attachments.
+     * @return RedirectResponse Redirect to the dashboard, since $workspace no longer exists.
+     *
+     * @throws AuthorizationException If the current user cannot delete $workspace.
+     * @throws ValidationException If $workspace is the only workspace in the instance.
      */
-    private function usage(Workspace $workspace, CalculateWorkspaceUsage $action): array
+    public function destroy(Workspace $workspace, DeleteWorkspace $action): RedirectResponse
     {
-        $usage = $action->handle($workspace);
-        $limits = $workspace->limits;
+        $this->authorize('delete', $workspace);
 
-        return [
-            'storage' => ['used' => $usage['storage_bytes'], 'limit' => $limits?->storage_bytes],
-            'users' => ['used' => $usage['users'], 'limit' => $limits?->users],
-            'documents' => ['used' => $usage['documents'], 'limit' => $limits?->documents],
-            'attachments' => ['used' => $usage['attachments'], 'limit' => $limits?->attachments],
-        ];
+        $action->handle($workspace);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('workspace.deleted')]);
+
+        return redirect()->route('dashboard');
     }
 }

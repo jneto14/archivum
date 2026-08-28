@@ -10,6 +10,7 @@ import {
     Layers,
     RefreshCw,
     Settings,
+    SlidersHorizontal,
     Tag,
     Users,
 } from 'lucide-react';
@@ -22,6 +23,7 @@ import {
     SidebarHeader,
 } from '@/components/ui/sidebar';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
+import { useTranslation } from '@/hooks/use-translation';
 import { dashboard } from '@/routes';
 import { index as documentTypesIndex } from '@/routes/document-types';
 import { index as documentsIndex } from '@/routes/documents';
@@ -32,12 +34,15 @@ import {
 } from '@/routes/organization/schemes';
 import { edit as editProfile } from '@/routes/profile';
 import { index as tagsIndex } from '@/routes/tags';
-import { show as workspaceShow } from '@/routes/workspaces';
+import { index as workspacesIndex } from '@/routes/workspaces';
+import { show as workspaceSettingsShow } from '@/routes/workspaces/settings';
 import { index as usersIndex } from '@/routes/workspaces/users';
 import type { NavItem } from '@/types';
 
 export function AppSidebar() {
+    const t = useTranslation();
     const {
+        auth,
         isWorkspaceAdmin,
         canSwitchWorkspace,
         documentsCount,
@@ -46,27 +51,36 @@ export function AppSidebar() {
     } = usePage().props;
 
     const archiveItems: NavItem[] = [
-        { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
         {
-            title: 'Documents',
+            title: t('nav.dashboard'),
+            href: dashboard(),
+            icon: LayoutGrid,
+        },
+        {
+            title: t('nav.documents'),
             href: workspace ? documentsIndex.url(workspace.id) : '#',
             icon: FileText,
             disabled: !workspace,
             badge: documentsCount,
         },
         {
-            title: 'Physical storage',
+            title: t('nav.physical_storage'),
             href: organizationSchemeId
                 ? schemeStorage.url(organizationSchemeId)
                 : '#',
             icon: Archive,
             disabled: !organizationSchemeId,
         },
-        { title: 'Activity', href: '#', icon: Activity, disabled: true },
+        {
+            title: t('nav.activity'),
+            href: '#',
+            icon: Activity,
+            disabled: true,
+        },
         ...(isWorkspaceAdmin
             ? ([
                   {
-                      title: 'Jobs & OCR',
+                      title: t('nav.jobs_ocr'),
                       href: '#',
                       icon: RefreshCw,
                       disabled: true,
@@ -76,36 +90,35 @@ export function AppSidebar() {
     ];
 
     const configItems: NavItem[] = [
-        ...(canSwitchWorkspace
+        ...(canSwitchWorkspace && auth.user.is_platform_admin
             ? ([
                   {
-                      title: 'Workspaces',
-                      href: '#',
+                      title: t('nav.workspaces'),
+                      href: workspacesIndex(),
                       icon: Layers,
-                      disabled: true,
                   },
               ] as NavItem[])
             : []),
         {
-            title: 'Document types',
+            title: t('nav.document_types'),
             href: workspace ? documentTypesIndex.url(workspace.id) : '#',
             icon: FileStack,
             disabled: !workspace,
         },
         {
-            title: 'Tags',
+            title: t('nav.tags'),
             href: workspace ? tagsIndex.url(workspace.id) : '#',
             icon: Tag,
             disabled: !workspace,
         },
         {
-            title: 'Import & export',
+            title: t('nav.import_export'),
             href: '#',
             icon: RefreshCw,
             disabled: true,
         },
         {
-            title: 'Organization scheme',
+            title: t('nav.organization_scheme'),
             href: !workspace
                 ? '#'
                 : organizationSchemeId
@@ -115,18 +128,30 @@ export function AppSidebar() {
             disabled: !workspace,
         },
         {
-            title: 'Users & roles',
+            title: t('nav.users_roles'),
             href: workspace ? usersIndex.url(workspace.id) : '#',
             icon: Users,
             disabled: !workspace,
         },
         {
-            title: 'Usage & limits',
-            href: workspace ? workspaceShow.url(workspace.id) : '#',
+            title: t('nav.usage_limits'),
+            href: '#',
             icon: Gauge,
-            disabled: !workspace,
+            disabled: true,
         },
-        { title: 'Settings', href: editProfile(), icon: Settings },
+        ...(isWorkspaceAdmin
+            ? ([
+                  {
+                      title: t('nav.workspace_settings'),
+                      href: workspace
+                          ? workspaceSettingsShow.url(workspace.id)
+                          : '#',
+                      icon: SlidersHorizontal,
+                      disabled: !workspace,
+                  },
+              ] as NavItem[])
+            : []),
+        { title: t('nav.settings'), href: editProfile(), icon: Settings },
     ];
 
     return (
@@ -136,9 +161,13 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain label="Archive" items={archiveItems} />
-                {isWorkspaceAdmin && (
-                    <NavMain label="Configuration" items={configItems} />
+                <NavMain label={t('nav.group_archive')} items={archiveItems} />
+                {(isWorkspaceAdmin ||
+                    (canSwitchWorkspace && auth.user.is_platform_admin)) && (
+                    <NavMain
+                        label={t('nav.group_configuration')}
+                        items={configItems}
+                    />
                 )}
             </SidebarContent>
 

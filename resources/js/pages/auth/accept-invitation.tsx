@@ -1,10 +1,11 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, setLayoutProps } from '@inertiajs/react';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { useTranslation } from '@/hooks/use-translation';
 import { update } from '@/routes/password';
 
 type Props = {
@@ -18,9 +19,16 @@ export default function AcceptInvitation({
     email,
     passwordRules,
 }: Props) {
+    const t = useTranslation();
+
+    setLayoutProps({
+        title: t('auth.accept_invitation.layout_title'),
+        description: t('auth.accept_invitation.layout_description'),
+    });
+
     return (
         <>
-            <Head title="Accept invitation" />
+            <Head title={t('auth.accept_invitation.head_title')} />
 
             <Form
                 {...update.form()}
@@ -30,7 +38,9 @@ export default function AcceptInvitation({
                 {({ processing, errors }) => (
                     <div className="grid gap-6">
                         <div className="grid gap-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email">
+                                {t('auth.accept_invitation.email_label')}
+                            </Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -47,14 +57,18 @@ export default function AcceptInvitation({
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="password">
+                                {t('auth.accept_invitation.password_label')}
+                            </Label>
                             <PasswordInput
                                 id="password"
                                 name="password"
                                 autoComplete="new-password"
                                 className="mt-1 block w-full"
                                 autoFocus
-                                placeholder="Password"
+                                placeholder={t(
+                                    'auth.accept_invitation.password_placeholder',
+                                )}
                                 passwordrules={passwordRules}
                             />
                             <InputError message={errors.password} />
@@ -62,14 +76,18 @@ export default function AcceptInvitation({
 
                         <div className="grid gap-2">
                             <Label htmlFor="password_confirmation">
-                                Confirm password
+                                {t(
+                                    'auth.accept_invitation.confirm_password_label',
+                                )}
                             </Label>
                             <PasswordInput
                                 id="password_confirmation"
                                 name="password_confirmation"
                                 autoComplete="new-password"
                                 className="mt-1 block w-full"
-                                placeholder="Confirm password"
+                                placeholder={t(
+                                    'auth.accept_invitation.confirm_password_placeholder',
+                                )}
                                 passwordrules={passwordRules}
                             />
                             <InputError
@@ -85,7 +103,7 @@ export default function AcceptInvitation({
                             data-test="accept-invitation-button"
                         >
                             {processing && <Spinner />}
-                            Activate account
+                            {t('auth.accept_invitation.submit')}
                         </Button>
                     </div>
                 )}
@@ -93,8 +111,3 @@ export default function AcceptInvitation({
         </>
     );
 }
-
-AcceptInvitation.layout = {
-    title: 'Welcome to Archivum',
-    description: 'Set a password below to activate your account',
-};

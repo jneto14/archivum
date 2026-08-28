@@ -26,6 +26,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useTranslation } from '@/hooks/use-translation';
 import {
     edit as documentEdit,
     index as documentsIndex,
@@ -59,14 +60,27 @@ export default function DocumentForm({
 }: Props) {
     const isEditing = document !== null;
 
+    const t = useTranslation();
+
     setLayoutProps({
         breadcrumbs: [
-            { title: 'Documents', href: documentsIndex.url(workspaceId) },
+            {
+                title: t('documents.form.breadcrumb_documents'),
+                href: documentsIndex.url(workspaceId),
+            },
             isEditing
                 ? { title: document.title, href: documentShow.url(document.id) }
-                : { title: 'Register', href: documentsIndex.url(workspaceId) },
+                : {
+                      title: t('documents.form.breadcrumb_register'),
+                      href: documentsIndex.url(workspaceId),
+                  },
             ...(isEditing
-                ? [{ title: 'Edit', href: documentEdit.url(document.id) }]
+                ? [
+                      {
+                          title: t('documents.form.breadcrumb_edit'),
+                          href: documentEdit.url(document.id),
+                      },
+                  ]
                 : []),
         ],
     });
@@ -149,28 +163,42 @@ export default function DocumentForm({
 
     return (
         <>
-            <Head title={isEditing ? 'Edit document' : 'Register document'} />
+            <Head
+                title={
+                    isEditing
+                        ? t('documents.form.page_title_edit')
+                        : t('documents.form.page_title_create')
+                }
+            />
 
             <div className="mx-auto max-w-3xl space-y-6 p-6">
                 <Heading
-                    title={isEditing ? 'Edit document' : 'Register document'}
+                    title={
+                        isEditing
+                            ? t('documents.form.page_title_edit')
+                            : t('documents.form.page_title_create')
+                    }
                     description={
                         isEditing
                             ? document.title
-                            : 'Add a new document to the archive'
+                            : t('documents.form.description_create')
                     }
                 />
 
                 <form onSubmit={submit} className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Document details</CardTitle>
+                            <CardTitle>
+                                {t('documents.form.details_section_title')}
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="document_type_id">
-                                        Document type
+                                        {t(
+                                            'documents.form.document_type_label',
+                                        )}
                                     </Label>
                                     <Select
                                         value={form.data.document_type_id}
@@ -185,7 +213,11 @@ export default function DocumentForm({
                                             id="document_type_id"
                                             className="w-full"
                                         >
-                                            <SelectValue placeholder="Select a type" />
+                                            <SelectValue
+                                                placeholder={t(
+                                                    'documents.form.document_type_placeholder',
+                                                )}
+                                            />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {documentTypes.map((type) => (
@@ -204,7 +236,9 @@ export default function DocumentForm({
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="document_date">
-                                        Document date
+                                        {t(
+                                            'documents.form.document_date_label',
+                                        )}
                                     </Label>
                                     <Input
                                         id="document_date"
@@ -223,10 +257,14 @@ export default function DocumentForm({
                                 </div>
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="title">Title</Label>
+                                <Label htmlFor="title">
+                                    {t('documents.form.title_label')}
+                                </Label>
                                 <Input
                                     id="title"
-                                    placeholder="Invoice FT2026/1240"
+                                    placeholder={t(
+                                        'documents.form.title_placeholder',
+                                    )}
                                     value={form.data.title}
                                     onChange={(event) =>
                                         form.setData(
@@ -243,13 +281,15 @@ export default function DocumentForm({
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Tags</CardTitle>
+                            <CardTitle>
+                                {t('documents.form.tags_section_title')}
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex flex-col gap-2 rounded-md border p-3">
                                 {workspaceTags.length === 0 && (
                                     <p className="text-sm text-muted-foreground">
-                                        No tags yet.
+                                        {t('documents.form.no_tags_message')}
                                     </p>
                                 )}
                                 {workspaceTags.map((tag) => (
@@ -274,7 +314,9 @@ export default function DocumentForm({
                             </div>
                             <div className="flex items-center gap-2">
                                 <Input
-                                    placeholder="New tag name"
+                                    placeholder={t(
+                                        'documents.form.new_tag_placeholder',
+                                    )}
                                     value={newTagName}
                                     onChange={(event) =>
                                         setNewTagName(event.target.value)
@@ -286,7 +328,8 @@ export default function DocumentForm({
                                     size="sm"
                                     onClick={createTag}
                                 >
-                                    <PlusIcon /> New tag
+                                    <PlusIcon />{' '}
+                                    {t('documents.form.new_tag_button')}
                                 </Button>
                             </div>
                         </CardContent>
@@ -294,7 +337,9 @@ export default function DocumentForm({
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Metadata</CardTitle>
+                            <CardTitle>
+                                {t('documents.form.metadata_section_title')}
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             {metadataPairs.map((pair, index) => (
@@ -303,7 +348,9 @@ export default function DocumentForm({
                                     className="flex items-center gap-2"
                                 >
                                     <Input
-                                        placeholder="Key"
+                                        placeholder={t(
+                                            'documents.form.metadata_key_placeholder',
+                                        )}
                                         value={pair.key}
                                         onChange={(event) =>
                                             updateMetadataPair(
@@ -314,7 +361,9 @@ export default function DocumentForm({
                                         }
                                     />
                                     <Input
-                                        placeholder="Value"
+                                        placeholder={t(
+                                            'documents.form.metadata_value_placeholder',
+                                        )}
                                         value={pair.value}
                                         onChange={(event) =>
                                             updateMetadataPair(
@@ -342,7 +391,8 @@ export default function DocumentForm({
                                 size="sm"
                                 onClick={addMetadataPair}
                             >
-                                <PlusIcon /> Add field
+                                <PlusIcon />{' '}
+                                {t('documents.form.add_field_button')}
                             </Button>
                         </CardContent>
                     </Card>
@@ -359,10 +409,12 @@ export default function DocumentForm({
                                 )
                             }
                         >
-                            Cancel
+                            {t('documents.form.cancel_button')}
                         </Button>
                         <Button type="submit" disabled={form.processing}>
-                            {isEditing ? 'Save changes' : 'Register document'}
+                            {isEditing
+                                ? t('documents.form.submit_button_edit')
+                                : t('documents.form.submit_button_create')}
                         </Button>
                     </div>
                 </form>
@@ -370,34 +422,40 @@ export default function DocumentForm({
                 {isEditing && (
                     <Card className="border-destructive">
                         <CardHeader>
-                            <CardTitle>Delete document</CardTitle>
+                            <CardTitle>
+                                {t('documents.form.delete_section_title')}
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="flex items-center justify-between gap-4">
                                 <p className="text-sm text-muted-foreground">
-                                    Removes the record, its attachments and its
-                                    location history. The physical position is
-                                    released.
+                                    {t('documents.form.delete_description')}
                                 </p>
                                 <Dialog>
                                     <DialogTrigger asChild>
                                         <Button variant="destructive" size="sm">
-                                            Delete document
+                                            {t(
+                                                'documents.form.delete_trigger_button',
+                                            )}
                                         </Button>
                                     </DialogTrigger>
                                     <DialogContent>
                                         <DialogTitle>
-                                            Delete this document?
+                                            {t(
+                                                'documents.form.delete_dialog_title',
+                                            )}
                                         </DialogTitle>
                                         <DialogDescription>
-                                            This cannot be undone. The document,
-                                            its attachments and its location
-                                            history will be permanently removed.
+                                            {t(
+                                                'documents.form.delete_dialog_description',
+                                            )}
                                         </DialogDescription>
                                         <DialogFooter className="gap-2">
                                             <DialogClose asChild>
                                                 <Button variant="secondary">
-                                                    Cancel
+                                                    {t(
+                                                        'documents.form.delete_dialog_cancel',
+                                                    )}
                                                 </Button>
                                             </DialogClose>
                                             <Button
@@ -410,7 +468,9 @@ export default function DocumentForm({
                                                     )
                                                 }
                                             >
-                                                Delete document
+                                                {t(
+                                                    'documents.form.delete_confirm_button',
+                                                )}
                                             </Button>
                                         </DialogFooter>
                                     </DialogContent>

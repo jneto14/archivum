@@ -77,6 +77,21 @@ class Workspace extends Model
     }
 
     /**
+     * Determine whether the given user may manage this workspace as an admin
+     * would — either because they hold the Admin role within it, or because
+     * they're a platform admin with full access to every workspace regardless
+     * of their own membership.
+     *
+     * @param User $user The user to check.
+     *
+     * @return bool True if $user is an admin of this workspace, or a platform admin.
+     */
+    public function isManageableBy(User $user): bool
+    {
+        return $this->isAdmin($user) || $user->is_platform_admin;
+    }
+
+    /**
      * Count how many members currently hold the Admin role in this workspace.
      *
      * @return int The number of workspace_user records with the Admin role.

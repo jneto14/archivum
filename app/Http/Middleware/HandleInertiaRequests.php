@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Actions\Workspace\CalculateWorkspaceUsage;
-use App\Enums\WorkspaceRole;
 use App\Models\OrganizationScheme;
 use App\Models\Workspace;
 use Illuminate\Http\Request;
@@ -57,8 +56,7 @@ class HandleInertiaRequests extends Middleware
             ? $user->workspaces()->orderBy('workspace_user.created_at')->get()
             : collect();
 
-        $currentMembership = $workspace ? $workspaces->firstWhere('id', $workspace->id) : null;
-        $currentRole = $currentMembership ? WorkspaceRole::from((string) $currentMembership->pivot->role) : null;
+        $isWorkspaceAdmin = $workspace !== null && $user !== null && $workspace->isManageableBy($user);
 
         return [
             ...parent::share($request),
@@ -78,7 +76,7 @@ class HandleInertiaRequests extends Middleware
                 'role' => (string) $w->pivot->role,
             ])->all(),
             'canSwitchWorkspace' => (bool) config('archivum.multi_workspace_enabled'),
-            'isWorkspaceAdmin' => $currentRole === WorkspaceRole::Admin,
+            'isWorkspaceAdmin' => $isWorkspaceAdmin,
             'documentsCount' => $workspace ? app(CalculateWorkspaceUsage::class)->documents($workspace) : null,
             'organizationSchemeId' => $workspace
                 ? OrganizationScheme::query()->where('workspace_id', $workspace->id)->value('id')

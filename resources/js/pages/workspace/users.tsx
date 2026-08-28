@@ -33,7 +33,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { show as workspaceShow } from '@/routes/workspaces';
+import { useTranslation } from '@/hooks/use-translation';
 import { destroy, index, store, update } from '@/routes/workspaces/users';
 
 type Member = {
@@ -49,6 +49,7 @@ type Props = {
 };
 
 export default function WorkspaceUsers({ workspace, members }: Props) {
+    const t = useTranslation();
     const { errors } = usePage().props;
     const [inviteOpen, setInviteOpen] = useState(false);
     const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
@@ -56,8 +57,10 @@ export default function WorkspaceUsers({ workspace, members }: Props) {
 
     setLayoutProps({
         breadcrumbs: [
-            { title: workspace.name, href: workspaceShow.url(workspace.id) },
-            { title: 'Users', href: index.url(workspace.id) },
+            {
+                title: t('workspace.users.heading'),
+                href: index.url(workspace.id),
+            },
         ],
     });
 
@@ -95,28 +98,43 @@ export default function WorkspaceUsers({ workspace, members }: Props) {
 
     return (
         <>
-            <Head title={`${workspace.name} — Users`} />
+            <Head
+                title={t('workspace.users.head_title', {
+                    workspace: workspace.name,
+                })}
+            />
 
             <div className="mx-auto max-w-4xl space-y-6 p-6">
                 <div className="flex items-end justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-semibold tracking-tight">
-                            Users
+                            {t('workspace.users.heading')}
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            {members.length} member
-                            {members.length === 1 ? '' : 's'}
+                            {members.length === 1
+                                ? t('workspace.users.member_count_one', {
+                                      count: members.length,
+                                  })
+                                : t('workspace.users.member_count_other', {
+                                      count: members.length,
+                                  })}
                         </p>
                     </div>
                     <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
                         <DialogTrigger asChild>
-                            <Button size="sm">Invite member</Button>
+                            <Button size="sm">
+                                {t('workspace.users.invite_button')}
+                            </Button>
                         </DialogTrigger>
                         <DialogContent>
-                            <DialogTitle>Invite a member</DialogTitle>
+                            <DialogTitle>
+                                {t('workspace.users.invite_dialog_title')}
+                            </DialogTitle>
                             <div className="space-y-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="email">Email</Label>
+                                    <Label htmlFor="email">
+                                        {t('workspace.users.email_label')}
+                                    </Label>
                                     <Input
                                         id="email"
                                         type="email"
@@ -131,10 +149,14 @@ export default function WorkspaceUsers({ workspace, members }: Props) {
                                     <InputError message={form.errors.email} />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="invite_name">Name</Label>
+                                    <Label htmlFor="invite_name">
+                                        {t('workspace.users.name_label')}
+                                    </Label>
                                     <Input
                                         id="invite_name"
-                                        placeholder="If they don't have an account yet"
+                                        placeholder={t(
+                                            'workspace.users.name_placeholder',
+                                        )}
                                         value={form.data.name}
                                         onChange={(event) =>
                                             form.setData(
@@ -146,7 +168,9 @@ export default function WorkspaceUsers({ workspace, members }: Props) {
                                     <InputError message={form.errors.name} />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="invite_role">Role</Label>
+                                    <Label htmlFor="invite_role">
+                                        {t('workspace.users.role_label')}
+                                    </Label>
                                     <Select
                                         value={form.data.role}
                                         onValueChange={(value) =>
@@ -161,10 +185,12 @@ export default function WorkspaceUsers({ workspace, members }: Props) {
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="user">
-                                                User
+                                                {t('workspace.users.role_user')}
                                             </SelectItem>
                                             <SelectItem value="admin">
-                                                Admin
+                                                {t(
+                                                    'workspace.users.role_admin',
+                                                )}
                                             </SelectItem>
                                         </SelectContent>
                                     </Select>
@@ -173,13 +199,15 @@ export default function WorkspaceUsers({ workspace, members }: Props) {
                             </div>
                             <DialogFooter>
                                 <DialogClose asChild>
-                                    <Button variant="ghost">Cancel</Button>
+                                    <Button variant="ghost">
+                                        {t('workspace.users.cancel_button')}
+                                    </Button>
                                 </DialogClose>
                                 <Button
                                     onClick={submitInvite}
                                     disabled={form.processing}
                                 >
-                                    Invite
+                                    {t('workspace.users.invite_submit')}
                                 </Button>
                             </DialogFooter>
                         </DialogContent>
@@ -197,9 +225,15 @@ export default function WorkspaceUsers({ workspace, members }: Props) {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Member</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Role</TableHead>
+                                <TableHead>
+                                    {t('workspace.users.member_header')}
+                                </TableHead>
+                                <TableHead>
+                                    {t('workspace.users.email_label')}
+                                </TableHead>
+                                <TableHead>
+                                    {t('workspace.users.role_label')}
+                                </TableHead>
                                 <TableHead className="w-9" />
                             </TableRow>
                         </TableHeader>
@@ -224,10 +258,14 @@ export default function WorkspaceUsers({ workspace, members }: Props) {
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="user">
-                                                    User
+                                                    {t(
+                                                        'workspace.users.role_user',
+                                                    )}
                                                 </SelectItem>
                                                 <SelectItem value="admin">
-                                                    Admin
+                                                    {t(
+                                                        'workspace.users.role_admin',
+                                                    )}
                                                 </SelectItem>
                                             </SelectContent>
                                         </Select>
@@ -240,7 +278,7 @@ export default function WorkspaceUsers({ workspace, members }: Props) {
                                                 setRemoveTarget(member)
                                             }
                                         >
-                                            Remove
+                                            {t('workspace.users.remove_button')}
                                         </Button>
                                     </TableCell>
                                 </TableRow>
@@ -255,17 +293,22 @@ export default function WorkspaceUsers({ workspace, members }: Props) {
                 onOpenChange={(open) => !open && setRemoveTarget(null)}
             >
                 <DialogContent>
-                    <DialogTitle>Remove this member?</DialogTitle>
+                    <DialogTitle>
+                        {t('workspace.users.remove_dialog_title')}
+                    </DialogTitle>
                     <p className="text-sm text-muted-foreground">
-                        {removeTarget?.name} will lose access to this workspace.
-                        This can be undone by inviting them again.
+                        {t('workspace.users.remove_dialog_description', {
+                            name: removeTarget?.name ?? '',
+                        })}
                     </p>
                     <DialogFooter>
                         <DialogClose asChild>
-                            <Button variant="secondary">Cancel</Button>
+                            <Button variant="secondary">
+                                {t('workspace.users.cancel_button')}
+                            </Button>
                         </DialogClose>
                         <Button variant="destructive" onClick={confirmRemove}>
-                            Remove member
+                            {t('workspace.users.remove_confirm_button')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

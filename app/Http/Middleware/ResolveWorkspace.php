@@ -21,7 +21,9 @@ class ResolveWorkspace
      * and the rest of the pipeline decides what to do with that. Membership
      * is re-validated on every request rather than trusted from the
      * session, so a user removed from a workspace mid-session loses access
-     * on their very next request.
+     * on their very next request. Platform admins are exempt from this
+     * membership check, since they may resolve any workspace on the
+     * instance regardless of their own membership.
      *
      * @param Request $request The incoming request; its session's `current_workspace_id` is read and updated when a workspace resolves.
      * @param Closure(Request): Response $next The next middleware/handler in the pipeline.
@@ -45,7 +47,10 @@ class ResolveWorkspace
             $workspace = $workspaceId
                 ? Workspace::query()
                     ->whereKey($workspaceId)
-                    ->whereHas('users', fn ($query) => $query->whereKey($user->id))
+                    ->when(
+                        !$user->is_platform_admin,
+                        fn ($query) => $query->whereHas('users', fn ($membersQuery) => $membersQuery->whereKey($user->id)),
+                    )
                     ->first()
                 : null;
 

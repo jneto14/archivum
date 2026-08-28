@@ -106,7 +106,7 @@ class DocumentController extends Controller
             'creator',
         ]);
 
-        $canFile = $document->workspace->isAdmin($request->user());
+        $canFile = $document->workspace->isManageableBy($request->user());
         $scheme = $document->currentLocation?->node?->level->scheme
             ?? OrganizationScheme::query()->where('workspace_id', $document->workspace_id)->oldest()->first();
 
@@ -171,6 +171,8 @@ class DocumentController extends Controller
             $this->scopedTagIds($workspace, $request->validated('tag_ids') ?? []),
         );
 
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('document.created')]);
+
         return redirect()->route('documents.show', $document);
     }
 
@@ -201,6 +203,8 @@ class DocumentController extends Controller
             $this->scopedTagIds($document->workspace, $request->validated('tag_ids') ?? []),
         );
 
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('document.updated')]);
+
         return back();
     }
 
@@ -221,6 +225,8 @@ class DocumentController extends Controller
         $workspace = $document->workspace;
 
         $action->handle($document);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('document.deleted')]);
 
         return redirect()->route('documents.index', $workspace);
     }
