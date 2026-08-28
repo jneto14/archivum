@@ -196,7 +196,18 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                             <Input
                                                 type="number"
                                                 min={1}
-                                                placeholder="∞"
+                                                max={
+                                                    level.value_strategy ===
+                                                    'alphabetical'
+                                                        ? 26
+                                                        : undefined
+                                                }
+                                                placeholder={
+                                                    level.value_strategy ===
+                                                    'alphabetical'
+                                                        ? '26'
+                                                        : '∞'
+                                                }
                                                 className="w-20"
                                                 value={level.capacity}
                                                 onChange={(event) =>
