@@ -1,6 +1,8 @@
 import { Head, router, setLayoutProps } from '@inertiajs/react';
 import { PlusIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -133,16 +135,11 @@ export default function OrganizationSchemeShow({
         <>
             <Head title={t('organization.show.title')} />
 
-            <div className="mx-auto max-w-5xl space-y-6 p-6">
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            {t('organization.show.title')}
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            {t('organization.show.subtitle')}
-                        </p>
-                    </div>
+            <PageContainer>
+                <PageHeader
+                    title={t('organization.show.title')}
+                    description={t('organization.show.subtitle')}
+                >
                     {canManage && (
                         <Button
                             variant="outline"
@@ -154,7 +151,7 @@ export default function OrganizationSchemeShow({
                             {t('organization.show.edit_button')}
                         </Button>
                     )}
-                </div>
+                </PageHeader>
 
                 <div className="grid items-start gap-4 lg:grid-cols-[1.6fr_1fr]">
                     <div className="space-y-4">
@@ -336,7 +333,7 @@ export default function OrganizationSchemeShow({
                         </CardContent>
                     </Card>
                 </div>
-            </div>
+            </PageContainer>
 
             <Dialog open={ruleDialogOpen} onOpenChange={setRuleDialogOpen}>
                 <DialogContent>

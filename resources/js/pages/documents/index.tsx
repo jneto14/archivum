@@ -1,9 +1,13 @@
 import { Head, router, setLayoutProps, usePage } from '@inertiajs/react';
-import { FileTextIcon } from 'lucide-react';
-import { useState } from 'react';
+import { FileTextIcon, LayoutGridIcon, TableIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { EmptyState } from '@/components/empty-state';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
+import { Pagination } from '@/components/pagination';
+import { Panel } from '@/components/panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -20,6 +24,8 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useDateFormatter } from '@/hooks/use-date-formatter';
 import { useTranslation } from '@/hooks/use-translation';
 import {
     create as documentCreate,
@@ -29,6 +35,9 @@ import {
 import { store as startExport } from '@/routes/workspaces/tasks';
 
 const ALL = '__all__';
+const LAYOUT_STORAGE_KEY = 'archivum.documents.layout';
+
+type Layout = 'table' | 'cards';
 
 type DocumentRow = {
     id: string;
@@ -40,7 +49,11 @@ type DocumentRow = {
 };
 
 type Props = {
-    documents: { data: DocumentRow[] };
+    documents: {
+        data: DocumentRow[];
+        links: { prev: string | null; next: string | null };
+        meta: { from: number | null; to: number | null; total: number };
+    };
     filters: {
         q: string | null;
         document_type_id: string | null;
@@ -52,15 +65,30 @@ type Props = {
     tags: { id: string; name: string }[];
 };
 
+/**
+ * Read the persisted layout choice. Wrapped because storage access throws
+ * outright in some privacy modes.
+ */
+function readStoredLayout(): Layout {
+    try {
+        return window.localStorage.getItem(LAYOUT_STORAGE_KEY) === 'cards'
+            ? 'cards'
+            : 'table';
+    } catch {
+        return 'table';
+    }
+}
+
 export default function DocumentIndex({
     documents,
     filters,
     documentTypes,
+    tags,
 }: Props) {
     const t = useTranslation();
+    const { formatDate } = useDateFormatter();
     const { workspace } = usePage().props;
-    const [layout, setLayout] = useState<'table' | 'cards'>('table');
-    const [selected, setSelected] = useState<Set<string>>(new Set());
+    const [layout, setLayout] = useState<Layout>(readStoredLayout);
 
     setLayoutProps({
         breadcrumbs: [
@@ -70,6 +98,14 @@ export default function DocumentIndex({
             },
         ],
     });
+
+    useEffect(() => {
+        try {
+            window.localStorage.setItem(LAYOUT_STORAGE_KEY, layout);
+        } catch {
+            // Persisting the preference is a convenience; ignore storage failures.
+        }
+    }, [layout]);
 
     if (!workspace) {
         return null;
@@ -83,22 +119,6 @@ export default function DocumentIndex({
         );
     };
 
-    const toggleSelected = (id: string, checked: boolean) => {
-        const next = new Set(selected);
-
-        if (checked) {
-            next.add(id);
-        } else {
-            next.delete(id);
-        }
-
-        setSelected(next);
-    };
-
-    const allSelected =
-        documents.data.length > 0 &&
-        documents.data.every((doc) => selected.has(doc.id));
-
     const exportDocuments = () => {
         router.post(
             startExport.url(workspace.id),
@@ -107,66 +127,66 @@ export default function DocumentIndex({
         );
     };
 
+    const total = documents.meta.total;
+    const selectedTagId = filters.tag_ids[0] ?? ALL;
+
     return (
         <>
             <Head title={t('documents.index.title')} />
 
-            <div className="space-y-6 p-6">
-                <div className="flex items-end justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            {t('documents.index.title')}
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            {documents.data.length === 1
-                                ? t('documents.index.document_count_one', {
-                                      count: documents.data.length,
-                                  })
-                                : t('documents.index.document_count_other', {
-                                      count: documents.data.length,
-                                  })}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div className="flex gap-1 rounded-md border bg-muted p-0.5">
-                            <Button
-                                type="button"
-                                variant={
-                                    layout === 'table' ? 'secondary' : 'ghost'
-                                }
-                                size="sm"
-                                onClick={() => setLayout('table')}
-                            >
-                                {t('documents.index.view_table')}
-                            </Button>
-                            <Button
-                                type="button"
-                                variant={
-                                    layout === 'cards' ? 'secondary' : 'ghost'
-                                }
-                                size="sm"
-                                onClick={() => setLayout('cards')}
-                            >
-                                {t('documents.index.view_cards')}
-                            </Button>
-                        </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={exportDocuments}
+            <PageContainer width="wide">
+                <PageHeader
+                    title={t('documents.index.title')}
+                    description={
+                        total === 1
+                            ? t('documents.index.document_count_one', {
+                                  count: total,
+                              })
+                            : t('documents.index.document_count_other', {
+                                  count: total,
+                              })
+                    }
+                >
+                    <ToggleGroup
+                        type="single"
+                        variant="outline"
+                        size="sm"
+                        value={layout}
+                        onValueChange={(value) =>
+                            value !== '' && setLayout(value as Layout)
+                        }
+                    >
+                        <ToggleGroupItem
+                            value="table"
+                            aria-label={t('documents.index.view_table')}
                         >
-                            {t('documents.index.export')}
-                        </Button>
-                        <Button
-                            size="sm"
-                            onClick={() =>
-                                router.visit(documentCreate.url(workspace.id))
-                            }
+                            <TableIcon />
+                            {t('documents.index.view_table')}
+                        </ToggleGroupItem>
+                        <ToggleGroupItem
+                            value="cards"
+                            aria-label={t('documents.index.view_cards')}
                         >
-                            {t('documents.index.new_document')}
-                        </Button>
-                    </div>
-                </div>
+                            <LayoutGridIcon />
+                            {t('documents.index.view_cards')}
+                        </ToggleGroupItem>
+                    </ToggleGroup>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={exportDocuments}
+                    >
+                        {t('documents.index.export')}
+                    </Button>
+                    <Button
+                        size="sm"
+                        onClick={() =>
+                            router.visit(documentCreate.url(workspace.id))
+                        }
+                    >
+                        {t('documents.index.new_document')}
+                    </Button>
+                </PageHeader>
 
                 <div className="flex flex-wrap items-center gap-2">
                     <Input
@@ -203,6 +223,32 @@ export default function DocumentIndex({
                             ))}
                         </SelectContent>
                     </Select>
+                    <Select
+                        value={selectedTagId}
+                        onValueChange={(value) =>
+                            applyFilters({
+                                tag_ids: value === ALL ? [] : [value],
+                            })
+                        }
+                    >
+                        <SelectTrigger className="w-44">
+                            <SelectValue
+                                placeholder={t(
+                                    'documents.index.filter_tag_placeholder',
+                                )}
+                            />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ALL}>
+                                {t('documents.index.filter_all_tags')}
+                            </SelectItem>
+                            {tags.map((tag) => (
+                                <SelectItem key={tag.id} value={tag.id}>
+                                    {tag.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <Input
                         type="date"
                         value={filters.from ?? ''}
@@ -221,63 +267,18 @@ export default function DocumentIndex({
                     />
                 </div>
 
-                {selected.size > 0 && (
-                    <div className="flex items-center gap-3 rounded-lg border border-primary bg-secondary px-3.5 py-2.5">
-                        <span className="text-sm font-medium">
-                            {t('documents.index.selected_count', {
-                                count: selected.size,
-                            })}
-                        </span>
-                        <div className="flex-1" />
-                        <Button size="sm" disabled>
-                            {t('documents.index.bulk_move')}
-                        </Button>
-                        <Button variant="outline" size="sm" disabled>
-                            {t('documents.index.add_tag')}
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelected(new Set())}
-                        >
-                            {t('documents.index.clear')}
-                        </Button>
-                    </div>
-                )}
-
                 {documents.data.length === 0 && (
-                    <div className="rounded-xl border border-dashed p-12 text-center">
-                        <div className="font-semibold">
-                            {t('documents.index.empty_title')}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                            {t('documents.index.empty_description')}
-                        </div>
-                    </div>
+                    <EmptyState
+                        title={t('documents.index.empty_title')}
+                        description={t('documents.index.empty_description')}
+                    />
                 )}
 
                 {documents.data.length > 0 && layout === 'table' && (
-                    <div className="overflow-hidden rounded-xl border">
+                    <Panel>
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-9">
-                                        <Checkbox
-                                            checked={allSelected}
-                                            onCheckedChange={(checked) =>
-                                                setSelected(
-                                                    checked === true
-                                                        ? new Set(
-                                                              documents.data.map(
-                                                                  (doc) =>
-                                                                      doc.id,
-                                                              ),
-                                                          )
-                                                        : new Set(),
-                                                )
-                                            }
-                                        />
-                                    </TableHead>
                                     <TableHead>
                                         {t('documents.index.column_document')}
                                     </TableHead>
@@ -303,21 +304,6 @@ export default function DocumentIndex({
                                             )
                                         }
                                     >
-                                        <TableCell
-                                            onClick={(event) =>
-                                                event.stopPropagation()
-                                            }
-                                        >
-                                            <Checkbox
-                                                checked={selected.has(doc.id)}
-                                                onCheckedChange={(checked) =>
-                                                    toggleSelected(
-                                                        doc.id,
-                                                        checked === true,
-                                                    )
-                                                }
-                                            />
-                                        </TableCell>
                                         <TableCell className="font-medium">
                                             {doc.title}
                                         </TableCell>
@@ -329,7 +315,9 @@ export default function DocumentIndex({
                                             )}
                                         </TableCell>
                                         <TableCell className="text-muted-foreground">
-                                            {doc.document_date ?? '—'}
+                                            {doc.document_date
+                                                ? formatDate(doc.document_date)
+                                                : '—'}
                                         </TableCell>
                                         <TableCell className="font-mono text-xs">
                                             {doc.current_location ?? '—'}
@@ -338,7 +326,7 @@ export default function DocumentIndex({
                                 ))}
                             </TableBody>
                         </Table>
-                    </div>
+                    </Panel>
                 )}
 
                 {documents.data.length > 0 && layout === 'cards' && (
@@ -350,7 +338,7 @@ export default function DocumentIndex({
                                 onClick={() =>
                                     router.visit(documentShow.url(doc.id))
                                 }
-                                className="flex flex-col gap-3 rounded-xl border bg-card p-4 text-left shadow-sm hover:bg-muted"
+                                className="flex flex-col gap-3 rounded-xl border bg-card p-4 text-left shadow-sm hover:bg-accent"
                             >
                                 <div className="flex items-start justify-between gap-2">
                                     <span className="flex items-center gap-2 font-semibold">
@@ -368,13 +356,27 @@ export default function DocumentIndex({
                                         {doc.current_location ??
                                             t('documents.index.unfiled')}
                                     </span>
-                                    <span>{doc.document_date ?? ''}</span>
+                                    <span>
+                                        {doc.document_date
+                                            ? formatDate(doc.document_date)
+                                            : ''}
+                                    </span>
                                 </div>
                             </button>
                         ))}
                     </div>
                 )}
-            </div>
+
+                {documents.data.length > 0 && (
+                    <Pagination
+                        prev={documents.links.prev}
+                        next={documents.links.next}
+                        from={documents.meta.from}
+                        to={documents.meta.to}
+                        total={total}
+                    />
+                )}
+            </PageContainer>
         </>
     );
 }

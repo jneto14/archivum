@@ -1,4 +1,8 @@
 import { Head, router, setLayoutProps } from '@inertiajs/react';
+import { EmptyState } from '@/components/empty-state';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
+import { Panel } from '@/components/panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -72,27 +76,19 @@ export default function WorkspaceTasks({ workspace, tasks }: Props) {
         <>
             <Head title={t('workspace.tasks.title')} />
 
-            <div className="mx-auto max-w-4xl space-y-6 p-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        {t('workspace.tasks.title')}
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        {t('workspace.tasks.description')}
-                    </p>
-                </div>
+            <PageContainer>
+                <PageHeader
+                    title={t('workspace.tasks.title')}
+                    description={t('workspace.tasks.description')}
+                />
 
                 {tasks.length === 0 ? (
-                    <div className="rounded-xl border border-dashed p-12 text-center">
-                        <div className="font-semibold">
-                            {t('workspace.tasks.empty_title')}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                            {t('workspace.tasks.empty_description')}
-                        </div>
-                    </div>
+                    <EmptyState
+                        title={t('workspace.tasks.empty_title')}
+                        description={t('workspace.tasks.empty_description')}
+                    />
                 ) : (
-                    <div className="overflow-hidden rounded-xl border">
+                    <Panel>
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -187,9 +183,9 @@ export default function WorkspaceTasks({ workspace, tasks }: Props) {
                                 ))}
                             </TableBody>
                         </Table>
-                    </div>
+                    </Panel>
                 )}
-            </div>
+            </PageContainer>
         </>
     );
 }

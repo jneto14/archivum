@@ -92,6 +92,65 @@ class DashboardTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->where('isWorkspaceAdmin', true));
     }
 
+    public function test_dashboard_reports_workspace_stats_and_recent_documents()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        Document::factory()->for($workspace)->create(['title' => 'Older', 'updated_at' => now()->subDay()]);
+        Document::factory()->for($workspace)->create(['title' => 'Newest', 'updated_at' => now()]);
+
+        $this->actingAs($member->user)
+            ->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('dashboard')
+                ->where('stats.documents', 2)
+                ->where('stats.users', 1)
+                ->has('recentDocuments', 2)
+                ->where('recentDocuments.0.title', 'Newest')
+                ->where('recentDocuments.1.title', 'Older'),
+            );
+    }
+
+    public function test_dashboard_caps_recent_documents_at_five()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        Document::factory()->for($workspace)->count(8)->create();
+
+        $this->actingAs($member->user)
+            ->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page->has('recentDocuments', 5));
+    }
+
+    public function test_dashboard_never_leaks_another_workspaces_documents()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        Document::factory()->for($workspace)->create(['title' => 'Mine']);
+        Document::factory()->create(['title' => 'Theirs']);
+
+        $this->actingAs($member->user)
+            ->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('recentDocuments', 1)
+                ->where('recentDocuments.0.title', 'Mine'),
+            );
+    }
+
+    public function test_dashboard_renders_the_onboarding_state_without_a_workspace()
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('dashboard')
+                ->where('stats', null)
+                ->where('recentDocuments', [])
+                ->where('recentActivity', []),
+            );
+    }
+
     public function test_dashboard_shares_admin_status_for_a_platform_admin_managing_a_foreign_workspace()
     {
         $workspace = Workspace::factory()->create();

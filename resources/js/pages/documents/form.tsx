@@ -3,8 +3,9 @@ import { PlusIcon, Trash2Icon } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import DocumentController from '@/actions/App/Http/Controllers/Documents/DocumentController';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -171,8 +172,8 @@ export default function DocumentForm({
                 }
             />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-6">
-                <Heading
+            <PageContainer width="narrow">
+                <PageHeader
                     title={
                         isEditing
                             ? t('documents.form.page_title_edit')
@@ -479,7 +480,7 @@ export default function DocumentForm({
                         </CardContent>
                     </Card>
                 )}
-            </div>
+            </PageContainer>
         </>
     );
 }

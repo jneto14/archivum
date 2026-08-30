@@ -49,7 +49,8 @@ class SearchDocuments
                     fn (Builder $q) => $q->whereHas('tags', fn (Builder $tags) => $tags->whereIn('tags.id', $tagIds)),
                 )
                 ->with(['documentType', 'tags', 'currentLocation.node', 'creator']))
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
     }
 
     /**

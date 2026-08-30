@@ -9,7 +9,6 @@ import {
     LayoutGrid,
     Layers,
     ListChecks,
-    RefreshCw,
     Settings,
     SlidersHorizontal,
     Tag,
@@ -100,12 +99,6 @@ export function AppSidebar() {
             href: workspace ? tagsIndex.url(workspace.id) : '#',
             icon: Tag,
             disabled: !workspace,
-        },
-        {
-            title: t('nav.import_export'),
-            href: '#',
-            icon: RefreshCw,
-            disabled: true,
         },
         {
             title: t('nav.organization_scheme'),
