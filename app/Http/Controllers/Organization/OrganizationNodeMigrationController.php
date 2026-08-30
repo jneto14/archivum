@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Organization;
 
-use App\Enums\TaskStatus;
-use App\Enums\TaskType;
+use App\Actions\Organization\StartBulkDocumentMove;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Organization\MigrateNodeDocumentsRequest;
-use App\Jobs\BulkMoveDocuments;
 use App\Models\OrganizationNode;
-use App\Models\Task;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\RedirectResponse;
@@ -24,28 +21,22 @@ class OrganizationNodeMigrationController extends Controller
      *
      * @param MigrateNodeDocumentsRequest $request The incoming request with the validated target node id.
      * @param OrganizationNode $node The source node whose documents are being migrated.
+     * @param StartBulkDocumentMove $action Acquires the move lock, creates the task, and dispatches the job.
      *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws AuthorizationException If the current user cannot manage $node's scheme.
      * @throws ModelNotFoundException If the target node does not exist in the same workspace as $node.
-     * @throws ValidationException If the target node is the same as $node.
+     * @throws ValidationException If the target node is the same as $node, or a bulk move is already running
+     *                             for the workspace.
      */
-    public function store(MigrateNodeDocumentsRequest $request, OrganizationNode $node): RedirectResponse
+    public function store(MigrateNodeDocumentsRequest $request, OrganizationNode $node, StartBulkDocumentMove $action): RedirectResponse
     {
         $this->authorize('update', $node->level->scheme);
 
         $target = $this->resolveTargetNode($node, $request->validated('target_node_id'));
 
-        $task = Task::query()->create([
-            'workspace_id' => $node->level->scheme->workspace_id,
-            'user_id' => $request->user()->id,
-            'type' => TaskType::BulkDocumentMove,
-            'status' => TaskStatus::Queued,
-            'payload' => ['source_node_id' => $node->id, 'target_node_id' => $target->id],
-        ]);
-
-        BulkMoveDocuments::dispatch($task, $node, $target);
+        $action->handle($node, $target, $request->user());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('organization.migration_queued')]);
 

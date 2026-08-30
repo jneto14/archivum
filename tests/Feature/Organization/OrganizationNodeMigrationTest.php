@@ -17,6 +17,7 @@ use App\Models\Task;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -46,6 +47,28 @@ class OrganizationNodeMigrationTest extends TestCase
         $this->assertSame($admin->user->id, $task->user_id);
 
         Queue::assertPushed(BulkMoveDocuments::class, fn (BulkMoveDocuments $job) => $job->task->id === $task->id && $job->source->id === $source->id && $job->target->id === $target->id);
+    }
+
+    public function test_starting_a_migration_while_one_is_already_running_is_rejected()
+    {
+        Queue::fake([BulkMoveDocuments::class]);
+
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $scheme = $this->createScheme($workspace);
+        $source = $this->createNode($scheme, '001');
+        $target = $this->createNode($scheme, '002');
+
+        $lock = Cache::lock(TaskType::BulkDocumentMove->lockKey($workspace->id), 600);
+        $lock->get();
+
+        $response = $this->actingAs($admin->user)->post(route('organization.nodes.migrate', $source), [
+            'target_node_id' => $target->id,
+        ]);
+
+        $response->assertSessionHasErrors('task');
+        Queue::assertNothingPushed();
+        $this->assertDatabaseCount('tasks', 0);
     }
 
     public function test_non_admin_member_cannot_queue_a_migration()

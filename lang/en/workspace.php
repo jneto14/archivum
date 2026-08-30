@@ -15,6 +15,7 @@ return [
     'cannot_delete_last_workspace' => 'Cannot delete the only workspace in this instance.',
     'limits_updated' => 'Workspace limits updated.',
     'export_already_running' => 'A document export is already running for this workspace.',
+    'bulk_move_already_running' => 'A document move is already running for this workspace.',
     'export_started' => 'Export started.',
     'export_retried' => 'Export restarted.',
     'only_failed_tasks_can_retry' => 'Only failed tasks can be retried.',

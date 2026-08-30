@@ -12,12 +12,15 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Cache;
 use Throwable;
 
 /**
  * Queues the migration of every document under one organization node to
  * another, off the request cycle since a node can hold a large number of
- * documents. Tracks its progress on the given Task row.
+ * documents. Tracks its progress on the given Task row and releases the
+ * concurrency lock the dispatching action acquired, whether the move
+ * succeeds or fails.
  */
 class BulkMoveDocuments implements ShouldQueue
 {
@@ -27,11 +30,13 @@ class BulkMoveDocuments implements ShouldQueue
      * @param Task $task The task record tracking this migration.
      * @param OrganizationNode $source The node documents are currently located at.
      * @param OrganizationNode $target The node documents are moved onto.
+     * @param string $lockOwner The owner token of the Cache::lock() acquired before this job was dispatched.
      */
     public function __construct(
         public readonly Task $task,
         public readonly OrganizationNode $source,
         public readonly OrganizationNode $target,
+        public readonly string $lockOwner,
     ) {}
 
     /**
@@ -54,6 +59,8 @@ class BulkMoveDocuments implements ShouldQueue
             report($exception);
 
             $this->task->markFailed($exception->getMessage());
+        } finally {
+            Cache::restoreLock($this->task->type->lockKey($this->task->workspace_id), $this->lockOwner)->release();
         }
     }
 }
