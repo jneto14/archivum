@@ -32,7 +32,7 @@ export function PanelHeader({
     return (
         <div
             className={cn(
-                'flex items-center justify-between gap-3 border-b bg-muted px-4 py-3',
+                'flex flex-wrap items-center justify-between gap-2 border-b bg-muted px-4 py-3',
                 className,
             )}
             {...props}

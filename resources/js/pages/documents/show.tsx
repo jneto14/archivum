@@ -196,11 +196,11 @@ export default function DocumentShow({
                         </Card>
 
                         <Card>
-                            <CardHeader className="flex-row items-center justify-between">
+                            <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
                                 <CardTitle>
                                     {t('documents.show.attachments_title')}
                                 </CardTitle>
-                                <div className="flex items-center gap-2">
+                                <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-1 sm:justify-end">
                                     <input
                                         ref={fileInputRef}
                                         type="file"
@@ -214,6 +214,7 @@ export default function DocumentShow({
                                     <Button
                                         variant="outline"
                                         size="sm"
+                                        className="shrink-0"
                                         onClick={() =>
                                             fileInputRef.current?.click()
                                         }
@@ -221,12 +222,13 @@ export default function DocumentShow({
                                         {t('documents.show.choose_file_button')}
                                     </Button>
                                     {file && (
-                                        <span className="max-w-40 truncate text-xs text-muted-foreground">
+                                        <span className="min-w-0 truncate text-xs text-muted-foreground">
                                             {file.name}
                                         </span>
                                     )}
                                     <Button
                                         size="sm"
+                                        className="shrink-0"
                                         onClick={uploadAttachment}
                                         disabled={!file}
                                     >

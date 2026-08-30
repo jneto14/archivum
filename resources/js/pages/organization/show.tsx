@@ -156,8 +156,8 @@ export default function OrganizationSchemeShow({
                 <div className="grid items-start gap-4 lg:grid-cols-[1.6fr_1fr]">
                     <div className="space-y-4">
                         <Card className="overflow-hidden py-0">
-                            <CardHeader className="flex-row items-center justify-between border-b py-4">
-                                <div>
+                            <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 border-b py-4">
+                                <div className="min-w-0">
                                     <CardTitle>{scheme.name}</CardTitle>
                                     <p className="mt-0.5 text-xs text-muted-foreground">
                                         {scheme.levels.length === 1
@@ -224,8 +224,8 @@ export default function OrganizationSchemeShow({
                         </Card>
 
                         <Card className="overflow-hidden py-0">
-                            <CardHeader className="flex-row items-center justify-between border-b py-4">
-                                <div>
+                            <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 border-b py-4">
+                                <div className="min-w-0">
                                     <CardTitle>
                                         {t('organization.show.rules_heading')}
                                     </CardTitle>

@@ -171,7 +171,10 @@ export default function Dashboard({
                                         {doc.title}
                                     </span>
                                     {doc.document_type && (
-                                        <Badge variant="secondary">
+                                        <Badge
+                                            variant="secondary"
+                                            className="shrink-0"
+                                        >
                                             {doc.document_type}
                                         </Badge>
                                     )}

@@ -14,8 +14,8 @@ type Props = {
 export function PageHeader({ title, description, children }: Props) {
     return (
         <div className="flex flex-wrap items-end justify-between gap-4">
-            <div className="space-y-1">
-                <h1 className="text-2xl font-semibold tracking-tight">
+            <div className="min-w-0 space-y-1">
+                <h1 className="text-2xl font-semibold tracking-tight break-words">
                     {title}
                 </h1>
                 {description !== undefined && (
@@ -25,7 +25,7 @@ export function PageHeader({ title, description, children }: Props) {
                 )}
             </div>
             {children !== undefined && (
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
                     {children}
                 </div>
             )}
