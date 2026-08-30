@@ -9,6 +9,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useDateFormatter } from '@/hooks/use-date-formatter';
 import { useTranslation } from '@/hooks/use-translation';
 import type { TranslationKey } from '@/lib/translations';
 import { download, retry } from '@/routes/workspaces/tasks';
@@ -53,6 +54,7 @@ const STATUS_VARIANTS: Record<
 
 export default function WorkspaceTasks({ workspace, tasks }: Props) {
     const t = useTranslation();
+    const { formatDateTime } = useDateFormatter();
 
     setLayoutProps({
         breadcrumbs: [{ title: t('workspace.tasks.title'), href: '#' }],
@@ -140,9 +142,9 @@ export default function WorkspaceTasks({ workspace, tasks }: Props) {
                                         </TableCell>
                                         <TableCell className="text-muted-foreground">
                                             {task.created_at
-                                                ? new Date(
+                                                ? formatDateTime(
                                                       task.created_at,
-                                                  ).toLocaleString()
+                                                  )
                                                 : '—'}
                                         </TableCell>
                                         <TableCell className="text-right">
