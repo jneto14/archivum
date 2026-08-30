@@ -198,9 +198,7 @@ export default function WorkspaceActivity({ workspace, activities }: Props) {
                                 variant="outline"
                                 size="sm"
                                 disabled={activities.prev_page_url === null}
-                                onClick={() =>
-                                    goTo(activities.prev_page_url)
-                                }
+                                onClick={() => goTo(activities.prev_page_url)}
                             >
                                 {t('workspace.activity.previous_page')}
                             </Button>
@@ -208,9 +206,7 @@ export default function WorkspaceActivity({ workspace, activities }: Props) {
                                 variant="outline"
                                 size="sm"
                                 disabled={activities.next_page_url === null}
-                                onClick={() =>
-                                    goTo(activities.next_page_url)
-                                }
+                                onClick={() => goTo(activities.next_page_url)}
                             >
                                 {t('workspace.activity.next_page')}
                             </Button>
