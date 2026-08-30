@@ -1,6 +1,7 @@
 import { Head, router, setLayoutProps, usePage } from '@inertiajs/react';
-import { DownloadIcon, Trash2Icon } from 'lucide-react';
+import { DownloadIcon, EyeIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
+import { DocumentPreviewDialog } from '@/components/document-preview-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,6 +34,15 @@ type LocationSuggestion = {
     recommended: boolean;
 };
 
+type AttachmentRow = {
+    id: string;
+    filename: string;
+    mime_type: string;
+    size: number;
+    created_at: string;
+    uploader: { id: string; name: string } | null;
+};
+
 type Props = {
     document: {
         id: string;
@@ -43,16 +53,7 @@ type Props = {
         tags: { id: string; name: string }[] | null;
         current_location: string | null;
         creator: { id: string; name: string } | null;
-        attachments:
-            | {
-                  id: string;
-                  filename: string;
-                  mime_type: string;
-                  size: number;
-                  created_at: string;
-                  uploader: { id: string; name: string } | null;
-              }[]
-            | null;
+        attachments: AttachmentRow[] | null;
         location_history:
             { id: string; path: string | null; created_at: string }[] | null;
     };
@@ -69,6 +70,8 @@ export default function DocumentShow({
     const { workspace } = usePage().props;
     const [moveOpen, setMoveOpen] = useState(false);
     const [file, setFile] = useState<File | null>(null);
+    const [previewAttachment, setPreviewAttachment] =
+        useState<AttachmentRow | null>(null);
 
     setLayoutProps({
         breadcrumbs: [
@@ -240,6 +243,26 @@ export default function DocumentShow({
                                                     )}
                                                 </div>
                                             </div>
+                                            {(attachment.mime_type ===
+                                                'application/pdf' ||
+                                                attachment.mime_type.startsWith(
+                                                    'image/',
+                                                )) && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    title={t(
+                                                        'documents.show.preview_button',
+                                                    )}
+                                                    onClick={() =>
+                                                        setPreviewAttachment(
+                                                            attachment,
+                                                        )
+                                                    }
+                                                >
+                                                    <EyeIcon />
+                                                </Button>
+                                            )}
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
@@ -413,6 +436,12 @@ export default function DocumentShow({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <DocumentPreviewDialog
+                attachment={previewAttachment}
+                open={previewAttachment !== null}
+                onOpenChange={(open) => !open && setPreviewAttachment(null)}
+            />
         </>
     );
 }
