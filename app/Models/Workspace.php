@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Concerns\LogsWorkspaceActivity;
 use App\Enums\WorkspaceRole;
 use Database\Factories\WorkspaceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * @property string $id
@@ -24,7 +26,35 @@ use Illuminate\Support\Carbon;
 class Workspace extends Model
 {
     /** @use HasFactory<WorkspaceFactory> */
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, LogsWorkspaceActivity;
+
+    /**
+     * @return LogOptions Logs name changes under the 'workspace' log name.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('workspace')
+            ->logOnly(['name'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+
+    /**
+     * @return string|null This workspace's own id — it is its own scope.
+     */
+    protected function resolveActivityWorkspaceId(): ?string
+    {
+        return $this->id;
+    }
+
+    /**
+     * @return string|null This workspace's name.
+     */
+    protected function resolveActivityLabel(): ?string
+    {
+        return $this->name;
+    }
 
     /**
      * @return BelongsToMany<User, $this>

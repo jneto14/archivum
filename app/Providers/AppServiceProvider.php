@@ -9,6 +9,7 @@ use App\Models\Passkey;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
+use App\Policies\ActivityPolicy;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Laravel\Passkeys\Passkeys;
+use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -40,6 +42,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureWorkspaceMembership();
         $this->configurePasskeys();
         $this->configurePlatformAdminAccess();
+        $this->configureActivityLog();
     }
 
     /**
@@ -110,5 +113,16 @@ class AppServiceProvider extends ServiceProvider
     protected function configurePlatformAdminAccess(): void
     {
         Gate::before(fn (User $user, string $ability): ?bool => $user->is_platform_admin ? true : null);
+    }
+
+    /**
+     * Spatie's Activity model lives outside App\Models, so Laravel's naming-convention
+     * policy discovery can't find ActivityPolicy on its own — it must be registered explicitly.
+     *
+     * @return void No return value; registers a Gate::policy() mapping as a side effect.
+     */
+    protected function configureActivityLog(): void
+    {
+        Gate::policy(Activity::class, ActivityPolicy::class);
     }
 }

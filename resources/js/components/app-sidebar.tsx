@@ -39,6 +39,7 @@ import {
     index as workspacesIndex,
     usage as workspaceUsage,
 } from '@/routes/workspaces';
+import { index as activityIndex } from '@/routes/workspaces/activity';
 import { show as workspaceSettingsShow } from '@/routes/workspaces/settings';
 import { index as tasksIndex } from '@/routes/workspaces/tasks';
 import { index as usersIndex } from '@/routes/workspaces/users';
@@ -75,12 +76,6 @@ export function AppSidebar() {
                 : '#',
             icon: Archive,
             disabled: !organizationSchemeId,
-        },
-        {
-            title: t('nav.activity'),
-            href: '#',
-            icon: Activity,
-            disabled: true,
         },
     ];
 
@@ -140,6 +135,16 @@ export function AppSidebar() {
                       title: t('nav.tasks'),
                       href: workspace ? tasksIndex.url(workspace.id) : '#',
                       icon: ListChecks,
+                      disabled: !workspace,
+                  },
+              ] as NavItem[])
+            : []),
+        ...(isWorkspaceAdmin
+            ? ([
+                  {
+                      title: t('nav.activity'),
+                      href: workspace ? activityIndex.url(workspace.id) : '#',
+                      icon: Activity,
                       disabled: !workspace,
                   },
               ] as NavItem[])

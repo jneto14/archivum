@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Concerns\LogsWorkspaceActivity;
 use Database\Factories\DocumentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Laravel\Scout\Searchable;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * @property string $id
@@ -31,7 +33,35 @@ use Laravel\Scout\Searchable;
 class Document extends Model
 {
     /** @use HasFactory<DocumentFactory> */
-    use HasFactory, HasUuids, Searchable;
+    use HasFactory, HasUuids, LogsWorkspaceActivity, Searchable;
+
+    /**
+     * @return LogOptions Logs title/type/date changes under the 'document' log name.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('document')
+            ->logOnly(['title', 'document_type_id', 'document_date'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+
+    /**
+     * @return string|null This document's workspace id.
+     */
+    protected function resolveActivityWorkspaceId(): ?string
+    {
+        return $this->workspace_id;
+    }
+
+    /**
+     * @return string|null This document's title.
+     */
+    protected function resolveActivityLabel(): ?string
+    {
+        return $this->title;
+    }
 
     /**
      * @return array<string, string>

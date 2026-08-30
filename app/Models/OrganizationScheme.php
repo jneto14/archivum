@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Concerns\LogsWorkspaceActivity;
 use Database\Factories\OrganizationSchemeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * @property string $id
@@ -24,7 +26,35 @@ use Illuminate\Support\Carbon;
 class OrganizationScheme extends Model
 {
     /** @use HasFactory<OrganizationSchemeFactory> */
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, LogsWorkspaceActivity;
+
+    /**
+     * @return LogOptions Logs name changes under the 'organization_scheme' log name.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('organization_scheme')
+            ->logOnly(['name'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+
+    /**
+     * @return string|null This scheme's workspace id.
+     */
+    protected function resolveActivityWorkspaceId(): ?string
+    {
+        return $this->workspace_id;
+    }
+
+    /**
+     * @return string|null This scheme's name.
+     */
+    protected function resolveActivityLabel(): ?string
+    {
+        return $this->name;
+    }
 
     /**
      * @return BelongsTo<Workspace, $this>
