@@ -138,6 +138,9 @@ export default {
     'documents.show.preview_not_supported':
         'Não é possível pré-visualizar este tipo de ficheiro.',
     'documents.show.preview_failed': 'Falha ao carregar a pré-visualização.',
+    'documents.show.preview_zoom_in': 'Aumentar',
+    'documents.show.preview_zoom_out': 'Reduzir',
+    'documents.show.preview_fit_width': 'Ajustar à largura',
     'documents.show.preview_page_of': 'Página :current de :total',
 
     'document_types.index.breadcrumb': 'Tipos de documento',

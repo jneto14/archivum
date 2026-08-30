@@ -133,6 +133,9 @@ export default {
     'documents.show.preview_not_supported':
         'Preview is not available for this file type.',
     'documents.show.preview_failed': 'Failed to load the preview.',
+    'documents.show.preview_zoom_in': 'Zoom in',
+    'documents.show.preview_zoom_out': 'Zoom out',
+    'documents.show.preview_fit_width': 'Fit to width',
     'documents.show.preview_page_of': 'Page :current of :total',
 
     'document_types.index.breadcrumb': 'Document types',
