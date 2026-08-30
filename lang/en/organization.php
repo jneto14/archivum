@@ -28,5 +28,5 @@ return [
     'rule_created' => 'Rule created.',
     'rule_updated' => 'Rule updated.',
     'rule_deleted' => 'Rule deleted.',
-    'migration_queued' => 'Document migration queued.',
+    'migration_queued' => 'Documents are being moved.',
 ];

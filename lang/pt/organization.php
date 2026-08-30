@@ -28,5 +28,5 @@ return [
     'rule_created' => 'Regra criada.',
     'rule_updated' => 'Regra atualizada.',
     'rule_deleted' => 'Regra eliminada.',
-    'migration_queued' => 'Migração de documentos colocada em fila.',
+    'migration_queued' => 'Os documentos estão a ser movidos.',
 ];
