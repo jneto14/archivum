@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Workspaces;
 use App\Actions\Workspace\RetryTask;
 use App\Actions\Workspace\StartDocumentExport;
 use App\Enums\TaskStatus;
+use App\Enums\TaskType;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Models\Workspace;
@@ -119,6 +120,7 @@ class TaskController extends Controller
 
         $this->authorize('view', $task);
 
+        abort_unless($task->type === TaskType::DocumentExport, 404);
         abort_unless($task->status === TaskStatus::Completed && $task->result !== null, 404);
 
         return Storage::disk($task->result['disk'])->download($task->result['path']);

@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Organization;
 
+use App\Enums\TaskStatus;
+use App\Enums\TaskType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Organization\MigrateNodeDocumentsRequest;
 use App\Jobs\BulkMoveDocuments;
 use App\Models\OrganizationNode;
+use App\Models\Task;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\RedirectResponse;
@@ -34,7 +37,15 @@ class OrganizationNodeMigrationController extends Controller
 
         $target = $this->resolveTargetNode($node, $request->validated('target_node_id'));
 
-        BulkMoveDocuments::dispatch($node, $target);
+        $task = Task::query()->create([
+            'workspace_id' => $node->level->scheme->workspace_id,
+            'user_id' => $request->user()->id,
+            'type' => TaskType::BulkDocumentMove,
+            'status' => TaskStatus::Queued,
+            'payload' => ['source_node_id' => $node->id, 'target_node_id' => $target->id],
+        ]);
+
+        BulkMoveDocuments::dispatch($task, $node, $target);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('organization.migration_queued')]);
 

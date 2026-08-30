@@ -8,6 +8,9 @@ use App\Enums\TaskStatus;
 use App\Enums\TaskType;
 use App\Enums\WorkspaceRole;
 use App\Models\Document;
+use App\Models\OrganizationLevel;
+use App\Models\OrganizationNode;
+use App\Models\OrganizationScheme;
 use App\Models\Task;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
@@ -180,5 +183,53 @@ class TaskTest extends TestCase
         $response = $this->actingAs($member->user)->get(route('workspaces.tasks.download', [$workspace, $task]));
 
         $response->assertForbidden();
+    }
+
+    public function test_a_bulk_document_move_task_shows_up_in_the_tasks_list()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        Task::factory()->for($workspace)->for($admin->user)->completed()->create([
+            'type' => TaskType::BulkDocumentMove,
+        ]);
+
+        $response = $this->actingAs($admin->user)->get(route('workspaces.tasks.index', $workspace));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->where('tasks.0.type', TaskType::BulkDocumentMove->value),
+        );
+    }
+
+    public function test_workspace_admin_can_retry_a_failed_bulk_document_move_task()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $scheme = OrganizationScheme::factory()->for($workspace)->create();
+        $level = OrganizationLevel::factory()->for($scheme, 'scheme')->create();
+        $source = OrganizationNode::factory()->for($level, 'level')->create();
+        $target = OrganizationNode::factory()->for($level, 'level')->create();
+        $task = Task::factory()->for($workspace)->for($admin->user)->failed()->create([
+            'type' => TaskType::BulkDocumentMove,
+            'payload' => ['source_node_id' => $source->id, 'target_node_id' => $target->id],
+        ]);
+
+        $response = $this->actingAs($admin->user)->post(route('workspaces.tasks.retry', [$workspace, $task]));
+
+        $response->assertRedirect();
+        $this->assertSame(TaskStatus::Completed, $task->fresh()->status);
+    }
+
+    public function test_downloading_a_bulk_document_move_tasks_result_returns_not_found()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $task = Task::factory()->for($workspace)->for($admin->user)->completed()->create([
+            'type' => TaskType::BulkDocumentMove,
+        ]);
+
+        $response = $this->actingAs($admin->user)->get(route('workspaces.tasks.download', [$workspace, $task]));
+
+        $response->assertNotFound();
     }
 }

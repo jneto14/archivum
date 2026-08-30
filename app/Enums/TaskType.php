@@ -10,6 +10,7 @@ namespace App\Enums;
 enum TaskType: string
 {
     case DocumentExport = 'document_export';
+    case BulkDocumentMove = 'bulk_document_move';
 
     /**
      * The Cache::lock() key used to prevent two tasks of this type running
@@ -23,6 +24,7 @@ enum TaskType: string
     {
         return match ($this) {
             self::DocumentExport => "workspace:{$workspaceId}:export:documents",
+            self::BulkDocumentMove => "workspace:{$workspaceId}:bulk-move:documents",
         };
     }
 }

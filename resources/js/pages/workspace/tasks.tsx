@@ -31,6 +31,7 @@ type Props = {
 
 const TYPE_LABELS: Record<string, TranslationKey> = {
     document_export: 'workspace.tasks.type_document_export',
+    bulk_document_move: 'workspace.tasks.type_bulk_document_move',
 };
 
 const STATUS_LABELS: Record<TaskRow['status'], TranslationKey> = {
@@ -154,25 +155,27 @@ export default function WorkspaceTasks({ workspace, tasks }: Props) {
                                                 : '—'}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            {task.status === 'completed' && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    asChild
-                                                >
-                                                    <a
-                                                        href={download.url({
-                                                            workspace:
-                                                                workspace.id,
-                                                            task: task.id,
-                                                        })}
+                                            {task.status === 'completed' &&
+                                                task.type ===
+                                                    'document_export' && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        asChild
                                                     >
-                                                        {t(
-                                                            'workspace.tasks.download_button',
-                                                        )}
-                                                    </a>
-                                                </Button>
-                                            )}
+                                                        <a
+                                                            href={download.url({
+                                                                workspace:
+                                                                    workspace.id,
+                                                                task: task.id,
+                                                            })}
+                                                        >
+                                                            {t(
+                                                                'workspace.tasks.download_button',
+                                                            )}
+                                                        </a>
+                                                    </Button>
+                                                )}
                                             {task.status === 'failed' && (
                                                 <Button
                                                     variant="ghost"
