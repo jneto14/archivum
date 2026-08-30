@@ -26,6 +26,7 @@ import {
     index as documentsIndex,
     show as documentShow,
 } from '@/routes/documents';
+import { store as startExport } from '@/routes/workspaces/tasks';
 
 const ALL = '__all__';
 
@@ -98,6 +99,14 @@ export default function DocumentIndex({
         documents.data.length > 0 &&
         documents.data.every((doc) => selected.has(doc.id));
 
+    const exportDocuments = () => {
+        router.post(
+            startExport.url(workspace.id),
+            {},
+            { preserveScroll: true },
+        );
+    };
+
     return (
         <>
             <Head title={t('documents.index.title')} />
@@ -141,6 +150,13 @@ export default function DocumentIndex({
                                 {t('documents.index.view_cards')}
                             </Button>
                         </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={exportDocuments}
+                        >
+                            {t('documents.index.export')}
+                        </Button>
                         <Button
                             size="sm"
                             onClick={() =>
@@ -218,9 +234,6 @@ export default function DocumentIndex({
                         </Button>
                         <Button variant="outline" size="sm" disabled>
                             {t('documents.index.add_tag')}
-                        </Button>
-                        <Button variant="outline" size="sm" disabled>
-                            {t('documents.index.export')}
                         </Button>
                         <Button
                             variant="ghost"

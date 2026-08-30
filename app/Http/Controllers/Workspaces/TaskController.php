@@ -116,12 +116,45 @@ class TaskController extends Controller
      */
     public function download(Workspace $workspace, Task $task): StreamedResponse
     {
+        return $this->downloadResult($workspace, $task);
+    }
+
+    /**
+     * Download a completed task's result file via a signed, expiring link,
+     * as emailed to the user once their export finishes. The `signed`
+     * route middleware only proves the URL hasn't been tampered with or
+     * expired — the user must still be authenticated and currently a
+     * workspace admin at click-time, same as the in-app download.
+     *
+     * @param Workspace $workspace The workspace the task must belong to.
+     * @param Task $task The completed task whose result is downloaded.
+     *
+     * @return StreamedResponse A streamed download of the task's result file.
+     *
+     * @throws AuthorizationException If the current user cannot view $task.
+     */
+    public function downloadSigned(Workspace $workspace, Task $task): StreamedResponse
+    {
+        return $this->downloadResult($workspace, $task);
+    }
+
+    /**
+     * @param Workspace $workspace The workspace the task must belong to.
+     * @param Task $task The completed task whose result is downloaded.
+     *
+     * @return StreamedResponse A streamed download of the task's result file.
+     *
+     * @throws AuthorizationException If the current user cannot view $task.
+     */
+    private function downloadResult(Workspace $workspace, Task $task): StreamedResponse
+    {
         abort_if($task->workspace_id !== $workspace->id, 404);
 
         $this->authorize('view', $task);
 
         abort_unless($task->type === TaskType::DocumentExport, 404);
         abort_unless($task->status === TaskStatus::Completed && $task->result !== null, 404);
+        abort_unless(Storage::disk($task->result['disk'])->exists($task->result['path']), 404);
 
         return Storage::disk($task->result['disk'])->download($task->result['path']);
     }

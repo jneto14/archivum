@@ -308,7 +308,6 @@ export default {
     'workspace.tasks.title': 'Tasks',
     'workspace.tasks.description':
         'Track background jobs triggered in this workspace.',
-    'workspace.tasks.export_button': 'Export documents (CSV)',
     'workspace.tasks.empty_title': 'No tasks yet',
     'workspace.tasks.empty_description':
         'Background jobs triggered in this workspace, like document exports, will show up here.',
