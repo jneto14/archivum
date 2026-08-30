@@ -31,6 +31,9 @@ const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 0.25;
 
+/** iOS Safari refuses canvases much beyond this area. */
+const MAX_BITMAP_PIXELS = 16_000_000;
+
 type PreviewableAttachment = {
     id: string;
     filename: string;
@@ -113,24 +116,35 @@ function PdfPreview({ url }: { url: string }) {
                 return;
             }
 
-            const unscaled = page.getViewport({ scale: 1 });
-            const viewport = page.getViewport({
-                scale: (containerWidth / unscaled.width) * zoom,
-            });
-
             const context = canvas.getContext('2d');
 
             if (!context) {
                 return;
             }
 
-            // Render at device resolution, then scale back down via CSS, so the
-            // page isn't blurry on HiDPI displays.
+            // The measured width decides the bitmap's *resolution* only — the
+            // canvas is laid out in CSS (`width: zoom%`), so a stale or slightly
+            // wrong measurement costs sharpness and can never overflow the
+            // dialog. Sizing the canvas in CSS pixels from this number is what
+            // clipped the page before.
+            const unscaled = page.getViewport({ scale: 1 });
             const ratio = window.devicePixelRatio || 1;
-            canvas.width = Math.floor(viewport.width * ratio);
-            canvas.height = Math.floor(viewport.height * ratio);
-            canvas.style.width = `${viewport.width}px`;
-            canvas.style.height = `${viewport.height}px`;
+            let scale = (containerWidth * zoom * ratio) / unscaled.width;
+
+            // At high zoom on a dense display the bitmap can exceed the canvas
+            // area browsers will allocate — iOS Safari gives up around 16MP and
+            // silently renders nothing. Trade sharpness for a canvas that works.
+            const projected = page.getViewport({ scale });
+            const pixels = projected.width * projected.height;
+
+            if (pixels > MAX_BITMAP_PIXELS) {
+                scale *= Math.sqrt(MAX_BITMAP_PIXELS / pixels);
+            }
+
+            const viewport = page.getViewport({ scale });
+
+            canvas.width = Math.floor(viewport.width);
+            canvas.height = Math.floor(viewport.height);
 
             // A canvas can only host one render at a time; zooming or resizing
             // mid-render throws without this.
@@ -140,7 +154,6 @@ function PdfPreview({ url }: { url: string }) {
                 canvasContext: context,
                 viewport,
                 canvas,
-                transform: ratio === 1 ? undefined : [ratio, 0, 0, ratio, 0, 0],
             });
 
             renderTaskRef.current = task;
@@ -175,7 +188,11 @@ function PdfPreview({ url }: { url: string }) {
                 ref={containerRef}
                 className="max-h-[70vh] w-full min-w-0 overflow-auto rounded-md border bg-muted"
             >
-                <canvas ref={canvasRef} className="block" />
+                <canvas
+                    ref={canvasRef}
+                    className="block h-auto"
+                    style={{ width: `${zoom * 100}%` }}
+                />
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -284,8 +301,8 @@ export function DocumentPreviewDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="min-w-0 sm:max-w-4xl">
-                <DialogHeader>
+            <DialogContent className="min-w-0 sm:max-w-[min(56rem,calc(100%-2rem))]">
+                <DialogHeader className="min-w-0">
                     {/* pr-8 clears the absolutely positioned close button. */}
                     <DialogTitle className="truncate pr-8">
                         {attachment.filename}
