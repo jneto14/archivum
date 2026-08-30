@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Models\Document;
 use App\Models\Task;
+use App\Notifications\DocumentExportReady;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Collection;
@@ -49,7 +50,7 @@ class ExportWorkspaceDocuments implements ShouldQueue
 
             $documents = Document::query()
                 ->where('workspace_id', $workspace->id)
-                ->with('documentType')
+                ->with(['documentType', 'tags', 'currentLocation.node'])
                 ->orderBy('created_at')
                 ->get();
 
@@ -60,6 +61,8 @@ class ExportWorkspaceDocuments implements ShouldQueue
                 'path' => $path,
                 'documents_count' => $documents->count(),
             ]);
+
+            $this->task->user->notify(new DocumentExportReady($this->task));
         } catch (Throwable $exception) {
             report($exception);
 
@@ -82,12 +85,14 @@ class ExportWorkspaceDocuments implements ShouldQueue
             throw new RuntimeException('Unable to open a temporary stream to build the export CSV.');
         }
 
-        fputcsv($handle, ['Title', 'Document type', 'Document date', 'Created at']);
+        fputcsv($handle, ['Title', 'Document type', 'Tags', 'Location', 'Document date', 'Created at']);
 
         foreach ($documents as $document) {
             fputcsv($handle, [
                 $document->title,
                 $document->documentType->name,
+                $document->tags->pluck('name')->implode(', '),
+                $document->currentLocation?->node?->path(),
                 $document->document_date?->toDateString(),
                 $document->created_at?->toDateTimeString(),
             ]);

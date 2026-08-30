@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/table';
 import { useTranslation } from '@/hooks/use-translation';
 import type { TranslationKey } from '@/lib/translations';
-import { download, retry, store } from '@/routes/workspaces/tasks';
+import { download, retry } from '@/routes/workspaces/tasks';
 
 type TaskRow = {
     id: string;
@@ -58,10 +58,6 @@ export default function WorkspaceTasks({ workspace, tasks }: Props) {
         breadcrumbs: [{ title: t('workspace.tasks.title'), href: '#' }],
     });
 
-    const startExport = () => {
-        router.post(store.url(workspace.id), {}, { preserveScroll: true });
-    };
-
     const retryTask = (task: TaskRow) => {
         router.post(
             retry.url({ workspace: workspace.id, task: task.id }),
@@ -75,18 +71,13 @@ export default function WorkspaceTasks({ workspace, tasks }: Props) {
             <Head title={t('workspace.tasks.title')} />
 
             <div className="mx-auto max-w-4xl space-y-6 p-6">
-                <div className="flex items-end justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            {t('workspace.tasks.title')}
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            {t('workspace.tasks.description')}
-                        </p>
-                    </div>
-                    <Button size="sm" onClick={startExport}>
-                        {t('workspace.tasks.export_button')}
-                    </Button>
+                <div>
+                    <h1 className="text-2xl font-semibold tracking-tight">
+                        {t('workspace.tasks.title')}
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                        {t('workspace.tasks.description')}
+                    </p>
                 </div>
 
                 {tasks.length === 0 ? (

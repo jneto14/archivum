@@ -318,7 +318,6 @@ export default {
     'workspace.tasks.title': 'Tarefas',
     'workspace.tasks.description':
         'Acompanha os trabalhos em segundo plano despoletados neste workspace.',
-    'workspace.tasks.export_button': 'Exportar documentos (CSV)',
     'workspace.tasks.empty_title': 'Ainda sem tarefas',
     'workspace.tasks.empty_description':
         'Os trabalhos em segundo plano despoletados neste workspace, como exportações de documentos, aparecem aqui.',

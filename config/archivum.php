@@ -52,6 +52,20 @@ return [
 
     'attachments' => [
         'disk' => env('ATTACHMENTS_DISK', 'local'),
+
+        /*
+        |----------------------------------------------------------------------
+        | Export Retention
+        |----------------------------------------------------------------------
+        |
+        | Number of days a generated document-export CSV is kept on disk
+        | before the scheduled prune command deletes it. The signed download
+        | link emailed to the user who triggered the export expires after
+        | the same number of days, so the link and the file go stale together.
+        |
+        */
+
+        'export_retention_days' => (int) env('EXPORT_RETENTION_DAYS', 7),
     ],
 
     /*

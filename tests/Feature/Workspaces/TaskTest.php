@@ -8,15 +8,21 @@ use App\Enums\TaskStatus;
 use App\Enums\TaskType;
 use App\Enums\WorkspaceRole;
 use App\Models\Document;
+use App\Models\DocumentLocation;
 use App\Models\OrganizationLevel;
 use App\Models\OrganizationNode;
 use App\Models\OrganizationScheme;
+use App\Models\Tag;
 use App\Models\Task;
+use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
+use App\Notifications\DocumentExportReady;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -66,6 +72,124 @@ class TaskTest extends TestCase
         $this->assertSame(TaskStatus::Completed, $task->status);
         $this->assertSame(2, $task->result['documents_count']);
         Storage::disk('local')->assertExists($task->result['path']);
+    }
+
+    public function test_a_completed_exports_csv_includes_tags_and_the_current_location()
+    {
+        Storage::fake('local');
+
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $scheme = OrganizationScheme::factory()->for($workspace)->create();
+        $level = OrganizationLevel::factory()->for($scheme, 'scheme')->create();
+        $node = OrganizationNode::factory()->for($level, 'level')->create(['value' => 'A']);
+        $document = Document::factory()->for($workspace)->create(['title' => 'Invoice #1']);
+        $document->tags()->attach(Tag::factory()->for($workspace)->create(['name' => 'Urgent']));
+        DocumentLocation::factory()->for($document)->for($node, 'node')->create();
+
+        $response = $this->actingAs($admin->user)->post(route('workspaces.tasks.store', $workspace));
+
+        $response->assertRedirect();
+
+        $task = Task::query()->where('workspace_id', $workspace->id)->sole();
+        $csv = Storage::disk('local')->get($task->result['path']);
+
+        $this->assertStringContainsString('Tags', $csv);
+        $this->assertStringContainsString('Location', $csv);
+        $this->assertStringContainsString('Urgent', $csv);
+        $this->assertStringContainsString('A', $csv);
+    }
+
+    public function test_completing_an_export_notifies_the_triggering_user()
+    {
+        Storage::fake('local');
+        Notification::fake();
+
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+
+        $response = $this->actingAs($admin->user)->post(route('workspaces.tasks.store', $workspace));
+
+        $response->assertRedirect();
+
+        Task::query()->where('workspace_id', $workspace->id)->sole();
+
+        Notification::assertSentTo($admin->user, DocumentExportReady::class);
+    }
+
+    public function test_the_export_ready_email_is_sent_in_the_triggering_users_locale()
+    {
+        Storage::fake('local');
+        Notification::fake();
+
+        $workspace = Workspace::factory()->create();
+        $user = User::factory()->create(['locale' => 'pt']);
+        $admin = WorkspaceUser::factory()->for($workspace)->for($user)->create(['role' => WorkspaceRole::Admin]);
+
+        $response = $this->actingAs($admin->user)->post(route('workspaces.tasks.store', $workspace));
+
+        $response->assertRedirect();
+
+        Notification::assertSentTo(
+            $admin->user,
+            DocumentExportReady::class,
+            fn ($notification, $channels, $notifiable, $locale) => $locale === 'pt',
+        );
+    }
+
+    public function test_a_signed_download_link_lets_a_workspace_admin_download_the_result()
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put('exports/example.csv', "Title\nInvoice");
+
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $task = Task::factory()->for($workspace)->for($admin->user)->completed()->create([
+            'result' => ['disk' => 'local', 'path' => 'exports/example.csv'],
+        ]);
+
+        $url = URL::temporarySignedRoute(
+            'workspaces.tasks.download.signed',
+            now()->addDay(),
+            ['workspace' => $workspace->id, 'task' => $task->id],
+        );
+
+        $response = $this->actingAs($admin->user)->get($url);
+
+        $response->assertOk();
+    }
+
+    public function test_a_signed_download_link_rejects_an_invalid_signature()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $task = Task::factory()->for($workspace)->for($admin->user)->completed()->create();
+
+        $response = $this->actingAs($admin->user)->get(route('workspaces.tasks.download.signed', [$workspace, $task]));
+
+        $response->assertForbidden();
+    }
+
+    public function test_a_signed_download_link_rejects_a_user_who_is_no_longer_a_workspace_admin()
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put('exports/example.csv', "Title\nInvoice");
+
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $task = Task::factory()->for($workspace)->for($member->user)->completed()->create([
+            'result' => ['disk' => 'local', 'path' => 'exports/example.csv'],
+        ]);
+
+        $url = URL::temporarySignedRoute(
+            'workspaces.tasks.download.signed',
+            now()->addDay(),
+            ['workspace' => $workspace->id, 'task' => $task->id],
+        );
+
+        $response = $this->actingAs($member->user)->get($url);
+
+        $response->assertForbidden();
     }
 
     public function test_starting_an_export_while_one_is_already_running_is_rejected()
