@@ -99,9 +99,9 @@ function PdfPreview({ url }: { url: string }) {
     }
 
     return (
-        <div className="flex flex-col items-center gap-3">
-            <div className="max-h-[70vh] overflow-auto rounded-md border bg-muted">
-                <canvas ref={canvasRef} />
+        <div className="flex w-full min-w-0 flex-col items-center gap-3">
+            <div className="max-h-[70vh] w-full min-w-0 overflow-auto rounded-md border bg-muted">
+                <canvas ref={canvasRef} className="block" />
             </div>
             {numPages !== null && (
                 <div className="flex items-center gap-3">
@@ -156,7 +156,7 @@ export function DocumentPreviewDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-3xl">
+            <DialogContent className="min-w-0 sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle className="truncate">
                         {attachment.filename}
