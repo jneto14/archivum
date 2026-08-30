@@ -38,7 +38,7 @@ export function PageContainer({
     return (
         <div
             className={cn(
-                'mx-auto w-full space-y-6 p-6',
+                'mx-auto w-full space-y-6 p-4 sm:p-6',
                 widthClasses[width],
                 className,
             )}

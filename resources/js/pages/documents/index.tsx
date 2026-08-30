@@ -192,7 +192,7 @@ export default function DocumentIndex({
                     <Input
                         placeholder={t('documents.index.search_placeholder')}
                         defaultValue={filters.q ?? ''}
-                        className="w-56"
+                        className="w-full sm:w-56"
                         onChange={(event) =>
                             applyFilters({ q: event.target.value || null })
                         }
@@ -205,7 +205,7 @@ export default function DocumentIndex({
                             })
                         }
                     >
-                        <SelectTrigger className="w-40">
+                        <SelectTrigger className="w-full sm:w-40">
                             <SelectValue
                                 placeholder={t(
                                     'documents.index.filter_type_placeholder',
@@ -231,7 +231,7 @@ export default function DocumentIndex({
                             })
                         }
                     >
-                        <SelectTrigger className="w-40">
+                        <SelectTrigger className="w-full sm:w-40">
                             <SelectValue
                                 placeholder={t(
                                     'documents.index.filter_tag_placeholder',
@@ -252,7 +252,7 @@ export default function DocumentIndex({
                     <Input
                         type="date"
                         value={filters.from ?? ''}
-                        className="w-40"
+                        className="w-full sm:w-40"
                         onChange={(event) =>
                             applyFilters({ from: event.target.value || null })
                         }
@@ -260,7 +260,7 @@ export default function DocumentIndex({
                     <Input
                         type="date"
                         value={filters.to ?? ''}
-                        className="w-40"
+                        className="w-full sm:w-40"
                         onChange={(event) =>
                             applyFilters({ to: event.target.value || null })
                         }
