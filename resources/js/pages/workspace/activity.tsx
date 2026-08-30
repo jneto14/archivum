@@ -34,11 +34,14 @@ type Props = {
 const TYPE_LABELS: Record<string, TranslationKey> = {
     document: 'workspace.activity.type_document',
     document_type: 'workspace.activity.type_document_type',
+    document_attachment: 'workspace.activity.type_document_attachment',
+    document_location: 'workspace.activity.type_document_location',
     organization_scheme: 'workspace.activity.type_organization_scheme',
     organization_level: 'workspace.activity.type_organization_level',
     organization_rule: 'workspace.activity.type_organization_rule',
     workspace: 'workspace.activity.type_workspace',
     workspace_member: 'workspace.activity.type_workspace_member',
+    tag: 'workspace.activity.type_tag',
 };
 
 const EVENT_LABELS: Record<string, TranslationKey> = {

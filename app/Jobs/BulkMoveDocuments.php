@@ -13,6 +13,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
+use Spatie\Activitylog\Support\CauserResolver;
 use Throwable;
 
 /**
@@ -41,15 +42,21 @@ class BulkMoveDocuments implements ShouldQueue
 
     /**
      * @param MigrateNodeDocuments $action Resolved from the container by the queue worker.
+     * @param CauserResolver $causerResolver Used to attribute the resulting activity-log
+     *                                       entries to the user who triggered this job, since
+     *                                       there's no authenticated request inside a queue worker.
      *
      * @return void No return value; documents are relocated and the Task row updated as a side effect.
      */
-    public function handle(MigrateNodeDocuments $action): void
+    public function handle(MigrateNodeDocuments $action, CauserResolver $causerResolver): void
     {
         $this->task->markProcessing();
 
         try {
-            $action->handle($this->source, $this->target);
+            $causerResolver->withCauser(
+                $this->task->user,
+                fn () => $action->handle($this->source, $this->target),
+            );
 
             $this->task->markCompleted([
                 'source_node_id' => $this->source->id,
