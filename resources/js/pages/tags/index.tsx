@@ -94,7 +94,7 @@ export default function TagIndex({ workspace, tags }: Props) {
         <>
             <Head title={t('tags.index.title')} />
 
-            <PageContainer width="narrow">
+            <PageContainer>
                 <PageHeader
                     title={t('tags.index.title')}
                     description={t('tags.index.description')}

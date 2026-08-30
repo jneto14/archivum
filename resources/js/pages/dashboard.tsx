@@ -112,7 +112,7 @@ export default function Dashboard({
         <>
             <Head title={t('dashboard.head_title')} />
 
-            <PageContainer width="wide">
+            <PageContainer>
                 <PageHeader
                     title={t('dashboard.head_title')}
                     description={t('dashboard.description', {

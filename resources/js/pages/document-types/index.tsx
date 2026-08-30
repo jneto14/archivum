@@ -120,7 +120,7 @@ export default function DocumentTypeIndex({
         <>
             <Head title={t('document_types.index.head_title')} />
 
-            <PageContainer width="narrow">
+            <PageContainer>
                 <PageHeader
                     title={t('document_types.index.title')}
                     description={

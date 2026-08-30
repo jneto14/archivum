@@ -134,7 +134,7 @@ export default function DocumentIndex({
         <>
             <Head title={t('documents.index.title')} />
 
-            <PageContainer width="wide">
+            <PageContainer>
                 <PageHeader
                     title={t('documents.index.title')}
                     description={
@@ -192,7 +192,7 @@ export default function DocumentIndex({
                     <Input
                         placeholder={t('documents.index.search_placeholder')}
                         defaultValue={filters.q ?? ''}
-                        className="max-w-xs"
+                        className="w-56"
                         onChange={(event) =>
                             applyFilters({ q: event.target.value || null })
                         }
@@ -205,7 +205,7 @@ export default function DocumentIndex({
                             })
                         }
                     >
-                        <SelectTrigger className="w-44">
+                        <SelectTrigger className="w-40">
                             <SelectValue
                                 placeholder={t(
                                     'documents.index.filter_type_placeholder',
@@ -231,7 +231,7 @@ export default function DocumentIndex({
                             })
                         }
                     >
-                        <SelectTrigger className="w-44">
+                        <SelectTrigger className="w-40">
                             <SelectValue
                                 placeholder={t(
                                     'documents.index.filter_tag_placeholder',

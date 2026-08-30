@@ -6,16 +6,23 @@ import type { PageWidth } from '@/types';
  * The one place page width is decided. Pages must not set their own `max-w-*`
  * or padding — that is what let every screen drift to a different width.
  *
- * - `narrow` — forms and settings, where long line lengths hurt readability.
- * - `default` — detail screens mixing a main column with a side column.
- * - `wide` — dense list and table screens that need the horizontal room.
- * - `full` — screens managing their own width, e.g. multi-column browsers.
+ * Pick by what the page *is*, never by how much content it happens to hold —
+ * "this list feels wide" is the judgement call that produced the original
+ * drift, where two equivalent admin lists sat at 3xl and 4xl.
+ *
+ * - `narrow` — a single column of form fields: forms and settings screens.
+ * - `default` — everything else. Every list, every detail screen, the
+ *   dashboard. A page with more columns does not get to opt out.
+ * - `wide` — reserved for laying out N panels side by side, where the column
+ *   count is driven by data. Today that is only the storage browser.
+ *
+ * A page that renders different states (loaded vs. onboarding) must use the
+ * same width for all of them.
  */
 const widthClasses: Record<PageWidth, string> = {
     narrow: 'max-w-3xl',
     default: 'max-w-5xl',
     wide: 'max-w-7xl',
-    full: 'max-w-none',
 };
 
 type Props = React.ComponentProps<'div'> & {
