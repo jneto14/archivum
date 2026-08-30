@@ -14,6 +14,7 @@ use App\Models\OrganizationNode;
 use App\Models\OrganizationScheme;
 use App\Models\Tag;
 use App\Models\Task;
+use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use App\Notifications\DocumentExportReady;
@@ -114,6 +115,26 @@ class TaskTest extends TestCase
         Task::query()->where('workspace_id', $workspace->id)->sole();
 
         Notification::assertSentTo($admin->user, DocumentExportReady::class);
+    }
+
+    public function test_the_export_ready_email_is_sent_in_the_triggering_users_locale()
+    {
+        Storage::fake('local');
+        Notification::fake();
+
+        $workspace = Workspace::factory()->create();
+        $user = User::factory()->create(['locale' => 'pt']);
+        $admin = WorkspaceUser::factory()->for($workspace)->for($user)->create(['role' => WorkspaceRole::Admin]);
+
+        $response = $this->actingAs($admin->user)->post(route('workspaces.tasks.store', $workspace));
+
+        $response->assertRedirect();
+
+        Notification::assertSentTo(
+            $admin->user,
+            DocumentExportReady::class,
+            fn ($notification, $channels, $notifiable, $locale) => $locale === 'pt',
+        );
     }
 
     public function test_a_signed_download_link_lets_a_workspace_admin_download_the_result()

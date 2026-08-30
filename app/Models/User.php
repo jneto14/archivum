@@ -6,6 +6,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -37,7 +38,7 @@ use Laravel\Sanctum\HasApiTokens;
  */
 #[Fillable(['name', 'email', 'password', 'timezone', 'locale'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
-class User extends Authenticatable implements PasskeyUser
+class User extends Authenticatable implements HasLocalePreference, PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasUuids, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
@@ -65,5 +66,17 @@ class User extends Authenticatable implements PasskeyUser
         return $this->belongsToMany(Workspace::class, 'workspace_user')
             ->withPivot(['id', 'role'])
             ->withTimestamps();
+    }
+
+    /**
+     * Used by Laravel's notification system to automatically render queued
+     * notifications (which run outside the request cycle, so `ResolveLocale`
+     * never applies) in this user's chosen locale instead of the app default.
+     *
+     * @return string|null
+     */
+    public function preferredLocale(): ?string
+    {
+        return $this->locale;
     }
 }
