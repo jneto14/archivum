@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Workspaces\ActivityController;
 use App\Http\Controllers\Workspaces\TaskController;
 use App\Http\Controllers\Workspaces\WorkspaceController;
 use App\Http\Controllers\Workspaces\WorkspaceLimitController;
@@ -33,4 +34,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('workspaces/{workspace}/tasks/{task}/download/signed', [TaskController::class, 'downloadSigned'])
         ->middleware('signed')
         ->name('workspaces.tasks.download.signed');
+
+    Route::get('workspaces/{workspace}/activity', [ActivityController::class, 'index'])->name('workspaces.activity.index');
 });

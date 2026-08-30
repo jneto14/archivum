@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Concerns\LogsWorkspaceActivity;
 use App\Enums\WorkspaceRole;
 use Database\Factories\WorkspaceUserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * @property string $id
@@ -25,7 +27,7 @@ use Illuminate\Support\Carbon;
 class WorkspaceUser extends Model
 {
     /** @use HasFactory<WorkspaceUserFactory> */
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, LogsWorkspaceActivity;
 
     protected $table = 'workspace_user';
 
@@ -37,6 +39,34 @@ class WorkspaceUser extends Model
         return [
             'role' => WorkspaceRole::class,
         ];
+    }
+
+    /**
+     * @return LogOptions Logs role changes under the 'workspace_member' log name.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('workspace_member')
+            ->logOnly(['role'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+
+    /**
+     * @return string|null This membership's workspace id.
+     */
+    protected function resolveActivityWorkspaceId(): ?string
+    {
+        return $this->workspace_id;
+    }
+
+    /**
+     * @return string|null The member's name.
+     */
+    protected function resolveActivityLabel(): ?string
+    {
+        return $this->user?->name;
     }
 
     /**

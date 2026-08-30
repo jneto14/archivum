@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Concerns\LogsWorkspaceActivity;
 use App\Enums\NodeValueStrategy;
 use Database\Factories\OrganizationLevelFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 use LogicException;
+use Spatie\Activitylog\Support\LogOptions;
 
 /**
  * @property string $id
@@ -32,7 +34,7 @@ use LogicException;
 class OrganizationLevel extends Model
 {
     /** @use HasFactory<OrganizationLevelFactory> */
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, LogsWorkspaceActivity;
 
     /**
      * @return array<string, string>
@@ -44,6 +46,34 @@ class OrganizationLevel extends Model
             'display_settings' => 'array',
             'metadata' => 'array',
         ];
+    }
+
+    /**
+     * @return LogOptions Logs structural changes under the 'organization_level' log name.
+     */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('organization_level')
+            ->logOnly(['name', 'key', 'position', 'capacity', 'value_strategy'])
+            ->logOnlyDirty()
+            ->dontLogEmptyChanges();
+    }
+
+    /**
+     * @return string|null This level's scheme's workspace id.
+     */
+    protected function resolveActivityWorkspaceId(): ?string
+    {
+        return $this->scheme?->workspace_id;
+    }
+
+    /**
+     * @return string|null This level's name.
+     */
+    protected function resolveActivityLabel(): ?string
+    {
+        return $this->name;
     }
 
     /**
