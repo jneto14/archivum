@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use DateTimeZone;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,6 +30,17 @@ class ProfileController extends Controller
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
             'locales' => config('archivum.locales'),
+            /**
+             * Sourced from the same DateTimeZone identifier list the
+             * "timezone" validation rule checks against (see
+             * ProfileValidationRules::timezoneRules()), rather than the
+             * browser's own Intl.supportedValuesOf('timeZone') — the two
+             * can disagree on renamed identifiers (e.g. a browser still
+             * offering "Europe/Kiev", which PHP's bundled tzdata already
+             * only recognizes as "Europe/Kyiv"), letting the user pick an
+             * option the backend then rejects.
+             */
+            'timezones' => DateTimeZone::listIdentifiers(),
         ]);
     }
 

@@ -16,11 +16,6 @@ import {
 } from '@/components/ui/select';
 import { useTranslation } from '@/hooks/use-translation';
 import { edit } from '@/routes/profile';
-
-const timezones =
-    typeof Intl.supportedValuesOf === 'function'
-        ? Intl.supportedValuesOf('timeZone')
-        : ['UTC'];
 import { send } from '@/routes/verification';
 import type { Auth } from '@/types';
 
@@ -32,10 +27,12 @@ export default function Profile({
     mustVerifyEmail,
     status,
     locales,
+    timezones,
 }: {
     mustVerifyEmail: boolean;
     status?: string;
     locales: Record<string, string>;
+    timezones: string[];
 }) {
     const t = useTranslation();
     const { auth } = usePage<PageProps>().props;
@@ -58,6 +55,14 @@ export default function Profile({
         (browserLocale && browserLocale in locales
             ? browserLocale
             : Object.keys(locales)[0]);
+
+    const browserTimezone =
+        typeof Intl.DateTimeFormat === 'function'
+            ? Intl.DateTimeFormat().resolvedOptions().timeZone
+            : 'UTC';
+    const defaultTimezone =
+        auth.user.timezone ??
+        (timezones.includes(browserTimezone) ? browserTimezone : 'UTC');
 
     return (
         <>
@@ -135,11 +140,7 @@ export default function Profile({
 
                                 <Select
                                     name="timezone"
-                                    defaultValue={
-                                        auth.user.timezone ??
-                                        Intl.DateTimeFormat().resolvedOptions()
-                                            .timeZone
-                                    }
+                                    defaultValue={defaultTimezone}
                                 >
                                     <SelectTrigger
                                         id="timezone"

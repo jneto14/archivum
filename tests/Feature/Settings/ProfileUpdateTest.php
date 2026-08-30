@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Tests\Feature\Settings;
 
 use App\Models\User;
+use DateTimeZone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ProfileUpdateTest extends TestCase
@@ -74,6 +77,37 @@ class ProfileUpdateTest extends TestCase
                 'name' => $user->name,
                 'email' => $user->email,
                 'timezone' => 'Not/A/Timezone',
+            ]);
+
+        $response->assertSessionHasErrors('timezone');
+        $this->assertNull($user->refresh()->timezone);
+    }
+
+    public function test_the_profile_page_only_offers_timezones_the_backend_actually_accepts()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get(route('profile.edit'));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->where(
+                'timezones',
+                fn (Collection $timezones) => $timezones->all() === DateTimeZone::listIdentifiers(),
+            ),
+        );
+    }
+
+    public function test_a_renamed_timezone_identifier_no_longer_recognized_by_this_php_build_is_rejected()
+    {
+        $user = User::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->patch(route('profile.update'), [
+                'name' => $user->name,
+                'email' => $user->email,
+                'timezone' => 'Europe/Kiev',
             ]);
 
         $response->assertSessionHasErrors('timezone');
