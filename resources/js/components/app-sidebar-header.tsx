@@ -29,7 +29,7 @@ export function AppSidebarHeader({
 
     if (!workspace) {
         return (
-            <header className="flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/50 px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-6">
+            <header className="@container/header flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/50 px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 @2xl/header:px-6">
                 <div className="flex min-w-0 items-center gap-2">
                     <SidebarTrigger className="-ml-1" />
                     <Breadcrumbs breadcrumbs={breadcrumbs} />
@@ -45,7 +45,7 @@ export function AppSidebarHeader({
 
     return (
         <>
-            <header className="flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/50 px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 md:px-6">
+            <header className="@container/header flex h-16 shrink-0 items-center gap-2 border-b border-sidebar-border/50 px-4 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 @2xl/header:px-6">
                 <div className="flex min-w-0 items-center gap-2">
                     <SidebarTrigger className="-ml-1" />
                     <Breadcrumbs breadcrumbs={breadcrumbs} />
@@ -54,10 +54,14 @@ export function AppSidebarHeader({
                 <div className="ml-auto flex shrink-0 items-center gap-2">
                     {/*
                      * The full search field and the labelled action need ~400px
-                     * between them, which a phone does not have. Below `md` both
-                     * collapse to icons so the breadcrumb keeps its row.
+                     * between them. The room for that depends on the sidebar
+                     * being open (16rem) or collapsed (3rem), not on the
+                     * viewport — an iPad Mini is exactly at `md` yet leaves the
+                     * header ~464px. So this switches on the header's own width
+                     * via a container query, and both collapse to icons when it
+                     * is too narrow.
                      */}
-                    <div className="relative hidden w-64 md:block">
+                    <div className="relative hidden w-64 @2xl/header:block">
                         <SearchIcon className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
                         <Input
                             placeholder={t('nav.search_documents')}
@@ -76,7 +80,7 @@ export function AppSidebarHeader({
                     <Button
                         variant="outline"
                         size="icon"
-                        className="md:hidden"
+                        className="@2xl/header:hidden"
                         aria-label={t('nav.search_documents')}
                         onClick={() => setSearchOpen(true)}
                     >
@@ -85,7 +89,7 @@ export function AppSidebarHeader({
 
                     <Button
                         size="sm"
-                        className="hidden md:inline-flex"
+                        className="hidden @2xl/header:inline-flex"
                         onClick={() =>
                             router.visit(documentCreate.url(workspace.id))
                         }
@@ -95,7 +99,7 @@ export function AppSidebarHeader({
 
                     <Button
                         size="icon"
-                        className="md:hidden"
+                        className="@2xl/header:hidden"
                         aria-label={t('nav.new_document')}
                         onClick={() =>
                             router.visit(documentCreate.url(workspace.id))
