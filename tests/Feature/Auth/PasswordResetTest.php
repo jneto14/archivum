@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Fortify\Features;
@@ -79,6 +79,21 @@ class PasswordResetTest extends TestCase
 
             return true;
         });
+    }
+
+    public function test_the_reset_password_email_is_sent_in_the_users_locale()
+    {
+        Notification::fake();
+
+        $user = User::factory()->create(['locale' => 'pt']);
+
+        $this->post(route('password.email'), ['email' => $user->email]);
+
+        Notification::assertSentTo(
+            $user,
+            ResetPassword::class,
+            fn ($notification, $channels, $notifiable, $locale) => $locale === 'pt',
+        );
     }
 
     public function test_password_cannot_be_reset_with_invalid_token(): void

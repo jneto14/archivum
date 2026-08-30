@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Notifications\ResetPassword;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -19,6 +20,7 @@ use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Sanctum\HasApiTokens;
+use SensitiveParameter;
 
 /**
  * @property string $id
@@ -78,5 +80,19 @@ class User extends Authenticatable implements HasLocalePreference, PasskeyUser
     public function preferredLocale(): ?string
     {
         return $this->locale;
+    }
+
+    /**
+     * Send the password reset notification, using Archivum's own translated
+     * notification instead of Laravel's built-in one, whose mail copy only
+     * translates via a lang/{locale}.json file this project doesn't have.
+     *
+     * @param string $token The password reset token.
+     *
+     * @return void No return value; the notification is dispatched as a side effect.
+     */
+    public function sendPasswordResetNotification(#[SensitiveParameter] $token): void
+    {
+        $this->notify(new ResetPassword($token));
     }
 }
