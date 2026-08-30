@@ -45,6 +45,10 @@ class AttachmentIsolationTest extends TestCase
             ->assertForbidden();
 
         $this->actingAs($outsider->user)
+            ->get(route('attachments.preview', $attachment))
+            ->assertForbidden();
+
+        $this->actingAs($outsider->user)
             ->delete(route('attachments.destroy', $attachment))
             ->assertForbidden();
     }

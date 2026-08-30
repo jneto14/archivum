@@ -117,6 +117,11 @@ export default {
     'documents.show.location_suggestion_count_one': ':count documento',
     'documents.show.location_suggestion_count_other': ':count documentos',
     'documents.show.cancel_button': 'Cancelar',
+    'documents.show.preview_button': 'Pré-visualizar',
+    'documents.show.preview_not_supported':
+        'Não é possível pré-visualizar este tipo de ficheiro.',
+    'documents.show.preview_failed': 'Falha ao carregar a pré-visualização.',
+    'documents.show.preview_page_of': 'Página :current de :total',
 
     'document_types.index.breadcrumb': 'Tipos de documento',
     'document_types.index.head_title': 'Tipos de documento',

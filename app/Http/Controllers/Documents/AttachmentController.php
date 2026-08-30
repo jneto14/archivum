@@ -59,6 +59,22 @@ class AttachmentController extends Controller
     }
 
     /**
+     * Stream the attachment's file inline, for previewing in the browser.
+     *
+     * @param DocumentAttachment $attachment The attachment whose stored file should be served inline.
+     *
+     * @return StreamedResponse An inline (non-download) stream of the attachment's underlying file.
+     *
+     * @throws AuthorizationException If the current user cannot view $attachment.
+     */
+    public function preview(DocumentAttachment $attachment): StreamedResponse
+    {
+        $this->authorize('view', $attachment);
+
+        return Storage::disk($attachment->disk)->response($attachment->path, $attachment->filename);
+    }
+
+    /**
      * Delete an attachment and its underlying stored file.
      *
      * @param DocumentAttachment $attachment The attachment to delete.

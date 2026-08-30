@@ -112,6 +112,11 @@ export default {
     'documents.show.location_suggestion_count_one': ':count document',
     'documents.show.location_suggestion_count_other': ':count documents',
     'documents.show.cancel_button': 'Cancel',
+    'documents.show.preview_button': 'Preview',
+    'documents.show.preview_not_supported':
+        'Preview is not available for this file type.',
+    'documents.show.preview_failed': 'Failed to load the preview.',
+    'documents.show.preview_page_of': 'Page :current of :total',
 
     'document_types.index.breadcrumb': 'Document types',
     'document_types.index.head_title': 'Document types',
