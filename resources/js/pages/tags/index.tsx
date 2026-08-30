@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useDateFormatter } from '@/hooks/use-date-formatter';
 import { useTranslation } from '@/hooks/use-translation';
 import { index as documentsIndex } from '@/routes/documents';
 import { destroy, index, store, update } from '@/routes/tags';
@@ -22,6 +23,7 @@ type Props = {
 
 export default function TagIndex({ workspace, tags }: Props) {
     const t = useTranslation();
+    const { formatDate } = useDateFormatter();
     const [newName, setNewName] = useState('');
     const [renamingId, setRenamingId] = useState<string | null>(null);
     const [renameValue, setRenameValue] = useState('');
@@ -170,9 +172,7 @@ export default function TagIndex({ workspace, tags }: Props) {
                                           )}{' '}
                                     · {t('tags.index.last_used_label')}{' '}
                                     {tag.last_used_at
-                                        ? new Date(
-                                              tag.last_used_at,
-                                          ).toLocaleDateString()
+                                        ? formatDate(tag.last_used_at)
                                         : t('tags.index.last_used_never')}
                                 </span>
                                 <button

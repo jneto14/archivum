@@ -9,6 +9,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useDateFormatter } from '@/hooks/use-date-formatter';
 import { useTranslation } from '@/hooks/use-translation';
 import type { TranslationKey } from '@/lib/translations';
 import { index as activityIndex } from '@/routes/workspaces/activity';
@@ -63,6 +64,7 @@ const EVENT_VARIANTS: Record<
 
 export default function WorkspaceActivity({ workspace, activities }: Props) {
     const t = useTranslation();
+    const { formatDateTime } = useDateFormatter();
 
     setLayoutProps({
         breadcrumbs: [
@@ -182,9 +184,9 @@ export default function WorkspaceActivity({ workspace, activities }: Props) {
                                             </TableCell>
                                             <TableCell className="text-muted-foreground">
                                                 {activity.created_at
-                                                    ? new Date(
+                                                    ? formatDateTime(
                                                           activity.created_at,
-                                                      ).toLocaleString()
+                                                      )
                                                     : '—'}
                                             </TableCell>
                                         </TableRow>
