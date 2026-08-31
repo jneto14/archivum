@@ -59,7 +59,11 @@ export default {
     'documents.index.view_table': 'Table',
     'documents.index.view_cards': 'Cards',
     'documents.index.new_document': 'New document',
-    'documents.index.search_placeholder': 'Search title…',
+    'documents.index.search_placeholder': 'Search…',
+    'documents.index.search_mode_exact': 'Whole words',
+    'documents.index.search_mode_broad': 'Word starts with',
+    'documents.index.search_mode_hint':
+        'Attachment text is matched by whole word. Switch to "Word starts with" so "fatur" also finds "faturas".',
     'documents.index.filter_type_placeholder': 'Type',
     'documents.index.filter_all_types': 'All types',
     'documents.index.filter_tag_placeholder': 'Tag',

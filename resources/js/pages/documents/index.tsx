@@ -39,6 +39,13 @@ const LAYOUT_STORAGE_KEY = 'archivum.documents.layout';
 
 type Layout = 'table' | 'cards';
 
+/**
+ * How the typed query is matched. `exact` matches whole words inside attachment
+ * text; `broad` also matches the start of a word, so "fatur" finds "faturas".
+ * Both are substring matches against the title.
+ */
+type SearchMode = 'exact' | 'broad';
+
 type DocumentRow = {
     id: string;
     title: string;
@@ -56,6 +63,7 @@ type Props = {
     };
     filters: {
         q: string | null;
+        mode: SearchMode;
         document_type_id: string | null;
         tag_ids: string[];
         from: string | null;
@@ -197,6 +205,27 @@ export default function DocumentIndex({
                             applyFilters({ q: event.target.value || null })
                         }
                     />
+                    <Select
+                        value={filters.mode}
+                        onValueChange={(value) =>
+                            applyFilters({ mode: value as SearchMode })
+                        }
+                    >
+                        <SelectTrigger
+                            className="w-full sm:w-40"
+                            title={t('documents.index.search_mode_hint')}
+                        >
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="exact">
+                                {t('documents.index.search_mode_exact')}
+                            </SelectItem>
+                            <SelectItem value="broad">
+                                {t('documents.index.search_mode_broad')}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
                     <Select
                         value={filters.document_type_id ?? ALL}
                         onValueChange={(value) =>

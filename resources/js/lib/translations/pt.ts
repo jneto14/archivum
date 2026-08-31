@@ -61,7 +61,11 @@ export default {
     'documents.index.view_table': 'Tabela',
     'documents.index.view_cards': 'Cartões',
     'documents.index.new_document': 'Novo documento',
-    'documents.index.search_placeholder': 'Pesquisa pelo título…',
+    'documents.index.search_placeholder': 'Pesquisar…',
+    'documents.index.search_mode_exact': 'Palavras inteiras',
+    'documents.index.search_mode_broad': 'Começa por',
+    'documents.index.search_mode_hint':
+        'O texto dos anexos é procurado por palavra inteira. Muda para "Começa por" e "fatur" também encontra "faturas".',
     'documents.index.filter_type_placeholder': 'Tipo',
     'documents.index.filter_all_types': 'Todos os tipos',
     'documents.index.filter_tag_placeholder': 'Etiqueta',

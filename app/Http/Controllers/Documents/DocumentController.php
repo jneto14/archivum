@@ -9,6 +9,7 @@ use App\Actions\Documents\DeleteDocument;
 use App\Actions\Documents\SearchDocuments;
 use App\Actions\Documents\UpdateDocument;
 use App\Actions\Organization\SuggestDocumentLocations;
+use App\Enums\SearchMode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Documents\SearchDocumentsRequest;
 use App\Http\Requests\Documents\StoreDocumentRequest;
@@ -52,11 +53,13 @@ class DocumentController extends Controller
             'to' => $request->validated('to'),
         ];
 
-        $results = $action->handle($workspace, $request->validated('q'), $filters);
+        $mode = SearchMode::tryFrom((string) $request->validated('mode')) ?? SearchMode::Exact;
+
+        $results = $action->handle($workspace, $request->validated('q'), $filters, $mode);
 
         return Inertia::render('documents/index', [
             'documents' => DocumentResource::collection($results),
-            'filters' => [...$filters, 'q' => $request->validated('q')],
+            'filters' => [...$filters, 'q' => $request->validated('q'), 'mode' => $mode->value],
             'documentTypes' => $this->workspaceDocumentTypes($workspace),
             'tags' => $this->workspaceTags($workspace),
         ]);

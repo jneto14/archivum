@@ -817,6 +817,29 @@ Unlike the other task types, extraction takes no per-workspace lock: it is
 scoped to a single file, so several run concurrently. The Tasks page is
 paginated for the same reason — one row per uploaded file adds up.
 
+## Searching it
+
+Two modes, because one query string has to serve two very different haystacks.
+A title is short, so a substring match over it is cheap and forgiving. The
+extracted text is indexed with MySQL FULLTEXT, which matches whole words only —
+so by default "fatur" finds a document *titled* "Fatura" but not one whose scan
+says it.
+
+| Mode | Attachment text | Title |
+| --- | --- | --- |
+| Whole words (default) | Whole-word match, natural language mode | Substring |
+| Word starts with | Prefix match, boolean mode with a trailing wildcard | Substring |
+
+Both stay on the full-text index, so neither scans the stored pages. The cost
+of that is that no mode matches the *middle* of a word: "atura" will not find
+"fatura". In the broader mode every typed term must appear somewhere — title or
+text — since ORing them returns most of the archive as soon as someone types
+three words.
+
+Punctuation is treated as a separator, not as syntax: boolean mode reads
+`+ - * " ( ) ~` as operators, so "edp-2026" is split into two terms rather than
+being read as "edp but not 2026".
+
 Extracted text is stored per attachment, and mirrored onto the document as a
 single concatenated column. The mirror exists because Scout's `database` engine
 searches columns on the searchable model's own table and cannot traverse a
