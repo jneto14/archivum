@@ -1,4 +1,4 @@
-import { usePage } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import {
     Activity,
     Archive,
@@ -14,6 +14,7 @@ import {
     Tag,
     Users,
 } from 'lucide-react';
+import { useEffect } from 'react';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -21,6 +22,7 @@ import {
     SidebarContent,
     SidebarFooter,
     SidebarHeader,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import { useTranslation } from '@/hooks/use-translation';
@@ -46,6 +48,7 @@ import type { NavItem } from '@/types';
 
 export function AppSidebar() {
     const t = useTranslation();
+    const { setOpenMobile } = useSidebar();
     const {
         auth,
         isWorkspaceAdmin,
@@ -54,6 +57,17 @@ export function AppSidebar() {
         workspace,
         organizationSchemeId,
     } = usePage().props;
+
+    /*
+     * On mobile the sidebar is an overlay sheet, and nothing was dismissing it
+     * — tapping an item navigated underneath a sheet that stayed open. Hooking
+     * the navigation event rather than each link covers the workspace switcher
+     * and user menu too, and won't close on a failed visit.
+     */
+    useEffect(
+        () => router.on('navigate', () => setOpenMobile(false)),
+        [setOpenMobile],
+    );
 
     const archiveItems: NavItem[] = [
         {
