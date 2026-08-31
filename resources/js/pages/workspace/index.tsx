@@ -2,6 +2,9 @@ import { Head, router, setLayoutProps, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
+import { Panel } from '@/components/panel';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -74,16 +77,11 @@ export default function WorkspaceIndex({ workspaces: allWorkspaces }: Props) {
         <>
             <Head title={t('workspace.index.head_title')} />
 
-            <div className="mx-auto max-w-4xl space-y-6 p-6">
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            {t('workspace.index.heading')}
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            {t('workspace.index.description')}
-                        </p>
-                    </div>
+            <PageContainer>
+                <PageHeader
+                    title={t('workspace.index.heading')}
+                    description={t('workspace.index.description')}
+                >
                     <Dialog
                         open={createOpen}
                         onOpenChange={(open) => {
@@ -138,9 +136,9 @@ export default function WorkspaceIndex({ workspaces: allWorkspaces }: Props) {
                             </form>
                         </DialogContent>
                     </Dialog>
-                </div>
+                </PageHeader>
 
-                <div className="overflow-hidden rounded-xl border">
+                <Panel>
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -193,8 +191,8 @@ export default function WorkspaceIndex({ workspaces: allWorkspaces }: Props) {
                             ))}
                         </TableBody>
                     </Table>
-                </div>
-            </div>
+                </Panel>
+            </PageContainer>
         </>
     );
 }

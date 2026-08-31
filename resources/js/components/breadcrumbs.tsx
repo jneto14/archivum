@@ -18,16 +18,24 @@ export function Breadcrumbs({
     return (
         <>
             {breadcrumbs.length > 0 && (
-                <Breadcrumb>
-                    <BreadcrumbList>
+                <Breadcrumb className="min-w-0">
+                    {/*
+                     * The header is a fixed h-16, so the trail must never wrap
+                     * to a second line — the current page truncates instead.
+                     */}
+                    <BreadcrumbList className="flex-nowrap">
                         {breadcrumbs.map((item, index) => {
                             const isLast = index === breadcrumbs.length - 1;
 
                             return (
                                 <Fragment key={index}>
-                                    <BreadcrumbItem>
+                                    <BreadcrumbItem
+                                        className={
+                                            isLast ? 'min-w-0' : 'shrink-0'
+                                        }
+                                    >
                                         {isLast ? (
-                                            <BreadcrumbPage>
+                                            <BreadcrumbPage className="truncate">
                                                 {item.title}
                                             </BreadcrumbPage>
                                         ) : (
@@ -38,7 +46,9 @@ export function Breadcrumbs({
                                             </BreadcrumbLink>
                                         )}
                                     </BreadcrumbItem>
-                                    {!isLast && <BreadcrumbSeparator />}
+                                    {!isLast && (
+                                        <BreadcrumbSeparator className="shrink-0" />
+                                    )}
                                 </Fragment>
                             );
                         })}

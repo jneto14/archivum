@@ -6,7 +6,11 @@ import {
     usePage,
 } from '@inertiajs/react';
 import { useState } from 'react';
+import { EmptyState } from '@/components/empty-state';
 import InputError from '@/components/input-error';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
+import { Panel } from '@/components/panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -116,22 +120,19 @@ export default function DocumentTypeIndex({
         <>
             <Head title={t('document_types.index.head_title')} />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-6">
-                <div className="flex items-end justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            {t('document_types.index.title')}
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            {documentTypes.length === 1
-                                ? t('document_types.index.type_count_one', {
-                                      count: documentTypes.length,
-                                  })
-                                : t('document_types.index.type_count_other', {
-                                      count: documentTypes.length,
-                                  })}
-                        </p>
-                    </div>
+            <PageContainer>
+                <PageHeader
+                    title={t('document_types.index.title')}
+                    description={
+                        documentTypes.length === 1
+                            ? t('document_types.index.type_count_one', {
+                                  count: documentTypes.length,
+                              })
+                            : t('document_types.index.type_count_other', {
+                                  count: documentTypes.length,
+                              })
+                    }
+                >
                     {canManage && (
                         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                             <DialogTrigger asChild>
@@ -211,7 +212,7 @@ export default function DocumentTypeIndex({
                             </DialogContent>
                         </Dialog>
                     )}
-                </div>
+                </PageHeader>
 
                 {errors.document_type && (
                     <p className="text-sm text-destructive">
@@ -220,22 +221,20 @@ export default function DocumentTypeIndex({
                 )}
 
                 {documentTypes.length === 0 ? (
-                    <div className="rounded-xl border border-dashed p-12 text-center">
-                        <div className="font-semibold">
-                            {t('document_types.index.empty_title')}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                            {canManage
+                    <EmptyState
+                        title={t('document_types.index.empty_title')}
+                        description={
+                            canManage
                                 ? t(
                                       'document_types.index.empty_description_manager',
                                   )
                                 : t(
                                       'document_types.index.empty_description_viewer',
-                                  )}
-                        </div>
-                    </div>
+                                  )
+                        }
+                    />
                 ) : (
-                    <div className="overflow-hidden rounded-xl border">
+                    <Panel>
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -342,9 +341,9 @@ export default function DocumentTypeIndex({
                                 ))}
                             </TableBody>
                         </Table>
-                    </div>
+                    </Panel>
                 )}
-            </div>
+            </PageContainer>
 
             <Dialog
                 open={editing !== null}

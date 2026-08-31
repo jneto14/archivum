@@ -1,7 +1,9 @@
 import { Head, router, setLayoutProps, usePage } from '@inertiajs/react';
 import { DownloadIcon, EyeIcon, Trash2Icon } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { DocumentPreviewDialog } from '@/components/document-preview-dialog';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,8 +14,8 @@ import {
     DialogFooter,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { useDateFormatter } from '@/hooks/use-date-formatter';
 import { useTranslation } from '@/hooks/use-translation';
 import { formatBytes } from '@/lib/utils';
 import {
@@ -67,6 +69,8 @@ export default function DocumentShow({
     locationSuggestions,
 }: Props) {
     const t = useTranslation();
+    const { formatDate, formatDateTime } = useDateFormatter();
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const { workspace } = usePage().props;
     const [moveOpen, setMoveOpen] = useState(false);
     const [file, setFile] = useState<File | null>(null);
@@ -111,45 +115,38 @@ export default function DocumentShow({
         <>
             <Head title={document.title} />
 
-            <div className="mx-auto max-w-5xl space-y-6 p-6">
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <div className="mb-2 flex items-center gap-2">
-                            {document.document_type && (
-                                <Badge variant="secondary">
-                                    {document.document_type.name}
-                                </Badge>
-                            )}
-                        </div>
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            {document.title}
-                        </h1>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                                router.visit(documentEdit.url(document.id))
-                            }
-                        >
-                            {t('documents.show.edit_button')}
+            <PageContainer>
+                <PageHeader
+                    title={document.title}
+                    description={
+                        document.document_type ? (
+                            <Badge variant="secondary">
+                                {document.document_type.name}
+                            </Badge>
+                        ) : undefined
+                    }
+                >
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                            router.visit(documentEdit.url(document.id))
+                        }
+                    >
+                        {t('documents.show.edit_button')}
+                    </Button>
+                    {canFile ? (
+                        <Button size="sm" onClick={() => setMoveOpen(true)}>
+                            {document.current_location
+                                ? t('documents.show.move_document_button')
+                                : t('documents.show.assign_location_button')}
                         </Button>
-                        {canFile ? (
-                            <Button size="sm" onClick={() => setMoveOpen(true)}>
-                                {document.current_location
-                                    ? t('documents.show.move_document_button')
-                                    : t(
-                                          'documents.show.assign_location_button',
-                                      )}
-                            </Button>
-                        ) : (
-                            <span className="text-xs text-muted-foreground">
-                                {t('documents.show.filing_admin_only')}
-                            </span>
-                        )}
-                    </div>
-                </div>
+                    ) : (
+                        <span className="text-xs text-muted-foreground">
+                            {t('documents.show.filing_admin_only')}
+                        </span>
+                    )}
+                </PageHeader>
 
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.6fr_1fr]">
                     <div className="space-y-4">
@@ -160,7 +157,7 @@ export default function DocumentShow({
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     {document.document_date && (
                                         <div>
                                             <div className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
@@ -169,7 +166,9 @@ export default function DocumentShow({
                                                 )}
                                             </div>
                                             <div className="text-sm">
-                                                {document.document_date}
+                                                {formatDate(
+                                                    document.document_date,
+                                                )}
                                             </div>
                                         </div>
                                     )}
@@ -197,14 +196,15 @@ export default function DocumentShow({
                         </Card>
 
                         <Card>
-                            <CardHeader className="flex-row items-center justify-between">
+                            <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
                                 <CardTitle>
                                     {t('documents.show.attachments_title')}
                                 </CardTitle>
-                                <div className="flex items-center gap-2">
-                                    <Input
+                                <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-1 sm:justify-end">
+                                    <input
+                                        ref={fileInputRef}
                                         type="file"
-                                        className="max-w-56"
+                                        className="sr-only"
                                         onChange={(event) =>
                                             setFile(
                                                 event.target.files?.[0] ?? null,
@@ -214,6 +214,21 @@ export default function DocumentShow({
                                     <Button
                                         variant="outline"
                                         size="sm"
+                                        className="shrink-0"
+                                        onClick={() =>
+                                            fileInputRef.current?.click()
+                                        }
+                                    >
+                                        {t('documents.show.choose_file_button')}
+                                    </Button>
+                                    {file && (
+                                        <span className="min-w-0 truncate text-xs text-muted-foreground">
+                                            {file.name}
+                                        </span>
+                                    )}
+                                    <Button
+                                        size="sm"
+                                        className="shrink-0"
                                         onClick={uploadAttachment}
                                         disabled={!file}
                                     >
@@ -345,7 +360,11 @@ export default function DocumentShow({
                                                 {entry.path}
                                             </div>
                                             <div className="text-xs text-muted-foreground">
-                                                {entry.created_at}
+                                                {entry.created_at
+                                                    ? formatDateTime(
+                                                          entry.created_at,
+                                                      )
+                                                    : '—'}
                                             </div>
                                         </div>
                                     ),
@@ -354,7 +373,7 @@ export default function DocumentShow({
                         </Card>
                     </div>
                 </div>
-            </div>
+            </PageContainer>
 
             <Dialog open={moveOpen} onOpenChange={setMoveOpen}>
                 <DialogContent>

@@ -7,6 +7,9 @@ import {
 } from '@inertiajs/react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
+import { Panel } from '@/components/panel';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -104,22 +107,19 @@ export default function WorkspaceUsers({ workspace, members }: Props) {
                 })}
             />
 
-            <div className="mx-auto max-w-4xl space-y-6 p-6">
-                <div className="flex items-end justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            {t('workspace.users.heading')}
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            {members.length === 1
-                                ? t('workspace.users.member_count_one', {
-                                      count: members.length,
-                                  })
-                                : t('workspace.users.member_count_other', {
-                                      count: members.length,
-                                  })}
-                        </p>
-                    </div>
+            <PageContainer>
+                <PageHeader
+                    title={t('workspace.users.heading')}
+                    description={
+                        members.length === 1
+                            ? t('workspace.users.member_count_one', {
+                                  count: members.length,
+                              })
+                            : t('workspace.users.member_count_other', {
+                                  count: members.length,
+                              })
+                    }
+                >
                     <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
                         <DialogTrigger asChild>
                             <Button size="sm">
@@ -212,7 +212,7 @@ export default function WorkspaceUsers({ workspace, members }: Props) {
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
-                </div>
+                </PageHeader>
 
                 {errors.role && (
                     <p className="text-sm text-destructive">{errors.role}</p>
@@ -221,7 +221,7 @@ export default function WorkspaceUsers({ workspace, members }: Props) {
                     <p className="text-sm text-destructive">{errors.user}</p>
                 )}
 
-                <div className="overflow-hidden rounded-xl border">
+                <Panel>
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -285,8 +285,8 @@ export default function WorkspaceUsers({ workspace, members }: Props) {
                             ))}
                         </TableBody>
                     </Table>
-                </div>
-            </div>
+                </Panel>
+            </PageContainer>
 
             <Dialog
                 open={removeTarget !== null}

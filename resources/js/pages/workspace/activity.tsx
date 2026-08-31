@@ -1,6 +1,10 @@
-import { Head, router, setLayoutProps } from '@inertiajs/react';
+import { Head, setLayoutProps } from '@inertiajs/react';
+import { EmptyState } from '@/components/empty-state';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
+import { Pagination } from '@/components/pagination';
+import { Panel } from '@/components/panel';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
     Table,
     TableBody,
@@ -29,6 +33,9 @@ type Props = {
         data: ActivityRow[];
         prev_page_url: string | null;
         next_page_url: string | null;
+        from: number | null;
+        to: number | null;
+        total: number;
     };
 };
 
@@ -75,40 +82,24 @@ export default function WorkspaceActivity({ workspace, activities }: Props) {
         ],
     });
 
-    const goTo = (url: string | null) => {
-        if (url === null) {
-            return;
-        }
-
-        router.visit(url, { preserveState: true, preserveScroll: true });
-    };
-
     return (
         <>
             <Head title={t('workspace.activity.title')} />
 
-            <div className="mx-auto max-w-4xl space-y-6 p-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        {t('workspace.activity.title')}
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        {t('workspace.activity.description')}
-                    </p>
-                </div>
+            <PageContainer>
+                <PageHeader
+                    title={t('workspace.activity.title')}
+                    description={t('workspace.activity.description')}
+                />
 
                 {activities.data.length === 0 ? (
-                    <div className="rounded-xl border border-dashed p-12 text-center">
-                        <div className="font-semibold">
-                            {t('workspace.activity.empty_title')}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                            {t('workspace.activity.empty_description')}
-                        </div>
-                    </div>
+                    <EmptyState
+                        title={t('workspace.activity.empty_title')}
+                        description={t('workspace.activity.empty_description')}
+                    />
                 ) : (
                     <>
-                        <div className="overflow-hidden rounded-xl border">
+                        <Panel>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -193,29 +184,18 @@ export default function WorkspaceActivity({ workspace, activities }: Props) {
                                     ))}
                                 </TableBody>
                             </Table>
-                        </div>
+                        </Panel>
 
-                        <div className="flex justify-end gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={activities.prev_page_url === null}
-                                onClick={() => goTo(activities.prev_page_url)}
-                            >
-                                {t('workspace.activity.previous_page')}
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={activities.next_page_url === null}
-                                onClick={() => goTo(activities.next_page_url)}
-                            >
-                                {t('workspace.activity.next_page')}
-                            </Button>
-                        </div>
+                        <Pagination
+                            prev={activities.prev_page_url}
+                            next={activities.next_page_url}
+                            from={activities.from}
+                            to={activities.to}
+                            total={activities.total}
+                        />
                     </>
                 )}
-            </div>
+            </PageContainer>
         </>
     );
 }

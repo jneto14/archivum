@@ -2,11 +2,16 @@ import { Head, router, setLayoutProps, usePage } from '@inertiajs/react';
 import {
     ArrowRightLeftIcon,
     ChevronRightIcon,
+    Columns3Icon,
+    ListTreeIcon,
     PlusIcon,
     Trash2Icon,
 } from 'lucide-react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
+import { Panel, PanelHeader } from '@/components/panel';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -25,9 +30,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useTranslation } from '@/hooks/use-translation';
 import nodeActions from '@/routes/organization/nodes';
 import nodes from '@/routes/organization/schemes/nodes';
+
+type StorageView = 'tree' | 'columns';
 
 type StorageNode = {
     id: string;
@@ -83,7 +91,7 @@ export default function OrganizationStorage({
 }: Props) {
     const t = useTranslation();
     const { errors } = usePage().props;
-    const [view, setView] = useState<'tree' | 'columns'>('tree');
+    const [view, setView] = useState<StorageView>('tree');
     const [columnSelection, setColumnSelection] = useState<StorageNode[]>([]);
 
     const [addLevelId, setAddLevelId] = useState('');
@@ -165,40 +173,36 @@ export default function OrganizationStorage({
         <>
             <Head title={t('organization.storage.title')} />
 
-            <div className="max-w-6xl space-y-5 p-6">
-                <div className="flex flex-wrap items-end justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-semibold tracking-tight">
-                            {t('organization.storage.title')}
-                        </h1>
-                        <p className="text-sm text-muted-foreground">
-                            {scheme.name} ·{' '}
-                            {levels.map((level) => level.name).join(' → ')}
-                        </p>
-                    </div>
-                    <div className="flex overflow-hidden rounded-md border p-0.5">
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant={view === 'tree' ? 'secondary' : 'ghost'}
-                            onClick={() => setView('tree')}
-                        >
+            <PageContainer width="wide">
+                <PageHeader
+                    title={t('organization.storage.title')}
+                    description={`${scheme.name} · ${levels
+                        .map((level) => level.name)
+                        .join(' → ')}`}
+                >
+                    <ToggleGroup
+                        type="single"
+                        variant="outline"
+                        size="sm"
+                        value={view}
+                        onValueChange={(value) =>
+                            value !== '' && setView(value as StorageView)
+                        }
+                    >
+                        <ToggleGroupItem value="tree">
+                            <ListTreeIcon />
                             {t('organization.storage.view_tree')}
-                        </Button>
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant={view === 'columns' ? 'secondary' : 'ghost'}
-                            onClick={() => setView('columns')}
-                        >
+                        </ToggleGroupItem>
+                        <ToggleGroupItem value="columns">
+                            <Columns3Icon />
                             {t('organization.storage.view_columns')}
-                        </Button>
-                    </div>
-                </div>
+                        </ToggleGroupItem>
+                    </ToggleGroup>
+                </PageHeader>
 
                 {view === 'tree' && (
-                    <div className="overflow-hidden rounded-xl border">
-                        <div className="flex items-center justify-between border-b bg-muted px-4 py-3">
+                    <Panel>
+                        <PanelHeader>
                             <span className="text-xs font-medium text-muted-foreground">
                                 {t(
                                     nodeCount === 1
@@ -213,7 +217,7 @@ export default function OrganizationStorage({
                                     {t('organization.storage.add_node')}
                                 </Button>
                             )}
-                        </div>
+                        </PanelHeader>
                         {nodeCount === 0 && (
                             <p className="p-6 text-center text-sm text-muted-foreground">
                                 {t('organization.storage.empty_state')}
@@ -227,101 +231,110 @@ export default function OrganizationStorage({
                             onDelete={deleteNode}
                             onMove={openMove}
                         />
-                    </div>
+                    </Panel>
                 )}
 
                 {view === 'columns' && (
-                    <div
-                        className="grid overflow-hidden rounded-xl border"
-                        style={{
-                            gridTemplateColumns: `repeat(${levels.length}, 1fr)`,
-                        }}
-                    >
-                        {levels.map((level, depth) => {
-                            const items =
-                                depth === 0
-                                    ? tree
-                                    : (columnSelection[depth - 1]?.children ??
-                                      []);
-                            const isLastColumn = depth === levels.length - 1;
+                    <Panel>
+                        <div
+                            className="grid overflow-x-auto"
+                            style={{
+                                gridTemplateColumns: `repeat(${levels.length}, minmax(13rem, 1fr))`,
+                            }}
+                        >
+                            {levels.map((level, depth) => {
+                                const items =
+                                    depth === 0
+                                        ? tree
+                                        : (columnSelection[depth - 1]
+                                              ?.children ?? []);
+                                const isLastColumn =
+                                    depth === levels.length - 1;
 
-                            return (
-                                <div
-                                    key={level.id}
-                                    className="flex min-h-[420px] flex-col border-r last:border-r-0"
-                                >
-                                    <div className="border-b bg-muted px-4 py-2.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-                                        {level.name}
-                                    </div>
-                                    {items.map((node) => {
-                                        const pct =
-                                            level.capacity !== null &&
-                                            node.documents_count !== null
-                                                ? Math.round(
-                                                      (node.documents_count /
-                                                          level.capacity) *
-                                                          100,
-                                                  )
-                                                : null;
+                                return (
+                                    <div
+                                        key={level.id}
+                                        className="flex min-h-[420px] flex-col border-r last:border-r-0"
+                                    >
+                                        <div className="border-b bg-muted px-4 py-2.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+                                            {level.name}
+                                        </div>
+                                        {items.map((node) => {
+                                            const pct =
+                                                level.capacity !== null &&
+                                                node.documents_count !== null
+                                                    ? Math.round(
+                                                          (node.documents_count /
+                                                              level.capacity) *
+                                                              100,
+                                                      )
+                                                    : null;
 
-                                        if (isLastColumn) {
-                                            return (
-                                                <div
-                                                    key={node.id}
-                                                    className="space-y-1.5 border-b px-4 py-2.5"
-                                                >
-                                                    <div className="flex items-center justify-between gap-2">
-                                                        <span className="font-mono text-sm font-medium">
-                                                            {node.value}
-                                                        </span>
-                                                        <span className="font-mono text-xs text-muted-foreground">
-                                                            {
-                                                                node.documents_count
-                                                            }
-                                                            {level.capacity !==
-                                                            null
-                                                                ? ` / ${level.capacity}`
-                                                                : ''}
-                                                        </span>
+                                            if (isLastColumn) {
+                                                return (
+                                                    <div
+                                                        key={node.id}
+                                                        className="space-y-1.5 border-b px-4 py-2.5"
+                                                    >
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="font-mono text-sm font-medium">
+                                                                {node.value}
+                                                            </span>
+                                                            <span className="font-mono text-xs text-muted-foreground">
+                                                                {
+                                                                    node.documents_count
+                                                                }
+                                                                {level.capacity !==
+                                                                null
+                                                                    ? ` / ${level.capacity}`
+                                                                    : ''}
+                                                            </span>
+                                                        </div>
+                                                        {pct !== null && (
+                                                            <Progress
+                                                                value={pct}
+                                                            />
+                                                        )}
                                                     </div>
-                                                    {pct !== null && (
-                                                        <Progress value={pct} />
-                                                    )}
-                                                </div>
-                                            );
-                                        }
+                                                );
+                                            }
 
-                                        return (
-                                            <button
-                                                key={node.id}
-                                                type="button"
-                                                onClick={() =>
-                                                    selectColumn(depth, node)
-                                                }
-                                                className="flex items-center justify-between gap-2 border-b px-4 py-2.5 text-left hover:bg-muted"
-                                                style={{
-                                                    background:
-                                                        columnSelection[depth]
-                                                            ?.id === node.id
-                                                            ? 'var(--muted)'
-                                                            : undefined,
-                                                }}
-                                            >
-                                                <span className="font-mono text-sm font-medium">
-                                                    {node.value}
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {node.children.length}
-                                                </span>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            );
-                        })}
-                    </div>
+                                            return (
+                                                <button
+                                                    key={node.id}
+                                                    type="button"
+                                                    onClick={() =>
+                                                        selectColumn(
+                                                            depth,
+                                                            node,
+                                                        )
+                                                    }
+                                                    className="flex items-center justify-between gap-2 border-b px-4 py-2.5 text-left hover:bg-muted"
+                                                    style={{
+                                                        background:
+                                                            columnSelection[
+                                                                depth
+                                                            ]?.id === node.id
+                                                                ? 'var(--muted)'
+                                                                : undefined,
+                                                    }}
+                                                >
+                                                    <span className="font-mono text-sm font-medium">
+                                                        {node.value}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {node.children.length}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </Panel>
                 )}
-            </div>
+            </PageContainer>
 
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
                 <DialogContent>

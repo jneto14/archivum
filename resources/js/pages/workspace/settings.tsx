@@ -2,8 +2,9 @@ import { Link, router, setLayoutProps, useForm } from '@inertiajs/react';
 import { CopyIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -153,8 +154,8 @@ export default function WorkspaceSettings({
     };
 
     return (
-        <div className="mx-auto max-w-3xl space-y-6 p-6">
-            <Heading
+        <PageContainer width="narrow">
+            <PageHeader
                 title={t('workspace.settings.title')}
                 description={t('workspace.settings.description')}
             />
@@ -662,6 +663,6 @@ export default function WorkspaceSettings({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </PageContainer>
     );
 }

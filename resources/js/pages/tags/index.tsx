@@ -1,8 +1,19 @@
 import { Head, router, setLayoutProps } from '@inertiajs/react';
 import { CheckIcon, PencilIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useState } from 'react';
+import { EmptyState } from '@/components/empty-state';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
+import { Panel } from '@/components/panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogFooter,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useDateFormatter } from '@/hooks/use-date-formatter';
 import { useTranslation } from '@/hooks/use-translation';
@@ -27,6 +38,7 @@ export default function TagIndex({ workspace, tags }: Props) {
     const [newName, setNewName] = useState('');
     const [renamingId, setRenamingId] = useState<string | null>(null);
     const [renameValue, setRenameValue] = useState('');
+    const [removeTarget, setRemoveTarget] = useState<TagRow | null>(null);
 
     setLayoutProps({
         breadcrumbs: [
@@ -63,8 +75,15 @@ export default function TagIndex({ workspace, tags }: Props) {
         );
     };
 
-    const removeTag = (tag: TagRow) => {
-        router.delete(destroy.url(tag.id), { preserveScroll: true });
+    const confirmRemove = () => {
+        if (removeTarget === null) {
+            return;
+        }
+
+        router.delete(destroy.url(removeTarget.id), {
+            preserveScroll: true,
+            onFinish: () => setRemoveTarget(null),
+        });
     };
 
     const showDocuments = (tag: TagRow) => {
@@ -75,15 +94,11 @@ export default function TagIndex({ workspace, tags }: Props) {
         <>
             <Head title={t('tags.index.title')} />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-6">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">
-                        {t('tags.index.title')}
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                        {t('tags.index.description')}
-                    </p>
-                </div>
+            <PageContainer>
+                <PageHeader
+                    title={t('tags.index.title')}
+                    description={t('tags.index.description')}
+                />
 
                 <div className="flex flex-wrap gap-2.5">
                     <Input
@@ -101,16 +116,12 @@ export default function TagIndex({ workspace, tags }: Props) {
                 </div>
 
                 {tags.length === 0 ? (
-                    <div className="rounded-xl border border-dashed p-12 text-center">
-                        <div className="font-semibold">
-                            {t('tags.index.empty_title')}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                            {t('tags.index.empty_description')}
-                        </div>
-                    </div>
+                    <EmptyState
+                        title={t('tags.index.empty_title')}
+                        description={t('tags.index.empty_description')}
+                    />
                 ) : (
-                    <div className="overflow-hidden rounded-xl border">
+                    <Panel>
                         {tags.map((tag) => (
                             <div
                                 key={tag.id}
@@ -200,7 +211,7 @@ export default function TagIndex({ workspace, tags }: Props) {
                                             title={t(
                                                 'tags.index.delete_action',
                                             )}
-                                            onClick={() => removeTag(tag)}
+                                            onClick={() => setRemoveTarget(tag)}
                                         >
                                             <Trash2Icon className="size-3.5" />
                                         </Button>
@@ -208,9 +219,35 @@ export default function TagIndex({ workspace, tags }: Props) {
                                 )}
                             </div>
                         ))}
-                    </div>
+                    </Panel>
                 )}
-            </div>
+            </PageContainer>
+
+            <Dialog
+                open={removeTarget !== null}
+                onOpenChange={(open) => !open && setRemoveTarget(null)}
+            >
+                <DialogContent>
+                    <DialogTitle>
+                        {t('tags.index.delete_dialog_title')}
+                    </DialogTitle>
+                    <p className="text-sm text-muted-foreground">
+                        {t('tags.index.delete_dialog_description', {
+                            name: removeTarget?.name ?? '',
+                        })}
+                    </p>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="secondary">
+                                {t('tags.index.cancel_action')}
+                            </Button>
+                        </DialogClose>
+                        <Button variant="destructive" onClick={confirmRemove}>
+                            {t('tags.index.delete_action')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

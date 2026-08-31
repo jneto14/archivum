@@ -8,6 +8,8 @@ export type AppLayoutProps = {
 
 export type AppVariant = 'header' | 'sidebar';
 
+export type PageWidth = 'narrow' | 'default' | 'wide';
+
 export type FlashToast = {
     type: 'success' | 'info' | 'warning' | 'error';
     message: string;

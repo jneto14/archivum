@@ -1,5 +1,6 @@
 import { Head, setLayoutProps } from '@inertiajs/react';
-import Heading from '@/components/heading';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useTranslation } from '@/hooks/use-translation';
@@ -66,8 +67,8 @@ export default function WorkspaceUsage({ workspace, usage }: Props) {
         <>
             <Head title={t('workspace.usage.title')} />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-6">
-                <Heading
+            <PageContainer width="narrow">
+                <PageHeader
                     title={t('workspace.usage.title')}
                     description={t('workspace.usage.description', {
                         workspace: workspace.name,
@@ -118,7 +119,7 @@ export default function WorkspaceUsage({ workspace, usage }: Props) {
                         })}
                     </CardContent>
                 </Card>
-            </div>
+            </PageContainer>
         </>
     );
 }

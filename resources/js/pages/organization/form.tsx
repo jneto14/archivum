@@ -2,8 +2,9 @@ import { Head, router, setLayoutProps, useForm } from '@inertiajs/react';
 import { PlusIcon, Trash2Icon } from 'lucide-react';
 import type { FormEvent } from 'react';
 import OrganizationSchemeController from '@/actions/App/Http/Controllers/Organization/OrganizationSchemeController';
-import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import { PageContainer } from '@/components/page-container';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -197,8 +198,8 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                 }
             />
 
-            <div className="mx-auto max-w-3xl space-y-6 p-6">
-                <Heading
+            <PageContainer width="narrow">
+                <PageHeader
                     title={
                         isEditing
                             ? t('organization.form.edit_title')
@@ -632,7 +633,7 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                         </Button>
                     </div>
                 </form>
-            </div>
+            </PageContainer>
         </>
     );
 }
