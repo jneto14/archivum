@@ -748,27 +748,68 @@ Search state should preferably be represented in the URL.
 
 ---
 
-# OCR
+# Attachment Text Extraction
 
-OCR is an optional subsystem.
+Uploaded attachments have their text extracted in the background, so a document
+can be found by what is written on the page and not only by its title.
 
-Flow:
+OCR is the fallback, not the first move. A PDF that was born digital — an
+exported invoice, a letter printed to PDF — already carries a text layer, and
+reading it directly is instant and exact where OCR would be slower and would
+introduce recognition errors. Only files with no text of their own, which is
+most of what an archive of physical documents holds, are rasterized and sent to
+OCR.
 
 ```text
-Upload PDF/Image
+Upload PDF / image
         ↓
 Store attachment
         ↓
-Queue OCR job
+Queue ExtractAttachmentText
         ↓
-Extract text
-        ↓
-Store OCR text
-        ↓
-Re-index Document
+   PDF? ──yes──▶ read the embedded text layer (pdftotext)
+    │                     │
+    │              enough text? ──yes──▶ done
+    │                     │
+    │                     no
+    │                     ↓
+    └──────────▶ rasterize pages (Imagick + Ghostscript) ──▶ OCR (tesseract)
+                          ↓
+              store the text on the attachment
+                          ↓
+        mirror it onto the document and re-index for search
 ```
 
-OCR should run asynchronously.
+## System requirements
+
+These are binaries, not PHP extensions; `composer install` does not bring them.
+They are installed in this project's Docker image (`docker/8.5/Dockerfile`) and
+in CI.
+
+| Needed for | Package |
+| --- | --- |
+| OCR | `tesseract-ocr`, plus `tesseract-ocr-<lang>` for each configured language |
+| Reading a PDF's text layer | `poppler-utils` (`pdftotext`) |
+| Rasterizing scanned PDFs | `ghostscript`, behind PHP's `imagick` extension |
+
+A language pack per configured language matters: tesseract runs happily without
+one and simply recognises nothing, which is indistinguishable from a blank page.
+
+## Configuration
+
+The `archivum.ocr` block in `config/archivum.php` covers the languages, the
+threshold that separates "has a text layer" from "is a scan", and caps on pages
+and runtime. Set `OCR_ENABLED=false` to switch the whole thing off.
+
+An installation without the binaries still works. Extraction records itself as
+unavailable on the attachment and the document page says so, rather than
+failing uploads or silently doing nothing.
+
+Extracted text is stored per attachment, and mirrored onto the document as a
+single concatenated column. The mirror exists because Scout's `database` engine
+searches columns on the searchable model's own table and cannot traverse a
+relation — without it, text held on the attachments would never be matched by a
+document search.
 
 ---
 

@@ -32,6 +32,23 @@ class SearchDocuments
         return Document::search($query ?? '')
             ->where('workspace_id', $workspace->id)
             ->query(fn (Builder $builder) => $builder
+                // Every column except `ocr_text`, which holds the full text of
+                // a document's scans and is only ever read by the full-text
+                // index in the WHERE clause. Selecting `documents.*` would drag
+                // fifteen documents' worth of extracted pages into memory on
+                // every listing. QueryBudgetTest counts queries, not bytes, so
+                // it would not catch this.
+                ->select([
+                    'documents.id',
+                    'documents.workspace_id',
+                    'documents.document_type_id',
+                    'documents.created_by',
+                    'documents.title',
+                    'documents.document_date',
+                    'documents.metadata',
+                    'documents.created_at',
+                    'documents.updated_at',
+                ])
                 ->when(
                     $filters['document_type_id'] ?? null,
                     fn (Builder $q, string $typeId) => $q->where('document_type_id', $typeId),

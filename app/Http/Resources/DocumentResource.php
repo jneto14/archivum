@@ -60,6 +60,7 @@ class DocumentResource extends JsonResource
                 'filename' => $attachment->filename,
                 'mime_type' => $attachment->mime_type,
                 'size' => $attachment->size,
+                'ocr_status' => $attachment->ocr_status->value,
                 'created_at' => $attachment->created_at?->toIso8601String(),
                 'uploader' => $attachment->relationLoaded('uploader') ? [
                     'id' => $attachment->uploader->id,

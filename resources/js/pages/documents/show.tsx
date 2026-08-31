@@ -36,14 +36,40 @@ type LocationSuggestion = {
     recommended: boolean;
 };
 
+type OcrStatus =
+    | 'pending'
+    | 'processing'
+    | 'completed'
+    | 'skipped'
+    | 'unavailable'
+    | 'failed';
+
 type AttachmentRow = {
     id: string;
     filename: string;
     mime_type: string;
     size: number;
+    ocr_status: OcrStatus;
     created_at: string;
     uploader: { id: string; name: string } | null;
 };
+
+/**
+ * Translation key for an attachment's text-extraction state, or null when
+ * there is nothing worth saying.
+ *
+ * `completed` is deliberately silent: it is the ordinary outcome, and
+ * labelling every readable file would bury the two states a user can act on —
+ * a failure worth retrying, and an installation missing the OCR binaries.
+ */
+const ocrStatusKeys = {
+    pending: 'documents.show.ocr_pending',
+    processing: 'documents.show.ocr_processing',
+    skipped: 'documents.show.ocr_skipped',
+    unavailable: 'documents.show.ocr_unavailable',
+    failed: 'documents.show.ocr_failed',
+    completed: null,
+} as const;
 
 type Props = {
     document: {
@@ -243,72 +269,94 @@ export default function DocumentShow({
                                     </p>
                                 )}
                                 {(document.attachments ?? []).map(
-                                    (attachment) => (
-                                        <div
-                                            key={attachment.id}
-                                            className="flex items-center gap-3 rounded-md border p-2"
-                                        >
-                                            <div className="min-w-0 flex-1">
-                                                <div className="truncate text-sm font-medium">
-                                                    {attachment.filename}
+                                    (attachment) => {
+                                        const ocrKey =
+                                            ocrStatusKeys[
+                                                attachment.ocr_status
+                                            ];
+
+                                        return (
+                                            <div
+                                                key={attachment.id}
+                                                className="flex items-center gap-3 rounded-md border p-2"
+                                            >
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="truncate text-sm font-medium">
+                                                        {attachment.filename}
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground">
+                                                        {formatBytes(
+                                                            attachment.size,
+                                                        )}
+                                                        {ocrKey && (
+                                                            <>
+                                                                {' · '}
+                                                                <span
+                                                                    className={
+                                                                        attachment.ocr_status ===
+                                                                        'failed'
+                                                                            ? 'text-destructive'
+                                                                            : undefined
+                                                                    }
+                                                                >
+                                                                    {t(ocrKey)}
+                                                                </span>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    {formatBytes(
-                                                        attachment.size,
-                                                    )}
-                                                </div>
-                                            </div>
-                                            {(attachment.mime_type ===
-                                                'application/pdf' ||
-                                                attachment.mime_type.startsWith(
-                                                    'image/',
-                                                )) && (
+                                                {(attachment.mime_type ===
+                                                    'application/pdf' ||
+                                                    attachment.mime_type.startsWith(
+                                                        'image/',
+                                                    )) && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        title={t(
+                                                            'documents.show.preview_button',
+                                                        )}
+                                                        onClick={() =>
+                                                            setPreviewAttachment(
+                                                                attachment,
+                                                            )
+                                                        }
+                                                    >
+                                                        <EyeIcon />
+                                                    </Button>
+                                                )}
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    title={t(
-                                                        'documents.show.preview_button',
-                                                    )}
+                                                    asChild
+                                                >
+                                                    <a
+                                                        href={attachmentShow.url(
+                                                            attachment.id,
+                                                        )}
+                                                    >
+                                                        <DownloadIcon />
+                                                    </a>
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
                                                     onClick={() =>
-                                                        setPreviewAttachment(
-                                                            attachment,
+                                                        router.delete(
+                                                            attachmentDestroy.url(
+                                                                attachment.id,
+                                                            ),
+                                                            {
+                                                                preserveScroll: true,
+                                                            },
                                                         )
                                                     }
                                                 >
-                                                    <EyeIcon />
+                                                    <Trash2Icon />
                                                 </Button>
-                                            )}
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                asChild
-                                            >
-                                                <a
-                                                    href={attachmentShow.url(
-                                                        attachment.id,
-                                                    )}
-                                                >
-                                                    <DownloadIcon />
-                                                </a>
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() =>
-                                                    router.delete(
-                                                        attachmentDestroy.url(
-                                                            attachment.id,
-                                                        ),
-                                                        {
-                                                            preserveScroll: true,
-                                                        },
-                                                    )
-                                                }
-                                            >
-                                                <Trash2Icon />
-                                            </Button>
-                                        </div>
-                                    ),
+                                            </div>
+                                        );
+                                    },
                                 )}
                             </CardContent>
                         </Card>

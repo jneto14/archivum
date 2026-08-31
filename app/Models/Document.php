@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
+use Laravel\Scout\Attributes\SearchUsingFullText;
 use Laravel\Scout\Searchable;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -26,6 +27,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string $title
  * @property Carbon|null $document_date
  * @property array<string, mixed>|null $metadata
+ * @property string|null $ocr_text
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -75,17 +77,50 @@ class Document extends Model
     }
 
     /**
-     * Deliberately minimal — only the primary free-text field. `metadata`
-     * and relation fields (document type, tags) are structured filters,
-     * not Scout text search.
+     * Deliberately minimal — the title, plus the text extracted from the
+     * document's attachments. `metadata` and relation fields (document type,
+     * tags) are structured filters, not Scout text search.
+     *
+     * `ocr_text` is matched through the full-text index rather than the default
+     * `LIKE '%…%'`, which cannot use an index and would scan every row's worth
+     * of extracted pages. Note that InnoDB's full-text tokenizer ignores words
+     * shorter than `innodb_ft_min_token_size` (3 by default), so two-letter
+     * terms will not match inside attachment text.
      *
      * @return array<string, mixed>
      */
+    #[SearchUsingFullText(['ocr_text'])]
     public function toSearchableArray(): array
     {
         return [
             'title' => $this->title,
+            'ocr_text' => $this->ocr_text,
         ];
+    }
+
+    /**
+     * Rebuild this document's searchable text from its attachments and
+     * re-index it.
+     *
+     * `documents.ocr_text` is a mirror: the text of each attachment lives on
+     * the attachment, and this concatenates all of them. Call it after any
+     * change to the set of attachments or to their extracted text — including
+     * deletions, or the text of a removed scan stays findable.
+     *
+     * @return void No return value; updates the column and the search index as a side effect.
+     */
+    public function refreshOcrText(): void
+    {
+        $text = $this->attachments()
+            ->whereNotNull('ocr_text')
+            ->orderBy('created_at')
+            ->pluck('ocr_text')
+            ->filter(fn (?string $value): bool => filled($value))
+            ->implode("\n\n");
+
+        $this->forceFill(['ocr_text' => $text === '' ? null : $text])->save();
+
+        $this->searchable();
     }
 
     /**

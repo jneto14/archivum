@@ -70,6 +70,70 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Attachment Text Extraction
+    |--------------------------------------------------------------------------
+    |
+    | After an attachment is uploaded, a queued job extracts its text so the
+    | document can be found by what is written on the page, not just by its
+    | title.
+    |
+    | Two paths, because they are not interchangeable. A PDF that was born
+    | digital already carries a text layer: reading it is instant and exact,
+    | and running OCR over it instead would be slower and less accurate. A
+    | scan or a photo has no text at all, and only OCR can recover it. So the
+    | text layer is tried first and OCR is the fallback.
+    |
+    | This depends on system binaries that are NOT PHP extensions:
+    | `tesseract` (plus a language pack per configured language) and
+    | `pdftotext` from poppler-utils, with Ghostscript behind Imagick for
+    | rasterizing scanned PDFs. They ship in this project's Docker image; on
+    | an installation without them, extraction records itself as unavailable
+    | on the attachment rather than failing the upload. Set `enabled` to false
+    | to turn the whole thing off deliberately.
+    |
+    */
+
+    'ocr' => [
+        'enabled' => (bool) env('OCR_ENABLED', true),
+
+        /*
+        | Tesseract language codes, joined with "+". Each one needs its
+        | matching `tesseract-ocr-<code>` package installed, or Tesseract
+        | recognises nothing. Order matters: put the language most documents
+        | are in first.
+        */
+        'languages' => env('OCR_LANGUAGES', 'por+eng'),
+
+        /*
+        | How many characters a PDF's embedded text layer must yield before
+        | it's taken at face value. Below this the PDF is treated as a scan
+        | and sent to OCR — scanned PDFs often carry a few stray characters
+        | from a header or a stamp, which is not a text layer.
+        */
+        'min_text_length' => (int) env('OCR_MIN_TEXT_LENGTH', 100),
+
+        /*
+        | Ceiling on pages rasterized and OCR'd per attachment. OCR costs
+        | roughly a second of CPU per page, so a 300-page scan would otherwise
+        | occupy a queue worker for five minutes.
+        */
+        'max_pages' => (int) env('OCR_MAX_PAGES', 20),
+
+        /*
+        | Rasterization resolution. Tesseract is trained around 300 DPI and
+        | degrades noticeably below it; going higher mostly costs time.
+        */
+        'dpi' => (int) env('OCR_DPI', 300),
+
+        /*
+        | Seconds any single binary call may run before it's killed, so one
+        | pathological file cannot hang a worker indefinitely.
+        */
+        'timeout' => (int) env('OCR_TIMEOUT', 120),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Locales
     |--------------------------------------------------------------------------
     |

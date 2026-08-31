@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Documents;
 
 use App\Actions\Workspace\CalculateWorkspaceUsage;
+use App\Jobs\ExtractAttachmentText;
 use App\Models\Document;
 use App\Models\DocumentAttachment;
 use App\Models\User;
@@ -58,6 +59,17 @@ class UploadAttachment
         ]);
 
         $this->calculateUsage->forget($workspace);
+
+        // Queued rather than inline: OCR on a multi-page scan takes seconds per
+        // page, and the upload response must not wait for it. With extraction
+        // switched off the attachment is settled straight away as unavailable,
+        // so the document page says so instead of showing a "pending" that will
+        // never resolve.
+        if (config('archivum.ocr.enabled')) {
+            ExtractAttachmentText::dispatch($attachment);
+        } else {
+            $attachment->markOcrUnavailable();
+        }
 
         return $attachment;
     }
