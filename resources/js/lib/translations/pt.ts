@@ -70,6 +70,9 @@ export default {
     'documents.index.filter_all_types': 'Todos os tipos',
     'documents.index.filter_tag_placeholder': 'Etiqueta',
     'documents.index.filter_all_tags': 'Todas as etiquetas',
+    'documents.index.filter_date_label': 'Data',
+    'documents.index.filter_date_from': 'Documentos com data a partir de',
+    'documents.index.filter_date_to': 'Documentos com data até',
     'documents.index.export': 'Exportar',
     'documents.index.empty_title': 'Nenhum documento corresponde',
     'documents.index.empty_description':

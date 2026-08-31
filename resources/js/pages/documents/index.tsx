@@ -200,7 +200,7 @@ export default function DocumentIndex({
                     <Input
                         placeholder={t('documents.index.search_placeholder')}
                         defaultValue={filters.q ?? ''}
-                        className="w-full sm:w-56"
+                        className="w-full min-w-56 flex-1 sm:max-w-xs"
                         onChange={(event) =>
                             applyFilters({ q: event.target.value || null })
                         }
@@ -234,7 +234,7 @@ export default function DocumentIndex({
                             })
                         }
                     >
-                        <SelectTrigger className="w-full sm:w-40">
+                        <SelectTrigger className="w-full sm:w-48">
                             <SelectValue
                                 placeholder={t(
                                     'documents.index.filter_type_placeholder',
@@ -260,7 +260,7 @@ export default function DocumentIndex({
                             })
                         }
                     >
-                        <SelectTrigger className="w-full sm:w-40">
+                        <SelectTrigger className="w-full sm:w-48">
                             <SelectValue
                                 placeholder={t(
                                     'documents.index.filter_tag_placeholder',
@@ -278,22 +278,37 @@ export default function DocumentIndex({
                             ))}
                         </SelectContent>
                     </Select>
-                    <Input
-                        type="date"
-                        value={filters.from ?? ''}
-                        className="w-full sm:w-40"
-                        onChange={(event) =>
-                            applyFilters({ from: event.target.value || null })
-                        }
-                    />
-                    <Input
-                        type="date"
-                        value={filters.to ?? ''}
-                        className="w-full sm:w-40"
-                        onChange={(event) =>
-                            applyFilters({ to: event.target.value || null })
-                        }
-                    />
+                    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
+                        <span className="w-full shrink-0 text-sm text-muted-foreground sm:w-auto">
+                            {t('documents.index.filter_date_label')}
+                        </span>
+                        <Input
+                            type="date"
+                            aria-label={t('documents.index.filter_date_from')}
+                            value={filters.from ?? ''}
+                            className="min-w-0 flex-1 sm:w-40 sm:flex-none"
+                            onChange={(event) =>
+                                applyFilters({
+                                    from: event.target.value || null,
+                                })
+                            }
+                        />
+                        <span
+                            aria-hidden="true"
+                            className="text-muted-foreground"
+                        >
+                            –
+                        </span>
+                        <Input
+                            type="date"
+                            aria-label={t('documents.index.filter_date_to')}
+                            value={filters.to ?? ''}
+                            className="min-w-0 flex-1 sm:w-40 sm:flex-none"
+                            onChange={(event) =>
+                                applyFilters({ to: event.target.value || null })
+                            }
+                        />
+                    </div>
                 </div>
 
                 {documents.data.length === 0 && (

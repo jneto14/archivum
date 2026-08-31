@@ -101,41 +101,41 @@ export default function WorkspaceTasks({ workspace, tasks }: Props) {
                     />
                 ) : (
                     <Panel>
-                        <Table>
+                        <Table className="min-w-[46rem] table-fixed">
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>
+                                    <TableHead className="w-[26%]">
                                         {t('workspace.tasks.column_type')}
                                     </TableHead>
-                                    <TableHead>
+                                    <TableHead className="w-[32%]">
                                         {t('workspace.tasks.column_status')}
                                     </TableHead>
-                                    <TableHead>
+                                    <TableHead className="w-[14%]">
                                         {t(
                                             'workspace.tasks.column_triggered_by',
                                         )}
                                     </TableHead>
-                                    <TableHead>
+                                    <TableHead className="w-[18%]">
                                         {t('workspace.tasks.column_started')}
                                     </TableHead>
-                                    <TableHead className="w-32" />
+                                    <TableHead className="w-[10%]" />
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {tasks.data.map((task) => (
                                     <TableRow key={task.id}>
-                                        <TableCell className="font-medium">
+                                        <TableCell className="font-medium whitespace-normal">
                                             {t(
                                                 TYPE_LABELS[task.type] ??
                                                     task.type,
                                             )}
                                             {task.subject && (
-                                                <p className="max-w-xs truncate text-xs font-normal text-muted-foreground">
+                                                <p className="truncate text-xs font-normal text-muted-foreground">
                                                     {task.subject}
                                                 </p>
                                             )}
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="whitespace-normal">
                                             <Badge
                                                 variant={
                                                     STATUS_VARIANTS[task.status]
@@ -145,7 +145,12 @@ export default function WorkspaceTasks({ workspace, tasks }: Props) {
                                             </Badge>
                                             {task.status === 'failed' &&
                                                 task.result?.error && (
-                                                    <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+                                                    <p
+                                                        className="mt-1 line-clamp-3 text-xs break-words text-muted-foreground"
+                                                        title={
+                                                            task.result.error
+                                                        }
+                                                    >
                                                         {task.result.error}
                                                     </p>
                                                 )}
@@ -160,7 +165,7 @@ export default function WorkspaceTasks({ workspace, tasks }: Props) {
                                                   )
                                                 : '—'}
                                         </TableCell>
-                                        <TableCell className="text-right">
+                                        <TableCell className="text-right whitespace-nowrap">
                                             {task.status === 'completed' &&
                                                 task.type ===
                                                     'document_export' && (
