@@ -19,4 +19,5 @@ return [
     'export_started' => 'Export started.',
     'export_retried' => 'Export restarted.',
     'only_failed_tasks_can_retry' => 'Only failed tasks can be retried.',
+    'attachment_no_longer_exists' => 'The attachment this task was for has since been deleted.',
 ];

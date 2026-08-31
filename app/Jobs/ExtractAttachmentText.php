@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Enums\OcrStatus;
 use App\Models\DocumentAttachment;
+use App\Models\Task;
 use App\Services\Ocr\AttachmentTextExtractor;
 use App\Services\Ocr\UnreadableAttachment;
 use Illuminate\Bus\Queueable;
@@ -20,12 +21,15 @@ use Throwable;
  * Extracts one attachment's text in the background and folds it into the
  * document's search index.
  *
- * Unlike exports and bulk moves, this does not create a `Task` row. Uploads
- * happen one file at a time and often in bursts, so a task per attachment
- * would bury the deliberate, user-triggered work on the Tasks page — and the
- * per-workspace lock those tasks use would serialise extraction that has no
- * reason to be serial. The state lives on the attachment instead, where the
- * document page can show it next to the file it belongs to.
+ * The outcome is recorded twice, for two different readers. The attachment
+ * carries the text and its status, which is what the document page shows next
+ * to the file and what `Document::refreshOcrText()` reads. The `Task` row is
+ * the workspace-wide view on the Tasks page, alongside exports and bulk moves,
+ * and is what gives an admin somewhere to see and retry a failure without
+ * opening documents one by one.
+ *
+ * Unlike those other task types this one takes no workspace lock: extraction is
+ * scoped to a single file, so several may run at once (see `TaskType::lockKey`).
  */
 class ExtractAttachmentText implements ShouldQueue
 {
@@ -46,17 +50,22 @@ class ExtractAttachmentText implements ShouldQueue
 
     /**
      * @param DocumentAttachment $attachment The attachment whose text is extracted.
+     * @param Task $task The task row tracking this extraction on the Tasks page.
      */
-    public function __construct(public readonly DocumentAttachment $attachment) {}
+    public function __construct(
+        public readonly DocumentAttachment $attachment,
+        public readonly Task $task,
+    ) {}
 
     /**
      * @param AttachmentTextExtractor $extractor Decides how to read the file and does it.
      *
-     * @return void No return value; updates the attachment, the document's mirrored text and the search index as a side effect.
+     * @return void No return value; updates the attachment, its task, the document's mirrored text and the search index as a side effect.
      */
     public function handle(AttachmentTextExtractor $extractor): void
     {
         $this->attachment->markOcrProcessing();
+        $this->task->markProcessing();
 
         try {
             $extracted = $extractor->handle($this->attachment);
@@ -68,11 +77,11 @@ class ExtractAttachmentText implements ShouldQueue
             // Not rethrowing also keeps a corrupt upload from breaking the
             // upload request on installations running the `sync` queue driver,
             // where this job runs inline.
-            $this->attachment->markOcrFailed($exception->getMessage());
+            $this->recordFailure($exception->getMessage());
 
             return;
         } catch (Throwable $exception) {
-            $this->attachment->markOcrFailed($exception->getMessage());
+            $this->recordFailure($exception->getMessage());
 
             // Everything else — the disk, the engine — may well work on the
             // next attempt, so rethrow and let the queue retry. Not reported
@@ -95,24 +104,43 @@ class ExtractAttachmentText implements ShouldQueue
         };
 
         $this->attachment->document?->refreshOcrText();
+
+        $this->task->markCompleted([
+            'filename' => $this->attachment->filename,
+            'document_id' => $this->attachment->document_id,
+            'outcome' => $extracted->status->value,
+            'characters' => mb_strlen($extracted->text),
+        ]);
     }
 
     /**
-     * Record the failure on the attachment once the retries are exhausted.
+     * Record the failure once the retries are exhausted.
      *
      * `handle()` already marks it on each attempt, but a failure Laravel raises
      * around the job — a timeout, or the model going missing — never reaches
-     * that catch, and would otherwise leave the attachment stuck on
-     * "processing" forever.
+     * that catch, and would otherwise leave the attachment and its task stuck
+     * on "processing" forever.
      *
      * @param Throwable|null $exception The failure, if there was one.
      *
-     * @return void No return value; updates the attachment as a side effect.
+     * @return void No return value; updates the attachment and its task as a side effect.
      */
     public function failed(?Throwable $exception): void
     {
-        $this->attachment->markOcrFailed($exception?->getMessage() ?? 'Text extraction failed.');
+        $this->recordFailure($exception?->getMessage() ?? 'Text extraction failed.');
+    }
 
-        $this->attachment->document?->refreshOcrText();
+    /**
+     * Mark both records as failed with the same message.
+     *
+     * @param string $message What went wrong.
+     *
+     * @return void No return value; saves the attachment and the task as a side effect.
+     */
+    private function recordFailure(string $message): void
+    {
+        $this->attachment->markOcrFailed($message);
+
+        $this->task->markFailed($message);
     }
 }

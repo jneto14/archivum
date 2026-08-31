@@ -350,6 +350,8 @@ export default {
     'workspace.tasks.column_started': 'Started',
     'workspace.tasks.type_document_export': 'Document export',
     'workspace.tasks.type_bulk_document_move': 'Bulk document move',
+    'workspace.tasks.type_attachment_text_extraction':
+        'Attachment text extraction',
     'workspace.tasks.status_queued': 'Queued',
     'workspace.tasks.status_processing': 'Processing',
     'workspace.tasks.status_completed': 'Completed',

@@ -361,6 +361,8 @@ export default {
     'workspace.tasks.type_document_export': 'Exportação de documentos',
     'workspace.tasks.type_bulk_document_move':
         'Movimento em massa de documentos',
+    'workspace.tasks.type_attachment_text_extraction':
+        'Extração de texto de anexo',
     'workspace.tasks.status_queued': 'Em fila',
     'workspace.tasks.status_processing': 'A processar',
     'workspace.tasks.status_completed': 'Concluída',

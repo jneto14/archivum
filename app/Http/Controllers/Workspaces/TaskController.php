@@ -35,24 +35,30 @@ class TaskController extends Controller
     {
         $this->authorize('viewAny', [Task::class, $workspace]);
 
+        // Paginated because attachment text extraction creates a task per
+        // uploaded file. An unbounded list would bury the deliberate,
+        // user-triggered work — an export someone is waiting on — under
+        // however many files were uploaded since.
         $tasks = Task::query()
             ->where('workspace_id', $workspace->id)
             ->with('user')
             ->orderByDesc('created_at')
-            ->get();
+            ->paginate(25)
+            ->withQueryString();
 
         return Inertia::render('workspace/tasks', [
             'workspace' => ['id' => $workspace->id, 'name' => $workspace->name],
-            'tasks' => $tasks->map(fn (Task $task) => [
+            'tasks' => $tasks->through(fn (Task $task) => [
                 'id' => $task->id,
                 'type' => $task->type->value,
                 'status' => $task->status->value,
                 'triggered_by' => $task->user->name,
+                'subject' => $task->payload['filename'] ?? null,
                 'result' => $task->result,
                 'started_at' => $task->started_at?->toIso8601String(),
                 'finished_at' => $task->finished_at?->toIso8601String(),
                 'created_at' => $task->created_at?->toIso8601String(),
-            ])->values()->all(),
+            ]),
         ]);
     }
 

@@ -12,6 +12,7 @@ use App\Models\Task;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
+use LogicException;
 
 class StartBulkDocumentMove
 {
@@ -31,7 +32,12 @@ class StartBulkDocumentMove
     {
         $workspaceId = $source->level->scheme->workspace_id;
 
-        $lock = Cache::lock(TaskType::BulkDocumentMove->lockKey($workspaceId), 600);
+        // `lockKey()` is nullable because attachment text extraction has no
+        // per-workspace exclusivity; a bulk move always does.
+        $lockKey = TaskType::BulkDocumentMove->lockKey($workspaceId)
+            ?? throw new LogicException('A bulk document move must have a workspace lock.');
+
+        $lock = Cache::lock($lockKey, 600);
 
         if (!$lock->get()) {
             throw ValidationException::withMessages([

@@ -15,6 +15,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use LogicException;
 use RuntimeException;
 use Throwable;
 
@@ -68,7 +69,10 @@ class ExportWorkspaceDocuments implements ShouldQueue
 
             $this->task->markFailed($exception->getMessage());
         } finally {
-            Cache::restoreLock($this->task->type->lockKey($this->task->workspace_id), $this->lockOwner)->release();
+            $lockKey = $this->task->type->lockKey($this->task->workspace_id)
+                ?? throw new LogicException('A document export must have a workspace lock.');
+
+            Cache::restoreLock($lockKey, $this->lockOwner)->release();
         }
     }
 

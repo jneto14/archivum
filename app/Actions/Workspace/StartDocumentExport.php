@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
+use LogicException;
 
 class StartDocumentExport
 {
@@ -28,7 +29,12 @@ class StartDocumentExport
      */
     public function handle(Workspace $workspace, User $user): Task
     {
-        $lock = Cache::lock(TaskType::DocumentExport->lockKey($workspace->id), 600);
+        // `lockKey()` is nullable because attachment text extraction has no
+        // per-workspace exclusivity; an export always does.
+        $lockKey = TaskType::DocumentExport->lockKey($workspace->id)
+            ?? throw new LogicException('A document export must have a workspace lock.');
+
+        $lock = Cache::lock($lockKey, 600);
 
         if (!$lock->get()) {
             throw ValidationException::withMessages([

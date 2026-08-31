@@ -19,4 +19,5 @@ return [
     'export_started' => 'Exportação iniciada.',
     'export_retried' => 'Exportação reiniciada.',
     'only_failed_tasks_can_retry' => 'Só é possível repetir tarefas falhadas.',
+    'attachment_no_longer_exists' => 'O anexo a que esta tarefa dizia respeito entretanto foi apagado.',
 ];

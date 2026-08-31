@@ -805,6 +805,18 @@ An installation without the binaries still works. Extraction records itself as
 unavailable on the attachment and the document page says so, rather than
 failing uploads or silently doing nothing.
 
+## Where the state shows up
+
+Twice, for two different readers. The attachment carries the text and its
+status, shown on the document page next to the file it belongs to. Each
+extraction is also a `Task`, so the workspace's Tasks page lists them alongside
+exports and bulk moves — which is where an admin can see a failure and retry it
+without opening documents one at a time.
+
+Unlike the other task types, extraction takes no per-workspace lock: it is
+scoped to a single file, so several run concurrently. The Tasks page is
+paginated for the same reason — one row per uploaded file adds up.
+
 Extracted text is stored per attachment, and mirrored onto the document as a
 single concatenated column. The mirror exists because Scout's `database` engine
 searches columns on the searchable model's own table and cannot traverse a
