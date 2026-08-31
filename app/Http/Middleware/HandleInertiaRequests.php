@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Actions\Workspace\CalculateWorkspaceUsage;
-use App\Models\OrganizationScheme;
+use App\Enums\WorkspaceRole;
 use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -56,7 +56,18 @@ class HandleInertiaRequests extends Middleware
             ? $user->workspaces()->orderBy('workspace_user.created_at')->get()
             : collect();
 
-        $isWorkspaceAdmin = $workspace !== null && $user !== null && $workspace->isManageableBy($user);
+        // `$workspaces` already carries each membership's pivot role, so the
+        // current workspace's role is in hand — `isManageableBy()` would spend
+        // another `exists` query re-reading what we just selected. A platform
+        // admin managing a workspace they don't belong to isn't in the list, but
+        // the flag alone makes them an admin, so the short-circuit covers it.
+        $isWorkspaceAdmin = $workspace !== null && $user !== null && (
+            $user->is_platform_admin
+            // The relation doesn't declare `using(WorkspaceUser::class)`, so the
+            // pivot is a generic one and `role` arrives as a plain string —
+            // comparing it to the enum case itself would always be false.
+            || $workspaces->firstWhere('id', $workspace->id)?->pivot->role === WorkspaceRole::Admin->value
+        );
 
         return [
             ...parent::share($request),
@@ -78,9 +89,9 @@ class HandleInertiaRequests extends Middleware
             'canSwitchWorkspace' => (bool) config('archivum.multi_workspace_enabled'),
             'isWorkspaceAdmin' => $isWorkspaceAdmin,
             'documentsCount' => $workspace ? app(CalculateWorkspaceUsage::class)->documents($workspace) : null,
-            'organizationSchemeId' => $workspace
-                ? OrganizationScheme::query()->where('workspace_id', $workspace->id)->value('id')
-                : null,
+            // Selected as a subquery on the workspace row by ResolveWorkspace,
+            // rather than fetched here — see that middleware's withSchemeId().
+            'organizationSchemeId' => $workspace?->organization_scheme_id,
         ];
     }
 }

@@ -39,13 +39,14 @@ class ResolveWorkspace
         }
 
         if (!config('archivum.multi_workspace_enabled')) {
-            $workspace = Workspace::query()->first();
+            $workspace = Workspace::query()->withOrganizationSchemeId()->first();
             $workspace = $workspace !== null && $workspace->isMember($user) ? $workspace : null;
         } else {
             $workspaceId = $request->session()->get('current_workspace_id');
 
             $workspace = $workspaceId
                 ? Workspace::query()
+                    ->withOrganizationSchemeId()
                     ->whereKey($workspaceId)
                     ->when(
                         !$user->is_platform_admin,
@@ -54,7 +55,7 @@ class ResolveWorkspace
                     ->first()
                 : null;
 
-            $workspace ??= $user->workspaces()->orderBy('workspace_user.created_at')->first();
+            $workspace ??= $user->workspaces()->withOrganizationSchemeId()->orderBy('workspace_user.created_at')->first();
 
             if ($workspace !== null) {
                 $request->session()->put('current_workspace_id', $workspace->id);

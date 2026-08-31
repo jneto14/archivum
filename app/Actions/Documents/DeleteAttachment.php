@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Actions\Documents;
 
+use App\Actions\Workspace\CalculateWorkspaceUsage;
 use App\Models\DocumentAttachment;
 use Illuminate\Support\Facades\Storage;
 
 class DeleteAttachment
 {
+    public function __construct(private readonly CalculateWorkspaceUsage $calculateUsage) {}
+
     /**
      * Delete an attachment and its underlying stored file.
      *
@@ -21,5 +24,7 @@ class DeleteAttachment
         Storage::disk($attachment->disk)->delete($attachment->path);
 
         $attachment->delete();
+
+        $this->calculateUsage->forget($attachment->document->workspace);
     }
 }

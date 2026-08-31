@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Actions\Documents;
 
+use App\Actions\Workspace\CalculateWorkspaceUsage;
 use App\Models\Document;
 use Illuminate\Support\Facades\Storage;
 
 class DeleteDocument
 {
+    public function __construct(private readonly CalculateWorkspaceUsage $calculateUsage) {}
+
     /**
      * Delete a Document, purging its attachments' stored files from disk and
      * cascading its tags and location history.
@@ -24,5 +27,7 @@ class DeleteDocument
         }
 
         $document->delete();
+
+        $this->calculateUsage->forget($document->workspace);
     }
 }

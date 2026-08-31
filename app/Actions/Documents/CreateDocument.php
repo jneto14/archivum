@@ -39,7 +39,7 @@ class CreateDocument
             ]);
         }
 
-        return DB::transaction(function () use ($workspace, $creator, $type, $title, $documentDate, $metadata, $tagIds): Document {
+        $document = DB::transaction(function () use ($workspace, $creator, $type, $title, $documentDate, $metadata, $tagIds): Document {
             $document = Document::query()->create([
                 'workspace_id' => $workspace->id,
                 'document_type_id' => $type->id,
@@ -53,5 +53,9 @@ class CreateDocument
 
             return $document;
         });
+
+        $this->calculateUsage->forget($workspace);
+
+        return $document;
     }
 }
