@@ -15,6 +15,10 @@ export default defineConfig({
                 bunny('Instrument Sans', {
                     weights: [400, 500, 600],
                 }),
+                // Brand face. Used only by the wordmark, so one weight is enough.
+                bunny('Newsreader', {
+                    weights: [400],
+                }),
             ],
         }),
         inertia(),

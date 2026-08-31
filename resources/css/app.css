@@ -13,6 +13,13 @@
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
+    /*
+     * The brand face, for the wordmark only. It is deliberately not `--font-serif`:
+     * that utility is generic, and any future serif body copy must not silently
+     * inherit the logo's typeface.
+     */
+    --font-brand: 'Newsreader', Georgia, 'Times New Roman', serif;
+
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
     --radius-sm: calc(var(--radius) - 4px);
