@@ -39,10 +39,14 @@ class AddWorkspaceUser
             ]);
         }
 
-        return WorkspaceUser::query()->create([
+        $member = WorkspaceUser::query()->create([
             'workspace_id' => $workspace->id,
             'user_id' => $user->id,
             'role' => $role,
         ]);
+
+        $this->calculateUsage->forget($workspace);
+
+        return $member;
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Actions\Workspace\CalculateWorkspaceUsage;
 use App\Enums\WorkspaceRole;
 use App\Models\Passkey;
 use App\Models\User;
@@ -24,11 +25,13 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Register any application services.
      *
-     * @return void No services are registered here.
+     * @return void No return value; binds the workspace usage calculator.
      */
     public function register(): void
     {
-        //
+        // Scoped, not transient: CalculateWorkspaceUsage memoises its totals for
+        // the request, and a fresh instance per injection would defeat that.
+        $this->app->scoped(CalculateWorkspaceUsage::class);
     }
 
     /**

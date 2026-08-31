@@ -8,6 +8,7 @@ use App\Concerns\LogsWorkspaceActivity;
 use App\Enums\WorkspaceRole;
 use Database\Factories\WorkspaceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -21,12 +22,40 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string $name
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read string|null $organization_scheme_id Only populated by the `withOrganizationSchemeId` scope; null otherwise.
  */
 #[Fillable(['name'])]
 class Workspace extends Model
 {
     /** @use HasFactory<WorkspaceFactory> */
     use HasFactory, HasUuids, LogsWorkspaceActivity;
+
+    /**
+     * Select the workspace's organization scheme id alongside the row itself.
+     *
+     * The app shell needs this on every request for the sidebar's "Organization
+     * scheme" link, and it is strictly 1:1 — `organization_schemes.workspace_id`
+     * carries a unique index, one scheme per workspace since ARC-68. Selecting
+     * it here keeps it off the request as a second round trip.
+     *
+     * `select('workspaces.*')` is required, not decorative: once columns are set
+     * explicitly Eloquent stops defaulting them, and a `BelongsToMany` would
+     * come back with only the aliased pivot columns beside the subquery.
+     *
+     * @param Builder<Workspace> $query The query being decorated.
+     *
+     * @return void The scope mutates $query in place.
+     */
+    public function scopeWithOrganizationSchemeId(Builder $query): void
+    {
+        $query
+            ->select('workspaces.*')
+            ->addSelect(['organization_scheme_id' => OrganizationScheme::query()
+                ->select('id')
+                ->whereColumn('workspace_id', 'workspaces.id')
+                ->limit(1),
+            ]);
+    }
 
     /**
      * @return LogOptions Logs name changes under the 'workspace' log name.

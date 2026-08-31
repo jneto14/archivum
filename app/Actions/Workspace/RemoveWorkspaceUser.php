@@ -11,6 +11,8 @@ use Illuminate\Validation\ValidationException;
 
 class RemoveWorkspaceUser
 {
+    public function __construct(private readonly CalculateWorkspaceUsage $calculateUsage) {}
+
     /**
      * Remove a user from a Workspace.
      *
@@ -33,5 +35,7 @@ class RemoveWorkspaceUser
             ->where('workspace_id', $workspace->id)
             ->where('user_id', $user->id)
             ->delete();
+
+        $this->calculateUsage->forget($workspace);
     }
 }

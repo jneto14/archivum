@@ -46,7 +46,7 @@ class UploadAttachment
         $disk = config('archivum.attachments.disk');
         $path = $file->store("documents/{$document->id}", $disk);
 
-        return DocumentAttachment::query()->create([
+        $attachment = DocumentAttachment::query()->create([
             'document_id' => $document->id,
             'uploaded_by' => $uploader->id,
             'disk' => $disk,
@@ -56,5 +56,9 @@ class UploadAttachment
             'size' => $file->getSize(),
             'checksum' => hash_file('sha256', $file->getRealPath()),
         ]);
+
+        $this->calculateUsage->forget($workspace);
+
+        return $attachment;
     }
 }
