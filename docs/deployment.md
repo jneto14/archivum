@@ -88,12 +88,12 @@ Published on every `v*` tag to two registries, holding the same `amd64` and
 `arm64` images:
 
 ```text
-jnweb/archivum:0.1.0            Docker Hub
+jneto14/archivum:0.1.0            Docker Hub
 ghcr.io/jneto14/archivum:0.1.0  GHCR
 ```
 
 Docker Hub is the default because a short name is only ever resolved there —
-`docker pull jnweb/archivum` expands to `docker.io/jnweb/archivum` and Docker
+`docker pull jneto14/archivum` expands to `docker.io/jneto14/archivum` and Docker
 looks nowhere else. Switch registries with `ARCHIVUM_IMAGE`, which is worth
 doing where Docker Hub's anonymous pull limit is a problem:
 
@@ -105,7 +105,7 @@ ARCHIVUM_VERSION=0.1.0
 To build the image yourself rather than pull it:
 
 ```bash
-docker build -f docker/production/Dockerfile -t jnweb/archivum:local .
+docker build -f docker/production/Dockerfile -t jneto14/archivum:local .
 ARCHIVUM_VERSION=local docker compose -f compose.prod.yaml up -d
 ```
 
@@ -140,7 +140,7 @@ were created with, so an edited `.env` has no effect at all:
 
 This works because the config cache is built by the entrypoint when the
 container starts, not when the image is built. That is what makes one image
-environment-agnostic: the same `jnweb/archivum:0.1.0` runs anywhere, and
+environment-agnostic: the same `jneto14/archivum:0.1.0` runs anywhere, and
 nothing about your installation is baked into it.
 
 `OCR_JOB_TIMEOUT` shows why the distinction bites. It moves three things at

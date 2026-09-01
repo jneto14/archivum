@@ -24,7 +24,7 @@
 #
 # To build it yourself instead of pulling:
 #
-#   docker build -f docker/production/Dockerfile -t jnweb/archivum:local .
+#   docker build -f docker/production/Dockerfile -t jneto14/archivum:local .
 #   ARCHIVUM_VERSION=local docker compose -f compose.prod.yaml up -d
 #
 # ARCHIVUM_ENV_FILE points this stack at a different file, which is what makes
@@ -35,7 +35,7 @@
 
 services:
     app:
-        image: ${ARCHIVUM_IMAGE:-jnweb/archivum}:${ARCHIVUM_VERSION:-latest}
+        image: ${ARCHIVUM_IMAGE:-jneto14/archivum}:${ARCHIVUM_VERSION:-latest}
         restart: unless-stopped
         environment:
             ARCHIVUM_ROLE: web
@@ -73,7 +73,7 @@ services:
     # setting it in `.env` moves the job and this flag together. The fallback
     # below must equal the config default; QueueTimeoutTest asserts that.
     worker:
-        image: ${ARCHIVUM_IMAGE:-jnweb/archivum}:${ARCHIVUM_VERSION:-latest}
+        image: ${ARCHIVUM_IMAGE:-jneto14/archivum}:${ARCHIVUM_VERSION:-latest}
         restart: unless-stopped
         environment:
             ARCHIVUM_ROLE: worker
@@ -99,7 +99,7 @@ services:
     # clock, so a second instance prunes exports and cleans the activity log a
     # second time.
     scheduler:
-        image: ${ARCHIVUM_IMAGE:-jnweb/archivum}:${ARCHIVUM_VERSION:-latest}
+        image: ${ARCHIVUM_IMAGE:-jneto14/archivum}:${ARCHIVUM_VERSION:-latest}
         restart: unless-stopped
         environment:
             ARCHIVUM_ROLE: scheduler
