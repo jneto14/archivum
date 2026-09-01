@@ -1263,17 +1263,47 @@ redis
 
 ```bash
 curl -O https://raw.githubusercontent.com/jneto14/archivum/main/compose.prod.yaml
-curl -o .env https://raw.githubusercontent.com/jneto14/archivum/main/.env.example
 
-# 32 random bytes in base64 — the same thing `artisan key:generate` produces.
-echo "APP_KEY=base64:$(openssl rand -base64 32)" >> .env
+cat > .env <<EOF
+APP_NAME=Archivum
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://archivum.example.com
+# 32 random bytes in base64 — the same thing artisan key:generate produces.
+APP_KEY=base64:$(openssl rand -base64 32)
 
-# Then edit .env: APP_URL, DB_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD,
-# and pin ARCHIVUM_VERSION to a release rather than riding `latest`.
+# Not root: MySQL refuses to start with MYSQL_USER=root.
+DB_HOST=mysql
+DB_DATABASE=archivum
+DB_USERNAME=archivum
+DB_PASSWORD=change-me
 
-docker compose -f compose.prod.yaml up -d
-docker compose -f compose.prod.yaml exec app php artisan db:seed --force
+REDIS_HOST=redis
+CACHE_STORE=redis
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=database
+
+ADMIN_EMAIL=you@example.com
+ADMIN_PASSWORD=change-me-too
+
+# Pin a release rather than riding latest, so upgrading is a choice.
+ARCHIVUM_VERSION=latest
+EOF
+
+docker compose --env-file .env -f compose.prod.yaml up -d
+docker compose --env-file .env -f compose.prod.yaml exec app php artisan db:seed --force
 ```
+
+Written out rather than copied from `.env.example`, which is the development
+file: it points at `127.0.0.1` and connects as `root`, and MySQL's entrypoint
+refuses to start at all with `MYSQL_USER=root`.
+
+`--env-file` matters. Compose reads variables from two places and they are not
+the same: `env_file:` inside the file passes them into the containers, while
+`${...}` in the file itself is interpolated by compose from the project `.env`
+or from `--env-file`. `APP_PORT`, the `DB_*` pair used to create the database,
+and `ARCHIVUM_*` are all the second kind, so without the flag they quietly fall
+back to their defaults — a stack that ignores `APP_PORT` and tries to bind 80.
 
 Migrations run from the container's entrypoint, so there is no separate step for
 them. The seed is what creates the first administrator and the default
@@ -1312,8 +1342,12 @@ safe to run beside a development checkout — `.env` there is Sail's, with
 `APP_ENV=local` and a `DB_HOST` that means something else entirely:
 
 ```bash
-ARCHIVUM_ENV_FILE=.env.prod docker compose -f compose.prod.yaml up -d
+docker compose --env-file .env.prod -f compose.prod.yaml -p archivum-prod up -d
 ```
+
+with `ARCHIVUM_ENV_FILE=.env.prod` set inside that file, so both mechanisms
+read it. Give it its own `-p` project name and an `APP_PORT` other than 80 and
+the two stacks run side by side.
 
 ## Changing configuration
 
@@ -1321,7 +1355,7 @@ Almost all of it is environment variables, and none of those are in the image.
 Edit `.env`, then:
 
 ```bash
-docker compose -f compose.prod.yaml up -d
+docker compose --env-file .env -f compose.prod.yaml up -d
 ```
 
 **Not `restart`.** That restarts the same containers with the environment they
@@ -1351,8 +1385,8 @@ one of them works as an escape hatch, but it is not the route to take twice.
 
 ```bash
 # Change ARCHIVUM_VERSION in .env, then:
-docker compose -f compose.prod.yaml pull
-docker compose -f compose.prod.yaml up -d
+docker compose --env-file .env -f compose.prod.yaml pull
+docker compose --env-file .env -f compose.prod.yaml up -d
 ```
 
 Replacing the containers is what applies the new code, and replacing the worker

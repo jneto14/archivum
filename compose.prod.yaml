@@ -4,8 +4,15 @@
 # the two. This one pulls the published image and runs the app unprivileged
 # behind FrankenPHP.
 #
-# Required in `.env` before bringing it up: APP_KEY, APP_URL, DB_PASSWORD.
-# The README's Deployment section lists the rest.
+# Required before bringing it up: APP_KEY, APP_URL, DB_PASSWORD, and a
+# DB_USERNAME that is not `root`. The README's Deployment section has a
+# working file to start from.
+#
+# Two different mechanisms read that file, and the difference matters:
+# `env_file` passes variables into the containers, while `${...}` here is
+# interpolated by compose itself and comes from the project's `.env` or from
+# `--env-file`. Variables used below — APP_PORT, DB_*, ARCHIVUM_* — need the
+# second. Pass `--env-file` and they both come from one place.
 #
 # Pin ARCHIVUM_VERSION to a released version rather than riding `latest`, so an
 # upgrade is something you choose. ARCHIVUM_IMAGE switches registries:
@@ -113,6 +120,11 @@ services:
         networks:
             - archivum
 
+    # DB_USERNAME must not be `root`: MySQL's entrypoint refuses to start when
+    # MYSQL_USER is root, and says so only in its own logs. `.env.example`
+    # ships root because that is what Laravel and Sail use in development, so
+    # copying that file into a production install is exactly how this bites.
+    # The app has no reason to connect as root anyway.
     mysql:
         image: 'mysql:8.4'
         restart: unless-stopped
