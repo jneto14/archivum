@@ -1,6 +1,7 @@
 import { Head, router, setLayoutProps, usePage } from '@inertiajs/react';
 import { FileTextIcon, LayoutGridIcon, TableIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { DateRangePicker } from '@/components/date-range-picker';
 import { EmptyState } from '@/components/empty-state';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
@@ -278,37 +279,12 @@ export default function DocumentIndex({
                             ))}
                         </SelectContent>
                     </Select>
-                    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
-                        <span className="w-full shrink-0 text-sm text-muted-foreground sm:w-auto">
-                            {t('documents.index.filter_date_label')}
-                        </span>
-                        <Input
-                            type="date"
-                            aria-label={t('documents.index.filter_date_from')}
-                            value={filters.from ?? ''}
-                            className="min-w-0 flex-1 sm:w-40 sm:flex-none"
-                            onChange={(event) =>
-                                applyFilters({
-                                    from: event.target.value || null,
-                                })
-                            }
-                        />
-                        <span
-                            aria-hidden="true"
-                            className="text-muted-foreground"
-                        >
-                            –
-                        </span>
-                        <Input
-                            type="date"
-                            aria-label={t('documents.index.filter_date_to')}
-                            value={filters.to ?? ''}
-                            className="min-w-0 flex-1 sm:w-40 sm:flex-none"
-                            onChange={(event) =>
-                                applyFilters({ to: event.target.value || null })
-                            }
-                        />
-                    </div>
+                    <DateRangePicker
+                        from={filters.from}
+                        to={filters.to}
+                        onChange={(from, to) => applyFilters({ from, to })}
+                        className="w-full sm:w-60"
+                    />
                 </div>
 
                 {documents.data.length === 0 && (
