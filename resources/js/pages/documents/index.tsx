@@ -197,94 +197,106 @@ export default function DocumentIndex({
                     </Button>
                 </PageHeader>
 
-                <div className="flex flex-wrap items-center gap-2">
-                    <Input
-                        placeholder={t('documents.index.search_placeholder')}
-                        defaultValue={filters.q ?? ''}
-                        className="w-full min-w-56 flex-1 sm:max-w-xs"
-                        onChange={(event) =>
-                            applyFilters({ q: event.target.value || null })
-                        }
-                    />
-                    <Select
-                        value={filters.mode}
-                        onValueChange={(value) =>
-                            applyFilters({ mode: value as SearchMode })
-                        }
-                    >
-                        <SelectTrigger
-                            className="w-full sm:w-40"
-                            title={t('documents.index.search_mode_hint')}
+                {/*
+                 * One grid, so every control lines up on a shared set of
+                 * columns instead of wrapping into a ragged second row. The
+                 * steps are container queries, not viewport breakpoints: this
+                 * sits inside the app shell, so the space available swings by
+                 * the sidebar's 13rem and the viewport does not describe it.
+                 */}
+                <div className="@container/filters">
+                    <div className="grid grid-cols-1 gap-2 @md/filters:grid-cols-2 @4xl/filters:grid-cols-6">
+                        <Input
+                            placeholder={t(
+                                'documents.index.search_placeholder',
+                            )}
+                            defaultValue={filters.q ?? ''}
+                            className="@md/filters:col-span-2 @4xl/filters:col-span-4"
+                            onChange={(event) =>
+                                applyFilters({ q: event.target.value || null })
+                            }
+                        />
+                        <Select
+                            value={filters.mode}
+                            onValueChange={(value) =>
+                                applyFilters({ mode: value as SearchMode })
+                            }
                         >
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="exact">
-                                {t('documents.index.search_mode_exact')}
-                            </SelectItem>
-                            <SelectItem value="broad">
-                                {t('documents.index.search_mode_broad')}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Select
-                        value={filters.document_type_id ?? ALL}
-                        onValueChange={(value) =>
-                            applyFilters({
-                                document_type_id: value === ALL ? null : value,
-                            })
-                        }
-                    >
-                        <SelectTrigger className="w-full sm:w-48">
-                            <SelectValue
-                                placeholder={t(
-                                    'documents.index.filter_type_placeholder',
-                                )}
-                            />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value={ALL}>
-                                {t('documents.index.filter_all_types')}
-                            </SelectItem>
-                            {documentTypes.map((type) => (
-                                <SelectItem key={type.id} value={type.id}>
-                                    {type.name}
+                            <SelectTrigger
+                                className="w-full @4xl/filters:col-span-2"
+                                title={t('documents.index.search_mode_hint')}
+                            >
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="exact">
+                                    {t('documents.index.search_mode_exact')}
                                 </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Select
-                        value={selectedTagId}
-                        onValueChange={(value) =>
-                            applyFilters({
-                                tag_ids: value === ALL ? [] : [value],
-                            })
-                        }
-                    >
-                        <SelectTrigger className="w-full sm:w-48">
-                            <SelectValue
-                                placeholder={t(
-                                    'documents.index.filter_tag_placeholder',
-                                )}
-                            />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value={ALL}>
-                                {t('documents.index.filter_all_tags')}
-                            </SelectItem>
-                            {tags.map((tag) => (
-                                <SelectItem key={tag.id} value={tag.id}>
-                                    {tag.name}
+                                <SelectItem value="broad">
+                                    {t('documents.index.search_mode_broad')}
                                 </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <DateRangePicker
-                        from={filters.from}
-                        to={filters.to}
-                        onChange={(from, to) => applyFilters({ from, to })}
-                        className="w-full sm:w-60"
-                    />
+                            </SelectContent>
+                        </Select>
+                        <Select
+                            value={filters.document_type_id ?? ALL}
+                            onValueChange={(value) =>
+                                applyFilters({
+                                    document_type_id:
+                                        value === ALL ? null : value,
+                                })
+                            }
+                        >
+                            <SelectTrigger className="w-full @4xl/filters:col-span-2">
+                                <SelectValue
+                                    placeholder={t(
+                                        'documents.index.filter_type_placeholder',
+                                    )}
+                                />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={ALL}>
+                                    {t('documents.index.filter_all_types')}
+                                </SelectItem>
+                                {documentTypes.map((type) => (
+                                    <SelectItem key={type.id} value={type.id}>
+                                        {type.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Select
+                            value={selectedTagId}
+                            onValueChange={(value) =>
+                                applyFilters({
+                                    tag_ids: value === ALL ? [] : [value],
+                                })
+                            }
+                        >
+                            <SelectTrigger className="w-full @4xl/filters:col-span-2">
+                                <SelectValue
+                                    placeholder={t(
+                                        'documents.index.filter_tag_placeholder',
+                                    )}
+                                />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={ALL}>
+                                    {t('documents.index.filter_all_tags')}
+                                </SelectItem>
+                                {tags.map((tag) => (
+                                    <SelectItem key={tag.id} value={tag.id}>
+                                        {tag.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <DateRangePicker
+                            from={filters.from}
+                            to={filters.to}
+                            onChange={(from, to) => applyFilters({ from, to })}
+                            className="w-full @4xl/filters:col-span-2"
+                        />
+                    </div>
                 </div>
 
                 {documents.data.length === 0 && (
