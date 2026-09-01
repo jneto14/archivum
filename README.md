@@ -1,4 +1,8 @@
-# Archivum
+<p align="center">
+  <img src="public/logo.svg" alt="Archivum" width="260">
+</p>
+
+<h1 align="center">Archivum</h1>
 
 Open-source document management system focused on organizing physical documents and their digital representations.
 

@@ -66,6 +66,12 @@
  * The four must stay distinct — components express selected/hover state purely by
  * stepping between them (see `toggleVariants`, which pairs `hover:bg-muted` with
  * `data-[state=on]:bg-accent`). Collapsing any two silently makes those states invisible.
+ *
+ * `--primary` is the logo's deep blue, #285E9F. ARC-88 picked this value as a
+ * deliberately non-committal stand-in; when the mark arrived it converted to
+ * oklch(0.480 0.120 254.9) — the same colour, so the placeholder turned out to
+ * be the brand. Dark mode lifts it to 0.68 to hold contrast on a dark ground,
+ * which lands beside the mark's lighter blue #5B8DC4 / oklch(0.631 0.099 252).
  */
 :root {
     --background: oklch(1 0 0);

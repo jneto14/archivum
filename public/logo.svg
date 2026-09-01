@@ -1,10 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="181.75 151.75 136 136" width="136" height="136" role="img" aria-label="Archivum">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="112.5 160 270 185" role="img" aria-label="Archivum">
   <title>Archivum</title>
 
   <defs>
     <!-- diagonal cut-out: counter of the A + slash that runs to the bottom left -->
     <mask id="cut">
-      <rect x="181.75" y="151.75" width="136" height="136" fill="#fff"/>
+      <rect x="0" y="0" width="500" height="500" fill="#fff"/>
       <path d="M249.5 198 L269 237 L239 237 L220.5 272 L210.5 272 Z" fill="#000"/>
     </mask>
 
@@ -25,4 +25,9 @@
   <rect x="196" y="210" width="107.5" height="61.5" fill="#5B8DC4" mask="url(#cut)"/>
   <use href="#mark-a" fill="#5B8DC4" clip-path="url(#clip-column)"/>
   <use href="#mark-a" fill="#285E9F" clip-path="url(#clip-bar)"/>
+
+  <text x="247.5" y="336"
+        text-anchor="middle"
+        font-family="'Open Sans','Source Sans Pro','Segoe UI','Helvetica Neue',Arial,sans-serif"
+        font-size="56" fill="#285E9F">Archivum</text>
 </svg>
