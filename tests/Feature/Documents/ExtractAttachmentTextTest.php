@@ -315,6 +315,60 @@ class ExtractAttachmentTextTest extends TestCase
         Queue::assertNothingPushed();
     }
 
+    public function test_a_file_that_is_neither_a_pdf_nor_an_image_is_skipped()
+    {
+        $this->fakeEngine('never called');
+
+        $attachment = $this->attachment($this->document(), 'notes.txt', 'text/plain');
+
+        $task = $this->runExtraction($attachment);
+
+        $attachment->refresh();
+
+        // Skipped, not failed: there is nothing wrong with the file, it just
+        // isn't the kind of thing text extraction applies to.
+        $this->assertSame(OcrStatus::Skipped, $attachment->ocr_status);
+        $this->assertNull($attachment->ocr_error);
+        $this->assertSame(TaskStatus::Completed, $task->refresh()->status);
+        $this->assertSame(OcrStatus::Skipped->value, $task->result['outcome']);
+    }
+
+    public function test_the_job_records_unavailable_when_extraction_is_switched_off()
+    {
+        config()->set('archivum.ocr.enabled', false);
+
+        $attachment = $this->attachment($this->document(), 'photo.png', 'image/png');
+
+        $task = $this->runExtraction($attachment);
+
+        $attachment->refresh();
+
+        $this->assertSame(OcrStatus::Unavailable, $attachment->ocr_status);
+        $this->assertSame(TaskStatus::Completed, $task->refresh()->status);
+        $this->assertSame(OcrStatus::Unavailable->value, $task->result['outcome']);
+    }
+
+    public function test_a_failure_raised_around_the_job_still_settles_the_attachment()
+    {
+        $attachment = $this->attachment($this->document(), 'photo.png', 'image/png');
+        $task = Task::query()->create([
+            'workspace_id' => $attachment->document->workspace_id,
+            'user_id' => $attachment->uploaded_by,
+            'type' => TaskType::AttachmentTextExtraction,
+            'status' => TaskStatus::Queued,
+            'payload' => ['attachment_id' => $attachment->id],
+        ]);
+
+        // A timeout or a missing model is raised by the queue around handle(),
+        // so it never reaches the catch inside it — without failed() both rows
+        // would sit on "processing" forever.
+        (new ExtractAttachmentText($attachment, $task))->failed(new RuntimeException('Job exceeded its timeout.'));
+
+        $this->assertSame(OcrStatus::Failed, $attachment->refresh()->ocr_status);
+        $this->assertSame(TaskStatus::Failed, $task->refresh()->status);
+        $this->assertStringContainsString('Job exceeded its timeout.', $task->result['error']);
+    }
+
     /**
      * Build a failed text extraction task for $attachment.
      *

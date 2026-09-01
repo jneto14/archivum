@@ -90,6 +90,35 @@ class WorkspaceMembershipTest extends TestCase
         });
     }
 
+    public function test_admin_can_invite_a_brand_new_user_on_a_single_workspace_installation()
+    {
+        Notification::fake();
+
+        // The admin exists before single-workspace mode is switched on, the
+        // way a real installation gets there: seeded admin, then the flag.
+        $adminUser = User::factory()->create();
+        $workspace = Workspace::factory()->create();
+        WorkspaceUser::factory()->for($workspace)->create([
+            'user_id' => $adminUser->id,
+            'role' => WorkspaceRole::Admin,
+        ]);
+
+        config(['archivum.multi_workspace_enabled' => false]);
+
+        $response = $this->actingAs($adminUser)->post(route('workspaces.users.store', $workspace), [
+            'email' => 'nova@example.com',
+            'name' => 'Nova',
+            'role' => WorkspaceRole::Admin->value,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHasNoErrors();
+
+        $invited = User::query()->where('email', 'nova@example.com')->firstOrFail();
+
+        $this->assertTrue($workspace->isAdmin($invited), 'The invited user must get the role they were invited with.');
+    }
+
     public function test_inviting_a_new_email_without_a_name_fails_validation()
     {
         $workspace = Workspace::factory()->create();
@@ -150,6 +179,26 @@ class WorkspaceMembershipTest extends TestCase
 
         $response->assertRedirect();
         $this->assertTrue($workspace->isAdmin($member->user));
+    }
+
+    public function test_setting_a_member_to_the_role_they_already_have_is_a_no_op()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+
+        // Submitting the form without touching the select must not be treated
+        // as a demotion — which is what the last-admin guard below it would
+        // otherwise refuse for the only admin.
+        $response = $this->actingAs($admin->user)->patch(
+            route('workspaces.users.update', [$workspace, $admin->user]),
+            ['role' => WorkspaceRole::Admin->value],
+        );
+
+        $response->assertRedirect();
+        $response->assertSessionHasNoErrors();
+        $this->assertTrue($workspace->isAdmin($admin->user));
+        $this->assertFalse($workspace->isAdmin($member->user));
     }
 
     public function test_non_admin_cannot_change_roles()

@@ -104,4 +104,29 @@ class WorkspaceTest extends TestCase
         $this->assertTrue($workspace->wouldRemoveLastAdmin($admin->user));
         $this->assertFalse($workspace->wouldRemoveLastAdmin($member->user));
     }
+
+    public function test_a_new_user_joins_the_only_workspace_when_multi_workspace_is_disabled()
+    {
+        config(['archivum.multi_workspace_enabled' => false]);
+
+        $workspace = Workspace::factory()->create();
+        $user = User::factory()->create();
+
+        // On a single-workspace installation there is no invitation flow to
+        // join through, so a user created any other way — the seeder, an
+        // console command — would otherwise be locked out of every route.
+        $this->assertTrue($workspace->isMember($user));
+        $this->assertFalse($workspace->isAdmin($user));
+    }
+
+    public function test_a_new_user_joins_nothing_when_multi_workspace_is_enabled()
+    {
+        $workspace = Workspace::factory()->create();
+        $user = User::factory()->create();
+
+        $this->assertFalse(
+            $workspace->isMember($user),
+            'With several workspaces there is no "the" workspace to join a new user to.',
+        );
+    }
 }

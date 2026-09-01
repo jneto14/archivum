@@ -6,6 +6,7 @@ namespace Tests\Feature\Organization;
 
 use App\Actions\Organization\CreateOrganizationRule;
 use App\Actions\Organization\CreateScheme;
+use App\Actions\Organization\UpdateOrganizationRule;
 use App\Enums\NodeValueStrategy;
 use App\Enums\WorkspaceRole;
 use App\Models\OrganizationRule;
@@ -14,6 +15,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 /**
@@ -244,6 +246,43 @@ class OrganizationRuleTest extends TestCase
             ->assertForbidden();
 
         $this->assertSame(1, OrganizationRule::query()->count());
+    }
+
+    public function test_the_create_action_refuses_a_target_level_from_another_scheme()
+    {
+        [$workspace, $admin] = $this->workspaceWithAdmin();
+        $scheme = $this->createScheme($workspace);
+        $foreignLevel = $this->otherSchemeFor($admin)->levels()->where('key', 'letter')->firstOrFail();
+
+        // The controller resolves the level out of the scheme and 404s first,
+        // so the action's own guard is only reachable by calling it directly —
+        // which is what any other caller of the action would hit.
+        $this->expectException(ValidationException::class);
+
+        app(CreateOrganizationRule::class)->handle($scheme, 'document_type', 'invoice', $foreignLevel, 'A');
+    }
+
+    public function test_the_update_action_refuses_a_target_level_from_another_scheme()
+    {
+        [$workspace, $admin] = $this->workspaceWithAdmin();
+        $scheme = $this->createScheme($workspace);
+        $letter = $scheme->levels()->where('key', 'letter')->firstOrFail();
+        $foreignLevel = $this->otherSchemeFor($admin)->levels()->where('key', 'letter')->firstOrFail();
+
+        $rule = app(CreateOrganizationRule::class)->handle($scheme, 'document_type', 'invoice', $letter, 'A');
+
+        try {
+            app(UpdateOrganizationRule::class)->handle($rule, 'document_type', 'invoice', $foreignLevel, 'A');
+            $this->fail('A rule must not be moved onto a level of another scheme.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('target_level_id', $exception->errors());
+        }
+
+        $this->assertSame(
+            $letter->id,
+            $rule->refresh()->target_level_id,
+            'A refused update must leave the rule pointing where it was.',
+        );
     }
 
     /**

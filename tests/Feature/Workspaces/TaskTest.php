@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Workspaces;
 
+use App\Actions\Organization\MigrateNodeDocuments;
 use App\Enums\TaskStatus;
 use App\Enums\TaskType;
 use App\Enums\WorkspaceRole;
+use App\Jobs\BulkMoveDocuments;
+use App\Jobs\ExportWorkspaceDocuments;
 use App\Models\Document;
 use App\Models\DocumentLocation;
 use App\Models\OrganizationLevel;
@@ -24,6 +27,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Activitylog\Support\CauserResolver;
 use Tests\TestCase;
 
 class TaskTest extends TestCase
@@ -355,5 +359,95 @@ class TaskTest extends TestCase
         $response = $this->actingAs($admin->user)->get(route('workspaces.tasks.download', [$workspace, $task]));
 
         $response->assertNotFound();
+    }
+
+    public function test_retrying_an_export_while_another_is_already_running_is_rejected()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $task = Task::factory()->for($workspace)->for($admin->user)->failed()->create();
+
+        Cache::lock(TaskType::DocumentExport->lockKey($workspace->id), 600)->get();
+
+        $response = $this->actingAs($admin->user)->post(route('workspaces.tasks.retry', [$workspace, $task]));
+
+        $response->assertSessionHasErrors('task');
+        $this->assertSame(
+            TaskStatus::Failed,
+            $task->fresh()->status,
+            'A refused retry must leave the task failed, not queued behind a lock it never got.',
+        );
+    }
+
+    public function test_retrying_a_bulk_move_while_another_is_already_running_is_rejected()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $task = Task::factory()->for($workspace)->for($admin->user)->failed()->create([
+            'type' => TaskType::BulkDocumentMove,
+        ]);
+
+        Cache::lock(TaskType::BulkDocumentMove->lockKey($workspace->id), 600)->get();
+
+        $response = $this->actingAs($admin->user)->post(route('workspaces.tasks.retry', [$workspace, $task]));
+
+        $response->assertSessionHasErrors('task');
+        $this->assertSame(TaskStatus::Failed, $task->fresh()->status);
+    }
+
+    public function test_a_failing_export_records_the_error_and_releases_its_lock()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $task = Task::factory()->for($workspace)->for($admin->user)->create();
+
+        // A disk name nothing is configured for: the shape a misconfigured
+        // installation has, and it throws exactly where the export writes.
+        config()->set('archivum.attachments.disk', 'no-such-disk');
+
+        $lock = Cache::lock(TaskType::DocumentExport->lockKey($workspace->id), 600);
+        $this->assertTrue($lock->get());
+
+        (new ExportWorkspaceDocuments($task, (string) $lock->owner()))->handle();
+
+        $task->refresh();
+
+        $this->assertSame(TaskStatus::Failed, $task->status);
+        $this->assertNotEmpty($task->result['error']);
+
+        $this->assertTrue(
+            Cache::lock(TaskType::DocumentExport->lockKey($workspace->id), 600)->get(),
+            'A failed export must release its lock, or the workspace can never export again.',
+        );
+    }
+
+    public function test_a_failing_bulk_move_records_the_error_and_releases_its_lock()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $scheme = OrganizationScheme::factory()->for($workspace)->create();
+        $level = OrganizationLevel::factory()->for($scheme, 'scheme')->create();
+        $node = OrganizationNode::factory()->for($level, 'level')->create();
+        $task = Task::factory()->for($workspace)->for($admin->user)->create([
+            'type' => TaskType::BulkDocumentMove,
+        ]);
+
+        $lock = Cache::lock(TaskType::BulkDocumentMove->lockKey($workspace->id), 600);
+        $this->assertTrue($lock->get());
+
+        // Moving a node onto itself is what MigrateNodeDocuments refuses, and
+        // is the shortest way to make the job's own work throw.
+        (new BulkMoveDocuments($task, $node, $node, (string) $lock->owner()))
+            ->handle(app(MigrateNodeDocuments::class), app(CauserResolver::class));
+
+        $task->refresh();
+
+        $this->assertSame(TaskStatus::Failed, $task->status);
+        $this->assertNotEmpty($task->result['error']);
+
+        $this->assertTrue(
+            Cache::lock(TaskType::BulkDocumentMove->lockKey($workspace->id), 600)->get(),
+            'A failed move must release its lock, or the workspace can never bulk-move again.',
+        );
     }
 }
