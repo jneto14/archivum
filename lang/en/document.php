@@ -6,6 +6,8 @@ return [
     'limit_reached' => 'This workspace has reached its document limit.',
     'location_workspace_mismatch' => 'The location must belong to the same workspace as the document.',
     'attachment_limit_reached' => 'This workspace has reached its attachment limit.',
+    'attachment_limit_remaining_one' => 'Only 1 more attachment fits in this workspace.',
+    'attachment_limit_remaining_other' => 'Only :count more attachments fit in this workspace.',
     'storage_limit_exceeded' => 'This upload would exceed the workspace storage limit.',
     'type_created' => 'Document type created.',
     'type_updated' => 'Document type updated.',
@@ -18,6 +20,7 @@ return [
     'updated' => 'Document updated.',
     'deleted' => 'Document deleted.',
     'attachment_uploaded' => 'Attachment uploaded.',
+    'attachments_uploaded' => ':count attachments uploaded.',
     'attachment_deleted' => 'Attachment deleted.',
     'moved' => 'Document location updated.',
 ];

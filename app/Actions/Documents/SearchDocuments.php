@@ -11,6 +11,7 @@ use App\Models\Workspace;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Pagination\LengthAwarePaginator as ConcreteLengthAwarePaginator;
 
 class SearchDocuments
 {
@@ -46,7 +47,7 @@ class SearchDocuments
         $tagIds = $this->scopedTagIds($workspace, $filters['tag_ids'] ?? []);
         $terms = $mode === SearchMode::Broad ? $this->terms($query) : [];
 
-        return Document::search($mode === SearchMode::Broad ? '' : ($query ?? ''))
+        $paginator = Document::search($mode === SearchMode::Broad ? '' : ($query ?? ''))
             ->where('workspace_id', $workspace->id)
             ->query(fn (Builder $builder) => $builder
                 // Every column except `ocr_text`, which holds the full text of
@@ -87,8 +88,19 @@ class SearchDocuments
                     fn (Builder $q) => $q->whereHas('tags', fn (Builder $tags) => $tags->whereIn('tags.id', $tagIds)),
                 )
                 ->with(['documentType', 'tags', 'currentLocation.node', 'creator']))
-            ->paginate(15)
-            ->withQueryString();
+            ->paginate(15);
+
+        // Narrow the numbered page window from Laravel's default of three
+        // either side, which is up to nine buttons — more than fits beside the
+        // prev/next pair once the sidebar has taken its share of the width.
+        //
+        // Guarded because Scout types `paginate()` to the pagination contract,
+        // which has no window control; only the concrete paginator does.
+        if ($paginator instanceof ConcreteLengthAwarePaginator) {
+            $paginator->onEachSide(1);
+        }
+
+        return $paginator->withQueryString();
     }
 
     /**

@@ -59,7 +59,7 @@ class ExtractAttachmentTextTest extends TestCase
         $document = $this->document();
 
         $this->actingAs($document->creator)->post(route('attachments.store', $document), [
-            'file' => UploadedFile::fake()->create('scan.pdf', 10, 'application/pdf'),
+            'files' => [UploadedFile::fake()->create('scan.pdf', 10, 'application/pdf')],
         ])->assertRedirect();
 
         Queue::assertPushed(ExtractAttachmentText::class);
@@ -73,7 +73,7 @@ class ExtractAttachmentTextTest extends TestCase
         $document = $this->document();
 
         $this->actingAs($document->creator)->post(route('attachments.store', $document), [
-            'file' => UploadedFile::fake()->create('scan.pdf', 10, 'application/pdf'),
+            'files' => [UploadedFile::fake()->create('scan.pdf', 10, 'application/pdf')],
         ])->assertRedirect();
 
         Queue::assertNothingPushed();
@@ -176,7 +176,7 @@ class ExtractAttachmentTextTest extends TestCase
         // a file claiming to be a PDF that no PDF reader can open — the same
         // shape as a truncated upload from a real user.
         $this->actingAs($document->creator)->post(route('attachments.store', $document), [
-            'file' => UploadedFile::fake()->create('scan.pdf', 10, 'application/pdf'),
+            'files' => [UploadedFile::fake()->create('scan.pdf', 10, 'application/pdf')],
         ])->assertRedirect();
 
         $attachment = DocumentAttachment::query()->where('document_id', $document->id)->firstOrFail();
@@ -225,7 +225,7 @@ class ExtractAttachmentTextTest extends TestCase
         $document = $this->document();
 
         $this->actingAs($document->creator)->post(route('attachments.store', $document), [
-            'file' => UploadedFile::fake()->create('contrato.pdf', 10, 'application/pdf'),
+            'files' => [UploadedFile::fake()->create('contrato.pdf', 10, 'application/pdf')],
         ])->assertRedirect();
 
         $task = Task::query()->where('type', TaskType::AttachmentTextExtraction)->firstOrFail();
@@ -248,7 +248,7 @@ class ExtractAttachmentTextTest extends TestCase
 
         foreach (['one.pdf', 'two.pdf'] as $filename) {
             $this->actingAs($document->creator)->post(route('attachments.store', $document), [
-                'file' => UploadedFile::fake()->create($filename, 10, 'application/pdf'),
+                'files' => [UploadedFile::fake()->create($filename, 10, 'application/pdf')],
             ])->assertRedirect();
         }
 

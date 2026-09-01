@@ -66,10 +66,10 @@ class WorkspaceLimitTest extends TestCase
         WorkspaceLimit::factory()->for($workspace)->create(['attachments' => 1]);
 
         $response = $this->actingAs($member->user)->post(route('attachments.store', $document), [
-            'file' => UploadedFile::fake()->create('b.pdf', 10, 'application/pdf'),
+            'files' => [UploadedFile::fake()->create('b.pdf', 10, 'application/pdf')],
         ]);
 
-        $response->assertSessionHasErrors('file');
+        $response->assertSessionHasErrors('files');
         $this->assertDatabaseCount('document_attachments', 1);
     }
 
@@ -84,10 +84,10 @@ class WorkspaceLimitTest extends TestCase
         WorkspaceLimit::factory()->for($workspace)->create(['storage_bytes' => 1000]);
 
         $response = $this->actingAs($member->user)->post(route('attachments.store', $document), [
-            'file' => UploadedFile::fake()->create('large.pdf', 10, 'application/pdf'),
+            'files' => [UploadedFile::fake()->create('large.pdf', 10, 'application/pdf')],
         ]);
 
-        $response->assertSessionHasErrors('file');
+        $response->assertSessionHasErrors('files');
         $this->assertDatabaseCount('document_attachments', 0);
     }
 

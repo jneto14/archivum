@@ -1,7 +1,9 @@
 import { Head, router, setLayoutProps, usePage } from '@inertiajs/react';
-import { DownloadIcon, EyeIcon, Trash2Icon } from 'lucide-react';
+import { DownloadIcon, EyeIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
+import type { ChangeEvent } from 'react';
 import { DocumentPreviewDialog } from '@/components/document-preview-dialog';
+import InputError from '@/components/input-error';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -99,7 +101,10 @@ export default function DocumentShow({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { workspace } = usePage().props;
     const [moveOpen, setMoveOpen] = useState(false);
-    const [file, setFile] = useState<File | null>(null);
+    const [queue, setQueue] = useState<File[]>([]);
+    const [uploadError, setUploadError] = useState<string | undefined>(
+        undefined,
+    );
     const [previewAttachment, setPreviewAttachment] =
         useState<AttachmentRow | null>(null);
 
@@ -113,18 +118,51 @@ export default function DocumentShow({
         ],
     });
 
-    const uploadAttachment = () => {
-        if (file === null) {
+    /**
+     * Add the picked files to the queue rather than replacing it, so several
+     * folders can be gathered before uploading. The input's value is cleared
+     * afterwards, otherwise picking the same file again fires no change event.
+     */
+    const queueFiles = (event: ChangeEvent<HTMLInputElement>) => {
+        const picked = Array.from(event.target.files ?? []);
+
+        if (picked.length > 0) {
+            setQueue((current) => [...current, ...picked]);
+            setUploadError(undefined);
+        }
+
+        event.target.value = '';
+    };
+
+    const removeQueued = (index: number) => {
+        setQueue((current) => current.filter((_, at) => at !== index));
+    };
+
+    const uploadAttachments = () => {
+        if (queue.length === 0) {
             return;
         }
 
         router.post(
             attachmentStore.url(document.id),
-            { file },
+            { files: queue },
             {
                 forceFormData: true,
                 preserveScroll: true,
-                onSuccess: () => setFile(null),
+                onSuccess: () => {
+                    setQueue([]);
+                    setUploadError(undefined);
+                },
+                // The whole batch is rejected or none of it is, so a single
+                // message is the whole story. Without this the upload used to
+                // fail in complete silence.
+                onError: (errors) =>
+                    setUploadError(
+                        errors.files ??
+                            Object.values(errors).find(
+                                (message) => message !== undefined,
+                            ),
+                    ),
             },
         );
     };
@@ -230,12 +268,9 @@ export default function DocumentShow({
                                     <input
                                         ref={fileInputRef}
                                         type="file"
+                                        multiple
                                         className="sr-only"
-                                        onChange={(event) =>
-                                            setFile(
-                                                event.target.files?.[0] ?? null,
-                                            )
-                                        }
+                                        onChange={queueFiles}
                                     />
                                     <Button
                                         variant="outline"
@@ -245,24 +280,66 @@ export default function DocumentShow({
                                             fileInputRef.current?.click()
                                         }
                                     >
-                                        {t('documents.show.choose_file_button')}
+                                        {t(
+                                            'documents.show.choose_files_button',
+                                        )}
                                     </Button>
-                                    {file && (
-                                        <span className="min-w-0 truncate text-xs text-muted-foreground">
-                                            {file.name}
-                                        </span>
-                                    )}
                                     <Button
                                         size="sm"
                                         className="shrink-0"
-                                        onClick={uploadAttachment}
-                                        disabled={!file}
+                                        onClick={uploadAttachments}
+                                        disabled={queue.length === 0}
                                     >
-                                        {t('documents.show.upload_button')}
+                                        {queue.length === 0
+                                            ? t('documents.show.upload_button')
+                                            : t(
+                                                  'documents.show.upload_button_count',
+                                                  { count: queue.length },
+                                              )}
                                     </Button>
                                 </div>
                             </CardHeader>
                             <CardContent className="space-y-2">
+                                {queue.length > 0 && (
+                                    <div className="space-y-2 rounded-md border border-dashed p-3">
+                                        <p className="text-xs font-medium text-muted-foreground">
+                                            {t(
+                                                'documents.show.queued_files_title',
+                                                { count: queue.length },
+                                            )}
+                                        </p>
+                                        {queue.map((queued, index) => (
+                                            <div
+                                                key={`${queued.name}-${index}`}
+                                                className="flex items-center gap-2"
+                                            >
+                                                <span className="min-w-0 flex-1 truncate text-sm">
+                                                    {queued.name}
+                                                </span>
+                                                <span className="shrink-0 text-xs text-muted-foreground">
+                                                    {formatBytes(queued.size)}
+                                                </span>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="size-7 shrink-0"
+                                                    aria-label={t(
+                                                        'documents.show.remove_queued_file',
+                                                        { name: queued.name },
+                                                    )}
+                                                    onClick={() =>
+                                                        removeQueued(index)
+                                                    }
+                                                >
+                                                    <XIcon className="size-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <InputError message={uploadError} />
+
                                 {(document.attachments ?? []).length === 0 && (
                                     <p className="text-sm text-muted-foreground">
                                         {t('documents.show.no_attachments')}
