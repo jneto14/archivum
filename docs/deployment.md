@@ -21,13 +21,9 @@ APP_NAME=Archivum
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://archivum.example.com
-# 32 random bytes in base64 — the same thing artisan key:generate produces.
 APP_KEY=base64:$(openssl rand -base64 32)
 
-# DB_CONNECTION is not optional: Laravel's own default is sqlite, and the
-# app would try to open a database file called "archivum".
 DB_CONNECTION=mysql
-# Not root: MySQL refuses to start with MYSQL_USER=root.
 DB_HOST=mysql
 DB_DATABASE=archivum
 DB_USERNAME=archivum
@@ -38,14 +34,11 @@ CACHE_STORE=redis
 SESSION_DRIVER=redis
 QUEUE_CONNECTION=database
 
-# Also not optional: Scout defaults to the collection driver, which filters
-# in PHP and never touches the full-text index this app builds.
 SCOUT_DRIVER=database
 
 ADMIN_EMAIL=you@example.com
 ADMIN_PASSWORD=change-me-too
 
-# Pin a release rather than riding latest, so upgrading is a choice.
 ARCHIVUM_VERSION=latest
 EOF
 
@@ -53,15 +46,30 @@ docker compose --env-file .env -f compose.prod.yaml up -d
 docker compose --env-file .env -f compose.prod.yaml exec app php artisan db:seed --force
 ```
 
+Change `APP_URL`, both passwords and `ADMIN_EMAIL`, and you are done. The rest
+is correct as it stands.
+
 Written out rather than copied from `.env.example`, which is the development
 file: it points at `127.0.0.1` and connects as `root`, and MySQL's entrypoint
 refuses to start at all with `MYSQL_USER=root`.
 
-Every variable above whose absence would be silently wrong is there on purpose.
-`DB_CONNECTION` and `SCOUT_DRIVER` in particular have framework defaults —
-`sqlite` and `collection` — that leave a stack that starts and then fails at
-the first query or returns search results from the wrong place.
-`InstallRecipeTest` checks this block still names them.
+### Why each line is there
+
+Every variable above is one whose absence would be silently wrong. The ones
+worth understanding before you edit them:
+
+| | |
+| --- | --- |
+| `APP_KEY` | 32 random bytes in base64 — exactly what `artisan key:generate` produces. Changing it later makes every existing session and encrypted value unreadable |
+| `DB_CONNECTION` | Laravel's own default is `sqlite`, so omitting this gives a stack that starts and then reports that a database file called "archivum" does not exist |
+| `DB_USERNAME` | Anything but `root`. MySQL's entrypoint refuses to start with `MYSQL_USER=root`, and says so only in its own logs |
+| `SCOUT_DRIVER` | Scout defaults to `collection`, which filters in PHP and never touches the full-text index this application builds. Search would return plausible results, produced entirely the wrong way |
+| `QUEUE_CONNECTION` | Stays on the database on purpose — see [Environment](#environment) below |
+| `ADMIN_PASSWORD` | Leave it out and the seeder generates one and prints it **once** |
+| `ARCHIVUM_VERSION` | `latest` until there is a tagged release to pin. Once there is, pin it, so upgrading is a decision rather than a side effect of restarting |
+
+`InstallRecipeTest` checks this block still names the settings whose framework
+defaults are dangerous.
 
 `--env-file` matters. Compose reads variables from two places and they are not
 the same: `env_file:` inside the file passes them into the containers, while
@@ -72,8 +80,7 @@ back to their defaults — a stack that ignores `APP_PORT` and tries to bind 80.
 
 Migrations run from the container's entrypoint, so there is no separate step for
 them. The seed is what creates the first administrator and the default
-workspace — without it there is no account to log in with. Leaving
-`ADMIN_PASSWORD` unset makes the seeder generate one and print it **once**.
+workspace — without it there is no account to log in with.
 
 ## Images
 
