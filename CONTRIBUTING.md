@@ -66,8 +66,9 @@ Or individually:
 
 ## Development Philosophy
 
-Please read the "Development Philosophy" and "Implementation Priorities"
-sections of the [README](README.md) before making architectural changes.
+Please read [docs/roadmap.md](docs/roadmap.md) — particularly the
+"Principles" section — and [docs/architecture.md](docs/architecture.md) before
+making architectural changes.
 Archivum favours simple, explicit, testable Laravel code over premature
 abstraction (no repositories, generic DTOs, or services without a real
 architectural reason).

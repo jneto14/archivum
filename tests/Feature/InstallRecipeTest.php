@@ -7,7 +7,7 @@ namespace Tests\Feature;
 use Tests\TestCase;
 
 /**
- * Guards the `.env` the README tells a self-hoster to write.
+ * Guards the `.env` the install documentation tells a self-hoster to write.
  *
  * Some framework defaults are not merely different from what this stack needs,
  * they are silently wrong: `DB_CONNECTION` falls back to `sqlite`, so a stack
@@ -38,7 +38,7 @@ class InstallRecipeTest extends TestCase
         'APP_KEY' => '',
     ];
 
-    public function test_the_readme_recipe_pins_every_setting_with_a_misleading_default()
+    public function test_the_documented_recipe_pins_every_setting_with_a_misleading_default()
     {
         $recipe = $this->installRecipe();
 
@@ -46,7 +46,7 @@ class InstallRecipeTest extends TestCase
             $this->assertMatchesRegularExpression(
                 '/^' . preg_quote($key, '/') . '=/m',
                 $recipe,
-                "The README's install recipe does not set {$key}. Its framework default is "
+                "The install recipe in docs/deployment.md does not set {$key}. Its framework default is "
                 . "'" . self::REQUIRED[$key] . "', which produces a stack that starts and then misbehaves.",
             );
         }
@@ -62,18 +62,25 @@ class InstallRecipeTest extends TestCase
     }
 
     /**
-     * The heredoc from the README's Installing section.
+     * The heredoc from the Installing section of `docs/deployment.md`.
+     *
+     * The recipe moved out of the README when the specification was split into
+     * `docs/`. This test follows it rather than being deleted: the defaults it
+     * guards are still the ones that produce a stack which starts and then
+     * misbehaves.
      *
      * @return string The body of the `cat > .env` block.
      */
     private function installRecipe(): string
     {
-        $readme = (string) file_get_contents(base_path('README.md'));
+        $path = base_path('docs/deployment.md');
+
+        $this->assertFileExists($path, 'The deployment documentation is where the install recipe lives.');
 
         $this->assertSame(
             1,
-            preg_match('/^cat > \.env <<EOF$(.*?)^EOF$/ms', $readme, $matches),
-            'The README should contain exactly one `cat > .env <<EOF` install block.',
+            preg_match('/^cat > \.env <<EOF$(.*?)^EOF$/ms', (string) file_get_contents($path), $matches),
+            'docs/deployment.md should contain exactly one `cat > .env <<EOF` install block.',
         );
 
         return $matches[1];
