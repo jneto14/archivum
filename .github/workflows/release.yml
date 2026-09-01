@@ -2,8 +2,8 @@ name: release
 
 # Publishes the production image when a version tag is pushed.
 #
-# Two registries on purpose. A short name like `jnweb/archivum` is only ever
-# resolved against Docker Hub — Docker expands it to `docker.io/jnweb/archivum`
+# Two registries on purpose. A short name like `jneto14/archivum` is only ever
+# resolved against Docker Hub — Docker expands it to `docker.io/jneto14/archivum`
 # and never looks anywhere else — so an image that lives only on GHCR is
 # unreachable by the name people actually type. GHCR is the fallback that keeps
 # working when Docker Hub's anonymous pull limit bites.
@@ -32,7 +32,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  DOCKERHUB_IMAGE: jnweb/archivum
+  DOCKERHUB_IMAGE: jneto14/archivum
   GHCR_IMAGE: ghcr.io/${{ github.repository }}
 
 jobs:
