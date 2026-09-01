@@ -130,6 +130,21 @@ return [
         | pathological file cannot hang a worker indefinitely.
         */
         'timeout' => (int) env('OCR_TIMEOUT', 120),
+
+        /*
+        | Seconds the whole extraction job may run, derived rather than fixed:
+        | the worst case is every page of a scanned PDF taking the full
+        | per-binary timeout, so anything below `max_pages * timeout` kills
+        | work that was still progressing normally.
+        |
+        | Three numbers have to stay in order, or a long OCR runs twice at
+        | once: the queue's `retry_after` must exceed the worker's `--timeout`,
+        | which must be at least this. `QueueTimeoutTest` holds that invariant.
+        */
+        'job_timeout' => (int) env(
+            'OCR_JOB_TIMEOUT',
+            ((int) env('OCR_MAX_PAGES', 20) * (int) env('OCR_TIMEOUT', 120)) + 300,
+        ),
     ],
 
     /*

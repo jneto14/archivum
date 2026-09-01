@@ -37,12 +37,26 @@ return [
             'driver' => 'sync',
         ],
 
+        /*
+        | `retry_after` must stay above the longest job's timeout, or the queue
+        | hands a job that is still running to a second worker and the work
+        | happens twice. Attachment text extraction can legitimately run for
+        | `archivum.ocr.job_timeout`, so Laravel's stock 90 seconds was far too
+        | low — a two-minute OCR was being re-dispatched mid-run.
+        |
+        | The arithmetic is repeated from `archivum.ocr.job_timeout` because a
+        | config file cannot read another one. `QueueTimeoutTest` fails if the
+        | two ever drift apart.
+        */
         'database' => [
             'driver' => 'database',
             'connection' => env('DB_QUEUE_CONNECTION'),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => env('DB_QUEUE', 'default'),
-            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),
+            'retry_after' => (int) env(
+                'DB_QUEUE_RETRY_AFTER',
+                ((int) env('OCR_MAX_PAGES', 20) * (int) env('OCR_TIMEOUT', 120)) + 600,
+            ),
             'after_commit' => false,
         ],
 
