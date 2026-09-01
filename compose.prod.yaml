@@ -1,18 +1,28 @@
 # Archivum production stack.
 #
 # `compose.yaml` beside this file is Sail's development stack — do not confuse
-# the two. This one builds `docker/production/Dockerfile` and runs the app
-# unprivileged behind FrankenPHP.
+# the two. This one pulls the published image and runs the app unprivileged
+# behind FrankenPHP.
 #
 # Required in `.env` before bringing it up: APP_KEY, APP_URL, DB_PASSWORD.
 # The README's Deployment section lists the rest.
+#
+# Pin ARCHIVUM_VERSION to a released version rather than riding `latest`, so an
+# upgrade is something you choose. ARCHIVUM_IMAGE switches registries:
+#
+#   ARCHIVUM_IMAGE=ghcr.io/jneto14/archivum
+#
+# which is worth doing if Docker Hub's anonymous pull limit is a problem where
+# you are. The two hold the same images.
+#
+# To build it yourself instead of pulling:
+#
+#   docker build -f docker/production/Dockerfile -t jnweb/archivum:local .
+#   ARCHIVUM_VERSION=local docker compose -f compose.prod.yaml up -d
 
 services:
     app:
-        build:
-            context: .
-            dockerfile: docker/production/Dockerfile
-        image: archivum/app:latest
+        image: ${ARCHIVUM_IMAGE:-jnweb/archivum}:${ARCHIVUM_VERSION:-latest}
         restart: unless-stopped
         environment:
             ARCHIVUM_ROLE: web
@@ -50,10 +60,7 @@ services:
     # setting it in `.env` moves the job and this flag together. The fallback
     # below must equal the config default; QueueTimeoutTest asserts that.
     worker:
-        image: archivum/app:latest
-        build:
-            context: .
-            dockerfile: docker/production/Dockerfile
+        image: ${ARCHIVUM_IMAGE:-jnweb/archivum}:${ARCHIVUM_VERSION:-latest}
         restart: unless-stopped
         environment:
             ARCHIVUM_ROLE: worker
@@ -79,10 +86,7 @@ services:
     # clock, so a second instance prunes exports and cleans the activity log a
     # second time.
     scheduler:
-        image: archivum/app:latest
-        build:
-            context: .
-            dockerfile: docker/production/Dockerfile
+        image: ${ARCHIVUM_IMAGE:-jnweb/archivum}:${ARCHIVUM_VERSION:-latest}
         restart: unless-stopped
         environment:
             ARCHIVUM_ROLE: scheduler

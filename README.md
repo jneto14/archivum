@@ -1248,8 +1248,8 @@ Nothing queued runs unless a worker runs. See Deployment below.
 
 # Deployment
 
-`compose.prod.yaml` builds `docker/production/Dockerfile` and runs five
-services. It is not `compose.yaml`, which is Sail's development stack.
+`compose.prod.yaml` pulls the published image and runs five services. It is not
+`compose.yaml`, which is Sail's development stack.
 
 ```text
 app        FrankenPHP, serving public/          :80
@@ -1258,6 +1258,66 @@ scheduler  schedule:work                        same image, one replica
 mysql
 redis
 ```
+
+## Installing
+
+```bash
+curl -O https://raw.githubusercontent.com/jneto14/archivum/main/compose.prod.yaml
+curl -o .env https://raw.githubusercontent.com/jneto14/archivum/main/.env.example
+
+# 32 random bytes in base64 — the same thing `artisan key:generate` produces.
+echo "APP_KEY=base64:$(openssl rand -base64 32)" >> .env
+
+# Then edit .env: APP_URL, DB_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD,
+# and pin ARCHIVUM_VERSION to a release rather than riding `latest`.
+
+docker compose -f compose.prod.yaml up -d
+docker compose -f compose.prod.yaml exec app php artisan db:seed --force
+```
+
+Migrations run from the container's entrypoint, so there is no separate step for
+them. The seed is what creates the first administrator and the default
+workspace — without it there is no account to log in with. Leaving
+`ADMIN_PASSWORD` unset makes the seeder generate one and print it **once**.
+
+## Images
+
+Published on every `v*` tag to two registries, holding the same `amd64` and
+`arm64` images:
+
+```text
+jnweb/archivum:1.2.3            Docker Hub
+ghcr.io/jneto14/archivum:1.2.3  GHCR
+```
+
+Docker Hub is the default because a short name is only ever resolved there —
+`docker pull jnweb/archivum` expands to `docker.io/jnweb/archivum` and Docker
+looks nowhere else. Switch registries with `ARCHIVUM_IMAGE`, which is worth
+doing where Docker Hub's anonymous pull limit is a problem:
+
+```dotenv
+ARCHIVUM_IMAGE=ghcr.io/jneto14/archivum
+ARCHIVUM_VERSION=1.2.3
+```
+
+To build the image yourself rather than pull it:
+
+```bash
+docker build -f docker/production/Dockerfile -t jnweb/archivum:local .
+ARCHIVUM_VERSION=local docker compose -f compose.prod.yaml up -d
+```
+
+## Upgrading
+
+```bash
+# Change ARCHIVUM_VERSION in .env, then:
+docker compose -f compose.prod.yaml pull
+docker compose -f compose.prod.yaml up -d
+```
+
+Replacing the containers is what applies the new code, and replacing the worker
+**is** `queue:restart` — a running worker holds the old classes in memory and
+will not pick up a new job class on its own. Migrations run on start.
 
 ## One image, three roles
 
@@ -1628,10 +1688,12 @@ TypeScript
 Frontend build
 ```
 
+A second workflow, `release`, publishes the production image on every `v*` tag:
+both architectures build on their own native runner, and the resulting manifest
+lists are pushed to Docker Hub and GHCR. See Deployment above.
+
 Additional workflows may later be introduced for:
 
-- Releases
-- Docker images
 - Dependency updates
 - Security checks
 - Deployment
