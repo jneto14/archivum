@@ -1272,6 +1272,9 @@ APP_URL=https://archivum.example.com
 # 32 random bytes in base64 — the same thing artisan key:generate produces.
 APP_KEY=base64:$(openssl rand -base64 32)
 
+# DB_CONNECTION is not optional: Laravel's own default is sqlite, and the
+# app would try to open a database file called "archivum".
+DB_CONNECTION=mysql
 # Not root: MySQL refuses to start with MYSQL_USER=root.
 DB_HOST=mysql
 DB_DATABASE=archivum
@@ -1282,6 +1285,10 @@ REDIS_HOST=redis
 CACHE_STORE=redis
 SESSION_DRIVER=redis
 QUEUE_CONNECTION=database
+
+# Also not optional: Scout defaults to the collection driver, which filters
+# in PHP and never touches the full-text index this app builds.
+SCOUT_DRIVER=database
 
 ADMIN_EMAIL=you@example.com
 ADMIN_PASSWORD=change-me-too
@@ -1297,6 +1304,12 @@ docker compose --env-file .env -f compose.prod.yaml exec app php artisan db:seed
 Written out rather than copied from `.env.example`, which is the development
 file: it points at `127.0.0.1` and connects as `root`, and MySQL's entrypoint
 refuses to start at all with `MYSQL_USER=root`.
+
+Every variable above whose absence would be silently wrong is there on purpose.
+`DB_CONNECTION` and `SCOUT_DRIVER` in particular have framework defaults —
+`sqlite` and `collection` — that leave a stack that starts and then fails at
+the first query or returns search results from the wrong place.
+`InstallRecipeTest` checks this block still names them.
 
 `--env-file` matters. Compose reads variables from two places and they are not
 the same: `env_file:` inside the file passes them into the containers, while
