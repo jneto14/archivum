@@ -1,0 +1,26 @@
+{
+	# Caddy's own admin API is not needed and would be one more listener.
+	admin off
+
+	frankenphp
+}
+
+{$SERVER_NAME:localhost} {
+	root /app/public
+	encode zstd br gzip
+
+	# Classic mode: one PHP worker per request, like php-fpm. Octane's
+	# worker mode would keep the framework booted between requests, but it
+	# changes the app's lifetime assumptions and is not what this app is
+	# written against today.
+	php_server {
+		# Attachment downloads stream straight off the storage disk; without
+		# this the whole file is buffered before the first byte goes out.
+		root /app/public
+	}
+
+	log {
+		output stderr
+		format json
+	}
+}

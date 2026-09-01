@@ -36,11 +36,15 @@ class ExtractAttachmentText implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * OCR is slow by nature, so the usual short job timeout does not apply. The
-     * per-binary timeout in `config('archivum.ocr.timeout')` and the
-     * `max_pages` cap are what actually bound the work; this is only a backstop.
+     * OCR is slow by nature, so the usual short job timeout does not apply.
+     *
+     * Read from `archivum.ocr.job_timeout`, which derives it from the page cap
+     * and the per-binary timeout, rather than being a number of its own. A
+     * fixed 1800 used to sit below the 2400s worst case of twenty pages at
+     * two minutes each, so raising `OCR_MAX_PAGES` silently started killing
+     * extractions that were running perfectly well.
      */
-    public int $timeout = 1800;
+    public int $timeout;
 
     /** @var int Retries, for a transient failure like the storage disk blipping. */
     public int $tries = 3;
@@ -55,7 +59,9 @@ class ExtractAttachmentText implements ShouldQueue
     public function __construct(
         public readonly DocumentAttachment $attachment,
         public readonly Task $task,
-    ) {}
+    ) {
+        $this->timeout = (int) config('archivum.ocr.job_timeout');
+    }
 
     /**
      * @param AttachmentTextExtractor $extractor Decides how to read the file and does it.

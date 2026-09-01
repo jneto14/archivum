@@ -1,0 +1,174 @@
+# Archivum production stack.
+#
+# `compose.yaml` beside this file is Sail's development stack — do not confuse
+# the two. This one pulls the published image and runs the app unprivileged
+# behind FrankenPHP.
+#
+# Required before bringing it up: APP_KEY, APP_URL, DB_PASSWORD, and a
+# DB_USERNAME that is not `root`. The README's Deployment section has a
+# working file to start from.
+#
+# Two different mechanisms read that file, and the difference matters:
+# `env_file` passes variables into the containers, while `${...}` here is
+# interpolated by compose itself and comes from the project's `.env` or from
+# `--env-file`. Variables used below — APP_PORT, DB_*, ARCHIVUM_* — need the
+# second. Pass `--env-file` and they both come from one place.
+#
+# Pin ARCHIVUM_VERSION to a released version rather than riding `latest`, so an
+# upgrade is something you choose. ARCHIVUM_IMAGE switches registries:
+#
+#   ARCHIVUM_IMAGE=ghcr.io/jneto14/archivum
+#
+# which is worth doing if Docker Hub's anonymous pull limit is a problem where
+# you are. The two hold the same images.
+#
+# To build it yourself instead of pulling:
+#
+#   docker build -f docker/production/Dockerfile -t jnweb/archivum:local .
+#   ARCHIVUM_VERSION=local docker compose -f compose.prod.yaml up -d
+#
+# ARCHIVUM_ENV_FILE points this stack at a different file, which is what makes
+# it safe to run beside a development checkout: `.env` there is the Sail one,
+# with APP_ENV=local and a database host that means something else.
+#
+#   ARCHIVUM_ENV_FILE=.env.prod docker compose -f compose.prod.yaml up -d
+
+services:
+    app:
+        image: ${ARCHIVUM_IMAGE:-jnweb/archivum}:${ARCHIVUM_VERSION:-latest}
+        restart: unless-stopped
+        environment:
+            ARCHIVUM_ROLE: web
+            SERVER_NAME: ':80'
+        env_file: ${ARCHIVUM_ENV_FILE:-.env}
+        ports:
+            - '${APP_PORT:-80}:80'
+        volumes:
+            # Only the attachment store. The rest of `storage/` is this
+            # container's own caches and logs and must not outlive it.
+            - 'archivum-attachments:/app/storage/app'
+        depends_on:
+            mysql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        healthcheck:
+            # `/up` is registered by bootstrap/app.php.
+            test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1/up']
+            interval: 30s
+            timeout: 5s
+            retries: 5
+            start_period: 60s
+        networks:
+            - archivum
+
+    # Same image, different command. Without a worker nothing queued ever runs:
+    # exports, bulk moves and attachment text extraction all sit in the table
+    # forever.
+    #
+    # `--timeout` must sit at or above the job's own timeout and below the
+    # connection's `retry_after` — see QueueTimeoutTest for why.
+    #
+    # OCR_JOB_TIMEOUT is the same variable `config/archivum.php` reads, so
+    # setting it in `.env` moves the job and this flag together. The fallback
+    # below must equal the config default; QueueTimeoutTest asserts that.
+    worker:
+        image: ${ARCHIVUM_IMAGE:-jnweb/archivum}:${ARCHIVUM_VERSION:-latest}
+        restart: unless-stopped
+        environment:
+            ARCHIVUM_ROLE: worker
+        env_file: ${ARCHIVUM_ENV_FILE:-.env}
+        volumes:
+            - 'archivum-attachments:/app/storage/app'
+        depends_on:
+            app:
+                condition: service_started
+            mysql:
+                condition: service_healthy
+        command:
+            - sh
+            - -c
+            - 'exec php artisan queue:work --tries=3 --sleep=3 --timeout=${OCR_JOB_TIMEOUT:-2700}'
+        # No web server in this role, so the image's HTTP health probe cannot pass.
+        healthcheck:
+            disable: true
+        networks:
+            - archivum
+
+    # One replica, always. `schedule:work` fires the daily commands on its own
+    # clock, so a second instance prunes exports and cleans the activity log a
+    # second time.
+    scheduler:
+        image: ${ARCHIVUM_IMAGE:-jnweb/archivum}:${ARCHIVUM_VERSION:-latest}
+        restart: unless-stopped
+        environment:
+            ARCHIVUM_ROLE: scheduler
+        env_file: ${ARCHIVUM_ENV_FILE:-.env}
+        volumes:
+            - 'archivum-attachments:/app/storage/app'
+        depends_on:
+            app:
+                condition: service_started
+            mysql:
+                condition: service_healthy
+        command: ['php', 'artisan', 'schedule:work']
+        # No web server in this role, so the image's HTTP health probe cannot pass.
+        healthcheck:
+            disable: true
+        deploy:
+            replicas: 1
+        networks:
+            - archivum
+
+    # DB_USERNAME must not be `root`: MySQL's entrypoint refuses to start when
+    # MYSQL_USER is root, and says so only in its own logs. `.env.example`
+    # ships root because that is what Laravel and Sail use in development, so
+    # copying that file into a production install is exactly how this bites.
+    # The app has no reason to connect as root anyway.
+    mysql:
+        image: 'mysql:8.4'
+        restart: unless-stopped
+        environment:
+            MYSQL_DATABASE: '${DB_DATABASE:-archivum}'
+            MYSQL_USER: '${DB_USERNAME:-archivum}'
+            MYSQL_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+        volumes:
+            - 'archivum-mysql:/var/lib/mysql'
+        healthcheck:
+            test: ['CMD', 'mysqladmin', 'ping', '-p${DB_PASSWORD}']
+            interval: 10s
+            timeout: 5s
+            retries: 10
+        networks:
+            - archivum
+
+    # No eviction policy is set on purpose. Sessions live on the default
+    # database and the cache on database 1 (REDIS_CACHE_DB), so an `allkeys`
+    # policy under memory pressure would log people out to make room for cache
+    # entries. Redis refusing writes is the better failure.
+    redis:
+        image: 'redis:8-alpine'
+        restart: unless-stopped
+        command: ['redis-server', '--appendonly', 'no', '--save', '']
+        volumes:
+            - 'archivum-redis:/data'
+        healthcheck:
+            test: ['CMD', 'redis-cli', 'ping']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        networks:
+            - archivum
+
+networks:
+    archivum:
+        driver: bridge
+
+volumes:
+    archivum-attachments:
+        driver: local
+    archivum-mysql:
+        driver: local
+    archivum-redis:
+        driver: local
