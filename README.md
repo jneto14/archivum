@@ -1307,6 +1307,38 @@ docker build -f docker/production/Dockerfile -t jnweb/archivum:local .
 ARCHIVUM_VERSION=local docker compose -f compose.prod.yaml up -d
 ```
 
+## Changing configuration
+
+Almost all of it is environment variables, and none of those are in the image.
+Edit `.env`, then:
+
+```bash
+docker compose -f compose.prod.yaml up -d
+```
+
+**Not `restart`.** That restarts the same containers with the environment they
+were created with, so an edited `.env` has no effect at all:
+
+```text
+.env edited, then compose restart  ->  old value, silently
+.env edited, then compose up -d    ->  new value
+```
+
+This works because the config cache is built by the entrypoint when the
+container starts, not when the image is built. That is what makes one image
+environment-agnostic: the same `jnweb/archivum:1.2.3` runs anywhere, and
+nothing about your installation is baked into it.
+
+`OCR_JOB_TIMEOUT` shows why the distinction bites. It moves three things at
+once — the job's timeout, the queue's `retry_after`, and the worker's
+`--timeout`, which compose interpolates into the command when it creates the
+container. After a `restart` the job would run longer while the worker still
+killed it on the old clock.
+
+What *is* in the image is code: `config/*.php`, `docker/production/php.ini`,
+the `Caddyfile`. Changing those means a new image version. A bind mount over
+one of them works as an escape hatch, but it is not the route to take twice.
+
 ## Upgrading
 
 ```bash
