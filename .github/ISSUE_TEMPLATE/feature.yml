@@ -52,8 +52,8 @@ body:
     attributes:
       label: Scope check
       description: >-
-        Archivum's current scope and roadmap are described in the README
-        ("Scope", "Future Features" and "Implementation Priorities" sections).
+        Archivum's current scope and roadmap are described in
+        docs/roadmap.md.
       options:
         - label: I've checked this isn't already covered by an existing feature or open issue.
           required: false
