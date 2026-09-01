@@ -11,6 +11,8 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use App\Policies\ActivityPolicy;
+use App\Services\Ocr\Contracts\OcrEngine;
+use App\Services\Ocr\TesseractEngine;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -25,13 +27,22 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Register any application services.
      *
-     * @return void No return value; binds the workspace usage calculator.
+     * @return void No return value; binds the workspace usage calculator and the OCR engine.
      */
     public function register(): void
     {
         // Scoped, not transient: CalculateWorkspaceUsage memoises its totals for
         // the request, and a fresh instance per injection would defeat that.
         $this->app->scoped(CalculateWorkspaceUsage::class);
+
+        // The one place that picks which OCR engine the application runs on.
+        // Everything else depends on the OcrEngine contract, so a hosted engine
+        // could be selected here from config without touching the pipeline —
+        // and tests swap in a fake, which is why they need no tesseract binary.
+        $this->app->bind(OcrEngine::class, fn (): OcrEngine => new TesseractEngine(
+            (string) config('archivum.ocr.languages'),
+            (int) config('archivum.ocr.timeout'),
+        ));
     }
 
     /**

@@ -2,6 +2,7 @@ import { Head, router, setLayoutProps } from '@inertiajs/react';
 import { EmptyState } from '@/components/empty-state';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
+import { Pagination } from '@/components/pagination';
 import { Panel } from '@/components/panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,8 @@ type TaskRow = {
     type: string;
     status: 'queued' | 'processing' | 'completed' | 'failed';
     triggered_by: string;
+    /** What the task acted on — an attachment's filename, where it has one. */
+    subject: string | null;
     result: { documents_count?: number; error?: string } | null;
     started_at: string | null;
     finished_at: string | null;
@@ -31,12 +34,21 @@ type TaskRow = {
 
 type Props = {
     workspace: { id: string; name: string };
-    tasks: TaskRow[];
+    tasks: {
+        data: TaskRow[];
+        prev_page_url: string | null;
+        next_page_url: string | null;
+        from: number | null;
+        to: number | null;
+        total: number;
+    };
 };
 
 const TYPE_LABELS: Record<string, TranslationKey> = {
     document_export: 'workspace.tasks.type_document_export',
     bulk_document_move: 'workspace.tasks.type_bulk_document_move',
+    attachment_text_extraction:
+        'workspace.tasks.type_attachment_text_extraction',
 };
 
 const STATUS_LABELS: Record<TaskRow['status'], TranslationKey> = {
@@ -82,43 +94,48 @@ export default function WorkspaceTasks({ workspace, tasks }: Props) {
                     description={t('workspace.tasks.description')}
                 />
 
-                {tasks.length === 0 ? (
+                {tasks.data.length === 0 ? (
                     <EmptyState
                         title={t('workspace.tasks.empty_title')}
                         description={t('workspace.tasks.empty_description')}
                     />
                 ) : (
                     <Panel>
-                        <Table>
+                        <Table className="min-w-[46rem] table-fixed">
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>
+                                    <TableHead className="w-[26%]">
                                         {t('workspace.tasks.column_type')}
                                     </TableHead>
-                                    <TableHead>
+                                    <TableHead className="w-[32%]">
                                         {t('workspace.tasks.column_status')}
                                     </TableHead>
-                                    <TableHead>
+                                    <TableHead className="w-[14%]">
                                         {t(
                                             'workspace.tasks.column_triggered_by',
                                         )}
                                     </TableHead>
-                                    <TableHead>
+                                    <TableHead className="w-[18%]">
                                         {t('workspace.tasks.column_started')}
                                     </TableHead>
-                                    <TableHead className="w-32" />
+                                    <TableHead className="w-[10%]" />
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {tasks.map((task) => (
+                                {tasks.data.map((task) => (
                                     <TableRow key={task.id}>
-                                        <TableCell className="font-medium">
+                                        <TableCell className="font-medium whitespace-normal">
                                             {t(
                                                 TYPE_LABELS[task.type] ??
                                                     task.type,
                                             )}
+                                            {task.subject && (
+                                                <p className="truncate text-xs font-normal text-muted-foreground">
+                                                    {task.subject}
+                                                </p>
+                                            )}
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="whitespace-normal">
                                             <Badge
                                                 variant={
                                                     STATUS_VARIANTS[task.status]
@@ -128,7 +145,12 @@ export default function WorkspaceTasks({ workspace, tasks }: Props) {
                                             </Badge>
                                             {task.status === 'failed' &&
                                                 task.result?.error && (
-                                                    <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+                                                    <p
+                                                        className="mt-1 line-clamp-3 text-xs break-words text-muted-foreground"
+                                                        title={
+                                                            task.result.error
+                                                        }
+                                                    >
                                                         {task.result.error}
                                                     </p>
                                                 )}
@@ -143,7 +165,7 @@ export default function WorkspaceTasks({ workspace, tasks }: Props) {
                                                   )
                                                 : '—'}
                                         </TableCell>
-                                        <TableCell className="text-right">
+                                        <TableCell className="text-right whitespace-nowrap">
                                             {task.status === 'completed' &&
                                                 task.type ===
                                                     'document_export' && (
@@ -184,6 +206,16 @@ export default function WorkspaceTasks({ workspace, tasks }: Props) {
                             </TableBody>
                         </Table>
                     </Panel>
+                )}
+
+                {tasks.data.length > 0 && (
+                    <Pagination
+                        prev={tasks.prev_page_url}
+                        next={tasks.next_page_url}
+                        from={tasks.from}
+                        to={tasks.to}
+                        total={tasks.total}
+                    />
                 )}
             </PageContainer>
         </>

@@ -40,9 +40,9 @@ class TaskTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
-            ->where('tasks.0.type', TaskType::DocumentExport->value)
-            ->where('tasks.0.status', TaskStatus::Completed->value)
-            ->where('tasks.0.triggered_by', $admin->user->name),
+            ->where('tasks.data.0.type', TaskType::DocumentExport->value)
+            ->where('tasks.data.0.status', TaskStatus::Completed->value)
+            ->where('tasks.data.0.triggered_by', $admin->user->name),
         );
     }
 
@@ -321,7 +321,7 @@ class TaskTest extends TestCase
 
         $response->assertOk();
         $response->assertInertia(fn (Assert $page) => $page
-            ->where('tasks.0.type', TaskType::BulkDocumentMove->value),
+            ->where('tasks.data.0.type', TaskType::BulkDocumentMove->value),
         );
     }
 

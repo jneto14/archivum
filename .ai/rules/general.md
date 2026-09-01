@@ -13,3 +13,8 @@ Regenerate through Sail, matching the plugin's options in vite.config.ts (`formV
     ./vendor/bin/sail artisan wayfinder:generate --with-form
 
 Note that plain `wayfinder:generate` without `--with-form` also breaks the build — it omits the `.form` variants that the Fortify/two-factor components import.
+
+## Run npm run build through Sail, never from the host
+The Vite build triggers `wayfinder:generate`, and Wayfinder reads route parameter types from the live database. Built from the host, where MySQL is unreachable, it falls back to `number` for keys that are really UUID strings — `resources/js/routes` and `resources/js/actions` are gitignored, so this shows up only as a phantom `tsc` error in an untouched file (it was `passkey: number` in manage-passkeys.tsx).
+
+Use `sail npm run build` / `sail npm run dev`. If `types:check` fails in a file you did not touch, regenerate with `sail artisan wayfinder:generate` before believing the error.

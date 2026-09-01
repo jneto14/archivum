@@ -143,6 +143,49 @@
     --sidebar-ring: oklch(0.68 0.13 255);
 }
 
+/*
+ * react-day-picker theming.
+ *
+ * The library ships its own stylesheet and exposes every colour and metric as a
+ * custom property, so this is the whole of the calendar's appearance. Written
+ * here rather than as Tailwind classes because several of these names contain
+ * an underscore, and Tailwind rewrites `_` to a space inside arbitrary values —
+ * which produces a broken declaration and no warning at all.
+ *
+ * The doubled selectors are not a typo. The library's stylesheet is imported
+ * from the component, so Vite emits it after this file and its own `.rdp-root`
+ * defaults would win on source order — the calendar came out in the library's
+ * stock blue. A layer would not help either: unlayered rules beat layered ones,
+ * whichever way round. Doubling the class raises specificity and settles it.
+ */
+.rdp-root.rdp-root {
+    --rdp-accent-color: var(--primary);
+    --rdp-accent-background-color: var(--accent);
+    --rdp-today-color: var(--primary);
+    --rdp-day-height: 2rem;
+    --rdp-day-width: 2rem;
+    --rdp-day_button-border-radius: var(--radius-sm);
+    --rdp-outside-opacity: 0.4;
+    --rdp-disabled-opacity: 0.35;
+    --rdp-weekday-opacity: 1;
+    --rdp-range_start-color: var(--primary-foreground);
+    --rdp-range_end-color: var(--primary-foreground);
+    --rdp-range_middle-color: var(--accent-foreground);
+}
+
+.rdp-root .rdp-weekday {
+    color: var(--muted-foreground);
+    font-weight: 400;
+}
+
+/*
+ * The stock stylesheet enlarges the selected day, which makes the grid jump as
+ * a range is picked. The accent border and fill already carry the state.
+ */
+.rdp-root .rdp-selected {
+    font-size: inherit;
+}
+
 @layer base {
     * {
         @apply border-border;

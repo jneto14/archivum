@@ -43,8 +43,29 @@ jobs:
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
           php-version: '8.5'
+          # imagick is a hard requirement of spatie/pdf-to-image, so composer
+          # install fails without it — see the OCR block in config/archivum.php.
+          extensions: imagick
           tools: composer:v2
           coverage: none
+
+      # Attachment text extraction shells out to these; they are not PHP
+      # extensions and composer does not bring them. Mirrors the RUN layer in
+      # docker/8.5/Dockerfile — keep the two lists in step.
+      - name: Install the text extraction toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            tesseract-ocr tesseract-ocr-eng tesseract-ocr-por \
+            poppler-utils ghostscript
+
+      # Ubuntu ships an ImageMagick policy that refuses to read PDFs (a
+      # mitigation for CVE-2018-16509, long since fixed in Ghostscript). Without
+      # this, rasterizing a scanned PDF for OCR fails on the runner only.
+      - name: Allow ImageMagick to read PDFs
+        run: |
+          sudo sed -i 's|<policy domain="coder" rights="none" pattern="PDF" />|<policy domain="coder" rights="read\|write" pattern="PDF" />|' \
+            /etc/ImageMagick-6/policy.xml || true
 
       - name: Get Composer cache directory
         id: composer-cache

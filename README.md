@@ -748,27 +748,103 @@ Search state should preferably be represented in the URL.
 
 ---
 
-# OCR
+# Attachment Text Extraction
 
-OCR is an optional subsystem.
+Uploaded attachments have their text extracted in the background, so a document
+can be found by what is written on the page and not only by its title.
 
-Flow:
+OCR is the fallback, not the first move. A PDF that was born digital — an
+exported invoice, a letter printed to PDF — already carries a text layer, and
+reading it directly is instant and exact where OCR would be slower and would
+introduce recognition errors. Only files with no text of their own, which is
+most of what an archive of physical documents holds, are rasterized and sent to
+OCR.
 
 ```text
-Upload PDF/Image
+Upload PDF / image
         ↓
 Store attachment
         ↓
-Queue OCR job
+Queue ExtractAttachmentText
         ↓
-Extract text
-        ↓
-Store OCR text
-        ↓
-Re-index Document
+   PDF? ──yes──▶ read the embedded text layer (pdftotext)
+    │                     │
+    │              enough text? ──yes──▶ done
+    │                     │
+    │                     no
+    │                     ↓
+    └──────────▶ rasterize pages (Imagick + Ghostscript) ──▶ OCR (tesseract)
+                          ↓
+              store the text on the attachment
+                          ↓
+        mirror it onto the document and re-index for search
 ```
 
-OCR should run asynchronously.
+## System requirements
+
+These are binaries, not PHP extensions; `composer install` does not bring them.
+They are installed in this project's Docker image (`docker/8.5/Dockerfile`) and
+in CI.
+
+| Needed for | Package |
+| --- | --- |
+| OCR | `tesseract-ocr`, plus `tesseract-ocr-<lang>` for each configured language |
+| Reading a PDF's text layer | `poppler-utils` (`pdftotext`) |
+| Rasterizing scanned PDFs | `ghostscript`, behind PHP's `imagick` extension |
+
+A language pack per configured language matters: tesseract runs happily without
+one and simply recognises nothing, which is indistinguishable from a blank page.
+
+## Configuration
+
+The `archivum.ocr` block in `config/archivum.php` covers the languages, the
+threshold that separates "has a text layer" from "is a scan", and caps on pages
+and runtime. Set `OCR_ENABLED=false` to switch the whole thing off.
+
+An installation without the binaries still works. Extraction records itself as
+unavailable on the attachment and the document page says so, rather than
+failing uploads or silently doing nothing.
+
+## Where the state shows up
+
+Twice, for two different readers. The attachment carries the text and its
+status, shown on the document page next to the file it belongs to. Each
+extraction is also a `Task`, so the workspace's Tasks page lists them alongside
+exports and bulk moves — which is where an admin can see a failure and retry it
+without opening documents one at a time.
+
+Unlike the other task types, extraction takes no per-workspace lock: it is
+scoped to a single file, so several run concurrently. The Tasks page is
+paginated for the same reason — one row per uploaded file adds up.
+
+## Searching it
+
+Two modes, because one query string has to serve two very different haystacks.
+A title is short, so a substring match over it is cheap and forgiving. The
+extracted text is indexed with MySQL FULLTEXT, which matches whole words only —
+so by default "fatur" finds a document *titled* "Fatura" but not one whose scan
+says it.
+
+| Mode | Attachment text | Title |
+| --- | --- | --- |
+| Whole words (default) | Whole-word match, natural language mode | Substring |
+| Word starts with | Prefix match, boolean mode with a trailing wildcard | Substring |
+
+Both stay on the full-text index, so neither scans the stored pages. The cost
+of that is that no mode matches the *middle* of a word: "atura" will not find
+"fatura". In the broader mode every typed term must appear somewhere — title or
+text — since ORing them returns most of the archive as soon as someone types
+three words.
+
+Punctuation is treated as a separator, not as syntax: boolean mode reads
+`+ - * " ( ) ~` as operators, so "edp-2026" is split into two terms rather than
+being read as "edp but not 2026".
+
+Extracted text is stored per attachment, and mirrored onto the document as a
+single concatenated column. The mirror exists because Scout's `database` engine
+searches columns on the searchable model's own table and cannot traverse a
+relation — without it, text held on the attachments would never be matched by a
+document search.
 
 ---
 

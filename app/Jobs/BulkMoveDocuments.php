@@ -13,6 +13,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Cache;
+use LogicException;
 use Spatie\Activitylog\Support\CauserResolver;
 use Throwable;
 
@@ -67,7 +68,10 @@ class BulkMoveDocuments implements ShouldQueue
 
             $this->task->markFailed($exception->getMessage());
         } finally {
-            Cache::restoreLock($this->task->type->lockKey($this->task->workspace_id), $this->lockOwner)->release();
+            $lockKey = $this->task->type->lockKey($this->task->workspace_id)
+                ?? throw new LogicException('A bulk document move must have a workspace lock.');
+
+            Cache::restoreLock($lockKey, $this->lockOwner)->release();
         }
     }
 }
