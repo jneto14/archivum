@@ -3,12 +3,17 @@
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
-once a first stable release is published.
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+While the major version is 0, the public surface — the database schema, the
+environment variables and the image's behaviour — may change in a minor
+release. Pin `ARCHIVUM_VERSION` and read this file before upgrading.
 
 ## [Unreleased]
 
-Everything so far. There has been no tagged release yet.
+## [0.1.0] - 2026-09-01
+
+The first tagged release. Everything below shipped in it.
 
 ### Added
 
@@ -109,3 +114,6 @@ Everything so far. There has been no tagged release yet.
   attachment row.
 - A brand-new user invited on a single-workspace installation is added with the
   role the admin chose, rather than failing with "already a member".
+
+[Unreleased]: https://github.com/jneto14/archivum/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/jneto14/archivum/releases/tag/v0.1.0

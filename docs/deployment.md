@@ -39,7 +39,7 @@ SCOUT_DRIVER=database
 ADMIN_EMAIL=you@example.com
 ADMIN_PASSWORD=change-me-too
 
-ARCHIVUM_VERSION=latest
+ARCHIVUM_VERSION=0.1.0
 EOF
 
 docker compose --env-file .env -f compose.prod.yaml up -d
@@ -66,7 +66,7 @@ worth understanding before you edit them:
 | `SCOUT_DRIVER` | Scout defaults to `collection`, which filters in PHP and never touches the full-text index this application builds. Search would return plausible results, produced entirely the wrong way |
 | `QUEUE_CONNECTION` | Stays on the database on purpose — see [Environment](#environment) below |
 | `ADMIN_PASSWORD` | Leave it out and the seeder generates one and prints it **once** |
-| `ARCHIVUM_VERSION` | `latest` until there is a tagged release to pin. Once there is, pin it, so upgrading is a decision rather than a side effect of restarting |
+| `ARCHIVUM_VERSION` | Pin a release. `latest` moves on its own, so an unpinned stack can change version simply by being restarted |
 
 `InstallRecipeTest` checks this block still names the settings whose framework
 defaults are dangerous.
@@ -88,8 +88,8 @@ Published on every `v*` tag to two registries, holding the same `amd64` and
 `arm64` images:
 
 ```text
-jnweb/archivum:1.2.3            Docker Hub
-ghcr.io/jneto14/archivum:1.2.3  GHCR
+jnweb/archivum:0.1.0            Docker Hub
+ghcr.io/jneto14/archivum:0.1.0  GHCR
 ```
 
 Docker Hub is the default because a short name is only ever resolved there —
@@ -99,7 +99,7 @@ doing where Docker Hub's anonymous pull limit is a problem:
 
 ```dotenv
 ARCHIVUM_IMAGE=ghcr.io/jneto14/archivum
-ARCHIVUM_VERSION=1.2.3
+ARCHIVUM_VERSION=0.1.0
 ```
 
 To build the image yourself rather than pull it:
@@ -140,7 +140,7 @@ were created with, so an edited `.env` has no effect at all:
 
 This works because the config cache is built by the entrypoint when the
 container starts, not when the image is built. That is what makes one image
-environment-agnostic: the same `jnweb/archivum:1.2.3` runs anywhere, and
+environment-agnostic: the same `jnweb/archivum:0.1.0` runs anywhere, and
 nothing about your installation is baked into it.
 
 `OCR_JOB_TIMEOUT` shows why the distinction bites. It moves three things at

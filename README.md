@@ -62,8 +62,8 @@ Images are published on every release to Docker Hub and GHCR, for `amd64` and
 `arm64`:
 
 ```text
-jnweb/archivum:1.2.3
-ghcr.io/jneto14/archivum:1.2.3
+jnweb/archivum:0.1.0
+ghcr.io/jneto14/archivum:0.1.0
 ```
 
 ### Development
@@ -110,9 +110,13 @@ scheduler.
 
 ## Status
 
-Archivum is in active development and has not had a stable release yet. The
-core domain — workspaces, documents, physical organization, search and text
-extraction — is built and tested; expect the edges to move.
+**Current release: [0.1.0](CHANGELOG.md).**
+
+The core domain — workspaces, documents, physical organization, search and text
+extraction — is built, tested and documented. The major version is 0 because
+the edges are still moving: while it stays there, the database schema, the
+environment variables and the image's behaviour may change in a minor release.
+Pin `ARCHIVUM_VERSION` and read the [changelog](CHANGELOG.md) before upgrading.
 
 ## Contributing
 
