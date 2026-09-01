@@ -40,7 +40,7 @@ class DatabaseSeeder extends Seeder
         if ($user) {
             $this->command->info("Admin user already exists ({$email}), skipping.");
 
-            return $user;
+            return $this->promoteToPlatformAdmin($user);
         }
 
         $generatedPassword = null;
@@ -63,6 +63,41 @@ class DatabaseSeeder extends Seeder
         } else {
             $this->command->info("Created admin user {$email}.");
         }
+
+        return $this->promoteToPlatformAdmin($user);
+    }
+
+    /**
+     * Make sure the bootstrap admin carries the platform admin flag.
+     *
+     * Without it a fresh installation has nobody who can create a workspace or
+     * change its limits — `WorkspaceController::store` and the limits form
+     * both gate on this flag — so the first account could log in and then do
+     * very little.
+     *
+     * Applied to an existing user as well as a new one, because an
+     * installation seeded before this has an admin without the flag and
+     * re-running the seeder is the documented way to repair the bootstrap
+     * account. Assigned rather than passed to `create()`: `db:seed` happens to
+     * run unguarded, but the flag is deliberately not fillable, and this is a
+     * privilege bit that should not depend on that.
+     *
+     * `platform-admin:grant --revoke` still takes it away.
+     *
+     * @param User $user The user configured as `archivum.admin.email`.
+     *
+     * @return User The same user, with the flag set.
+     */
+    private function promoteToPlatformAdmin(User $user): User
+    {
+        if ($user->is_platform_admin) {
+            return $user;
+        }
+
+        $user->is_platform_admin = true;
+        $user->save();
+
+        $this->command->info("Granted platform admin to {$user->email}.");
 
         return $user;
     }
