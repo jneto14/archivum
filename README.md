@@ -1307,6 +1307,14 @@ docker build -f docker/production/Dockerfile -t jnweb/archivum:local .
 ARCHIVUM_VERSION=local docker compose -f compose.prod.yaml up -d
 ```
 
+`ARCHIVUM_ENV_FILE` points the stack at a different file, which is what makes it
+safe to run beside a development checkout — `.env` there is Sail's, with
+`APP_ENV=local` and a `DB_HOST` that means something else entirely:
+
+```bash
+ARCHIVUM_ENV_FILE=.env.prod docker compose -f compose.prod.yaml up -d
+```
+
 ## Changing configuration
 
 Almost all of it is environment variables, and none of those are in the image.

@@ -19,6 +19,12 @@
 #
 #   docker build -f docker/production/Dockerfile -t jnweb/archivum:local .
 #   ARCHIVUM_VERSION=local docker compose -f compose.prod.yaml up -d
+#
+# ARCHIVUM_ENV_FILE points this stack at a different file, which is what makes
+# it safe to run beside a development checkout: `.env` there is the Sail one,
+# with APP_ENV=local and a database host that means something else.
+#
+#   ARCHIVUM_ENV_FILE=.env.prod docker compose -f compose.prod.yaml up -d
 
 services:
     app:
@@ -27,7 +33,7 @@ services:
         environment:
             ARCHIVUM_ROLE: web
             SERVER_NAME: ':80'
-        env_file: .env
+        env_file: ${ARCHIVUM_ENV_FILE:-.env}
         ports:
             - '${APP_PORT:-80}:80'
         volumes:
@@ -64,7 +70,7 @@ services:
         restart: unless-stopped
         environment:
             ARCHIVUM_ROLE: worker
-        env_file: .env
+        env_file: ${ARCHIVUM_ENV_FILE:-.env}
         volumes:
             - 'archivum-attachments:/app/storage/app'
         depends_on:
@@ -90,7 +96,7 @@ services:
         restart: unless-stopped
         environment:
             ARCHIVUM_ROLE: scheduler
-        env_file: .env
+        env_file: ${ARCHIVUM_ENV_FILE:-.env}
         volumes:
             - 'archivum-attachments:/app/storage/app'
         depends_on:
