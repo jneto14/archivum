@@ -1,0 +1,41 @@
+# Everything the image builds for itself, or must never travel into it.
+#
+# Without this the build context carries node_modules, vendor and the whole
+# git history — hundreds of megabytes uploaded to the daemon on every build,
+# and `.env` along with it.
+
+.git
+.github
+.ai
+.claude
+.idea
+.vscode
+.zed
+
+node_modules
+vendor
+public/build
+public/hot
+public/storage
+
+# Runtime state belongs to the container, not the image. `storage/app` in
+# particular is the attachment store and is a volume in production.
+storage/app
+storage/framework/cache/data
+storage/framework/sessions
+storage/framework/views
+storage/logs
+
+# The generated files, not the directory: a clean checkout tracks these
+# directories (via their .gitignore) and artisan refuses to boot without them.
+bootstrap/cache/*.php
+
+.env
+.env.*
+!.env.example
+
+database/*.sqlite
+coverage
+.phpunit.cache
+.phpunit.result.cache
+tests

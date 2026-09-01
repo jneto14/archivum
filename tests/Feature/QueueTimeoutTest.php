@@ -57,4 +57,23 @@ class QueueTimeoutTest extends TestCase
 
         $this->assertSame((int) config('archivum.ocr.job_timeout'), $job->timeout);
     }
+
+    public function test_the_production_worker_flag_matches_the_configured_job_timeout()
+    {
+        $compose = file_get_contents(base_path('compose.prod.yaml'));
+
+        $this->assertIsString($compose);
+        $this->assertSame(
+            1,
+            preg_match('/queue:work[^\n]*--timeout=\$\{OCR_JOB_TIMEOUT:-(\d+)\}/', $compose, $matches),
+            'The worker command in compose.prod.yaml should take its timeout from OCR_JOB_TIMEOUT with a literal fallback.',
+        );
+
+        $this->assertSame(
+            (int) config('archivum.ocr.job_timeout'),
+            (int) $matches[1],
+            'The fallback in compose.prod.yaml has drifted from the config default, so a stack brought up '
+            . 'without OCR_JOB_TIMEOUT set would kill extractions early.',
+        );
+    }
 }

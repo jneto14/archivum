@@ -783,8 +783,14 @@ Queue ExtractAttachmentText
 ## System requirements
 
 These are binaries, not PHP extensions; `composer install` does not bring them.
-They are installed in this project's Docker image (`docker/8.5/Dockerfile`) and
-in CI.
+They are installed in three places — the development image
+(`docker/8.5/Dockerfile`), the production image
+(`docker/production/Dockerfile`) and CI — and `OcrToolchainParityTest` fails if
+those three ever stop agreeing.
+
+They must be present wherever the **queue worker** runs, not just the web
+container: extraction happens on the queue, so a worker without them reports
+every attachment as unreadable while the site looks perfectly healthy.
 
 | Needed for | Package |
 | --- | --- |
@@ -1236,6 +1242,77 @@ ImportDocuments
 BulkMoveDocuments
 ```
 
+Nothing queued runs unless a worker runs. See Deployment below.
+
+---
+
+# Deployment
+
+`compose.prod.yaml` builds `docker/production/Dockerfile` and runs five
+services. It is not `compose.yaml`, which is Sail's development stack.
+
+```text
+app        FrankenPHP, serving public/          :80
+worker     queue:work                           same image
+scheduler  schedule:work                        same image, one replica
+mysql
+redis
+```
+
+## One image, three roles
+
+The three application services differ only by their command. That is
+deliberate: attachment text extraction runs on the queue, so a worker built
+without tesseract, poppler and ghostscript would fail every extraction while
+the web container passed its health check.
+
+The scheduler runs **one replica**. `schedule:work` keeps its own clock, so a
+second instance prunes exports and cleans the activity log a second time.
+
+## What each role needs
+
+| | |
+| --- | --- |
+| Attachments | The `archivum-attachments` volume, mounted at `/app/storage/app`. The rest of `storage/` is per-container cache and logs and must not be shared |
+| Migrations | Run by the `app` container on start. Set `ARCHIVUM_MIGRATE=false` to run them yourself |
+| Config cache | Built on start by every role, because it bakes in the environment and the environment only exists at run time |
+| Deploys | Replacing the worker container **is** `queue:restart`. A running worker holds the old code in memory, so the container has to go, not just the files |
+
+## Environment
+
+`compose.prod.yaml` reads `.env`. At minimum set `APP_KEY`, `APP_URL` and
+`DB_PASSWORD`; everything else has a working default in `.env.example`.
+
+Two things differ from development:
+
+```dotenv
+CACHE_STORE=redis      # a database cache store makes a cache hit a query
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=database
+REDIS_HOST=redis       # the service name, like DB_HOST=mysql
+```
+
+The queue stays on the database on purpose. It carries the app's real work, and
+a Redis without persistence loses it on restart, which strands an attachment as
+"queued" for good. Cache and sessions are safe to lose; jobs are not.
+
+Redis runs with no eviction policy for the same reason: sessions live on
+database 0 and the cache on database 1, and an `allkeys` policy under memory
+pressure would sign people out to make room for cache entries.
+
+## Timeouts
+
+Three numbers have to stay in order, or a long OCR run is handed to a second
+worker and the work happens twice:
+
+```text
+queue retry_after  >  worker --timeout  >=  job timeout  >=  max_pages × ocr.timeout
+      3000                 2700                2700               2400
+```
+
+All of them derive from `OCR_MAX_PAGES` and `OCR_TIMEOUT`, so raising the page
+cap moves the whole chain. `QueueTimeoutTest` fails if it stops holding.
+
 ---
 
 # Policies
@@ -1509,6 +1586,11 @@ archivum/
 ├── storage/
 ├── tests/
 │
+├── docker/
+│   ├── 8.5/            # Sail's development runtime
+│   ├── mysql/
+│   └── production/     # the image that actually ships
+│
 ├── docs/
 │
 ├── .github/
@@ -1518,6 +1600,9 @@ archivum/
 │   │   └── documentation.yml
 │   ├── workflows/
 │   └── pull_request_template.md
+│
+├── compose.yaml        # development stack (Sail)
+├── compose.prod.yaml   # production stack
 │
 ├── CONTRIBUTING.md
 ├── CODE_OF_CONDUCT.md

@@ -1,0 +1,152 @@
+# Archivum production stack.
+#
+# `compose.yaml` beside this file is Sail's development stack — do not confuse
+# the two. This one builds `docker/production/Dockerfile` and runs the app
+# unprivileged behind FrankenPHP.
+#
+# Required in `.env` before bringing it up: APP_KEY, APP_URL, DB_PASSWORD.
+# The README's Deployment section lists the rest.
+
+services:
+    app:
+        build:
+            context: .
+            dockerfile: docker/production/Dockerfile
+        image: archivum/app:latest
+        restart: unless-stopped
+        environment:
+            ARCHIVUM_ROLE: web
+            SERVER_NAME: ':80'
+        env_file: .env
+        ports:
+            - '${APP_PORT:-80}:80'
+        volumes:
+            # Only the attachment store. The rest of `storage/` is this
+            # container's own caches and logs and must not outlive it.
+            - 'archivum-attachments:/app/storage/app'
+        depends_on:
+            mysql:
+                condition: service_healthy
+            redis:
+                condition: service_healthy
+        healthcheck:
+            # `/up` is registered by bootstrap/app.php.
+            test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1/up']
+            interval: 30s
+            timeout: 5s
+            retries: 5
+            start_period: 60s
+        networks:
+            - archivum
+
+    # Same image, different command. Without a worker nothing queued ever runs:
+    # exports, bulk moves and attachment text extraction all sit in the table
+    # forever.
+    #
+    # `--timeout` must sit at or above the job's own timeout and below the
+    # connection's `retry_after` — see QueueTimeoutTest for why.
+    #
+    # OCR_JOB_TIMEOUT is the same variable `config/archivum.php` reads, so
+    # setting it in `.env` moves the job and this flag together. The fallback
+    # below must equal the config default; QueueTimeoutTest asserts that.
+    worker:
+        image: archivum/app:latest
+        build:
+            context: .
+            dockerfile: docker/production/Dockerfile
+        restart: unless-stopped
+        environment:
+            ARCHIVUM_ROLE: worker
+        env_file: .env
+        volumes:
+            - 'archivum-attachments:/app/storage/app'
+        depends_on:
+            app:
+                condition: service_started
+            mysql:
+                condition: service_healthy
+        command:
+            - sh
+            - -c
+            - 'exec php artisan queue:work --tries=3 --sleep=3 --timeout=${OCR_JOB_TIMEOUT:-2700}'
+        # No web server in this role, so the image's HTTP health probe cannot pass.
+        healthcheck:
+            disable: true
+        networks:
+            - archivum
+
+    # One replica, always. `schedule:work` fires the daily commands on its own
+    # clock, so a second instance prunes exports and cleans the activity log a
+    # second time.
+    scheduler:
+        image: archivum/app:latest
+        build:
+            context: .
+            dockerfile: docker/production/Dockerfile
+        restart: unless-stopped
+        environment:
+            ARCHIVUM_ROLE: scheduler
+        env_file: .env
+        volumes:
+            - 'archivum-attachments:/app/storage/app'
+        depends_on:
+            app:
+                condition: service_started
+            mysql:
+                condition: service_healthy
+        command: ['php', 'artisan', 'schedule:work']
+        # No web server in this role, so the image's HTTP health probe cannot pass.
+        healthcheck:
+            disable: true
+        deploy:
+            replicas: 1
+        networks:
+            - archivum
+
+    mysql:
+        image: 'mysql:8.4'
+        restart: unless-stopped
+        environment:
+            MYSQL_DATABASE: '${DB_DATABASE:-archivum}'
+            MYSQL_USER: '${DB_USERNAME:-archivum}'
+            MYSQL_PASSWORD: '${DB_PASSWORD}'
+            MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+        volumes:
+            - 'archivum-mysql:/var/lib/mysql'
+        healthcheck:
+            test: ['CMD', 'mysqladmin', 'ping', '-p${DB_PASSWORD}']
+            interval: 10s
+            timeout: 5s
+            retries: 10
+        networks:
+            - archivum
+
+    # No eviction policy is set on purpose. Sessions live on the default
+    # database and the cache on database 1 (REDIS_CACHE_DB), so an `allkeys`
+    # policy under memory pressure would log people out to make room for cache
+    # entries. Redis refusing writes is the better failure.
+    redis:
+        image: 'redis:8-alpine'
+        restart: unless-stopped
+        command: ['redis-server', '--appendonly', 'no', '--save', '']
+        volumes:
+            - 'archivum-redis:/data'
+        healthcheck:
+            test: ['CMD', 'redis-cli', 'ping']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        networks:
+            - archivum
+
+networks:
+    archivum:
+        driver: bridge
+
+volumes:
+    archivum-attachments:
+        driver: local
+    archivum-mysql:
+        driver: local
+    archivum-redis:
+        driver: local
