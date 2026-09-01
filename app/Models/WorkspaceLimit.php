@@ -63,16 +63,29 @@ class WorkspaceLimit extends Model
     }
 
     /**
-     * Determine whether the given attachment count has reached or exceeded this workspace's
-     * configured attachment limit. A null limit means the count is unrestricted.
+     * Determine whether adding the given number of attachments would take this workspace
+     * past its configured attachment limit. A null limit means the count is unrestricted.
      *
      * @param int $currentCount The workspace's current attachment count to check against the limit.
+     * @param int $additionalCount How many attachments are about to be created. Defaults to one.
      *
-     * @return bool True if a limit is configured and currentCount meets or exceeds it.
+     * @return bool True if a limit is configured and currentCount + additionalCount would exceed it.
      */
-    public function exceedsAttachments(int $currentCount): bool
+    public function exceedsAttachments(int $currentCount, int $additionalCount = 1): bool
     {
-        return $this->attachments !== null && $currentCount >= $this->attachments;
+        return $this->attachments !== null && ($currentCount + $additionalCount) > $this->attachments;
+    }
+
+    /**
+     * How many more attachments fit before this workspace's limit is reached.
+     *
+     * @param int $currentCount The workspace's current attachment count.
+     *
+     * @return int|null Remaining slots, never negative, or null when the count is unrestricted.
+     */
+    public function remainingAttachments(int $currentCount): ?int
+    {
+        return $this->attachments === null ? null : max(0, $this->attachments - $currentCount);
     }
 
     /**

@@ -37,7 +37,7 @@ class AttachmentIsolationTest extends TestCase
         $outsider = WorkspaceUser::factory()->create(['role' => WorkspaceRole::Admin]);
 
         $this->actingAs($outsider->user)
-            ->post(route('attachments.store', $document), ['file' => UploadedFile::fake()->create('other.pdf', 50)])
+            ->post(route('attachments.store', $document), ['files' => [UploadedFile::fake()->create('other.pdf', 50)]])
             ->assertForbidden();
 
         $this->actingAs($outsider->user)

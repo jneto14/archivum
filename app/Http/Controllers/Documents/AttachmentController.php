@@ -20,24 +20,31 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class AttachmentController extends Controller
 {
     /**
-     * Upload a file and attach it to the given document.
+     * Upload one or more files and attach them to the given document.
      *
-     * @param StoreAttachmentRequest $request The incoming request, carrying the uploaded `file`.
-     * @param Document $document The document the attachment is stored against.
-     * @param UploadAttachment $action Stores the file and creates the DocumentAttachment record.
+     * @param StoreAttachmentRequest $request The incoming request, carrying the uploaded `files`.
+     * @param Document $document The document the attachments are stored against.
+     * @param UploadAttachment $action Stores the files and creates the DocumentAttachment records.
      *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws AuthorizationException If the current user cannot create attachments on $document.
-     * @throws ValidationException If the workspace's attachment count or storage limit would be exceeded.
+     * @throws ValidationException If the workspace's attachment count or storage limit would be exceeded by the batch.
      */
     public function store(StoreAttachmentRequest $request, Document $document, UploadAttachment $action): RedirectResponse
     {
         $this->authorize('create', [DocumentAttachment::class, $document]);
 
-        $action->handle($document, $request->file('file'), $request->user());
+        $attachments = $action->handleMany($document, $request->attachments(), $request->user());
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('document.attachment_uploaded')]);
+        $count = count($attachments);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => $count === 1
+                ? __('document.attachment_uploaded')
+                : __('document.attachments_uploaded', ['count' => $count]),
+        ]);
 
         return back();
     }
