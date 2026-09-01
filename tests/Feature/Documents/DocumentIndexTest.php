@@ -115,4 +115,39 @@ class DocumentIndexTest extends TestCase
             ->get(route('documents.index', $workspace))
             ->assertForbidden();
     }
+
+    public function test_the_index_carries_a_numbered_page_window()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $type = DocumentType::factory()->for($workspace)->create();
+        Document::factory()->count(50)->for($workspace)->for($type, 'documentType')->create();
+
+        $this->actingAs($member->user)
+            ->get(route('documents.index', ['workspace' => $workspace, 'page' => 2]))
+            ->assertOk()
+            ->assertInertia(function (Assert $page) {
+                /** @var list<array{url: string|null, label: string, active: bool}> $links */
+                $links = $page->toArray()['props']['documents']['meta']['links'];
+
+                $numbered = array_values(array_filter(
+                    $links,
+                    static fn (array $link): bool => ctype_digit($link['label']),
+                ));
+
+                // onEachSide(1) over four pages, from page two: 1 2 3 4.
+                $this->assertSame(
+                    ['1', '2', '3', '4'],
+                    array_column($numbered, 'label'),
+                );
+
+                $active = array_values(array_filter(
+                    $numbered,
+                    static fn (array $link): bool => $link['active'],
+                ));
+
+                $this->assertCount(1, $active);
+                $this->assertSame('2', $active[0]['label']);
+            });
+    }
 }

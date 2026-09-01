@@ -44,6 +44,7 @@ class TaskController extends Controller
             ->with('user')
             ->orderByDesc('created_at')
             ->paginate(25)
+            ->onEachSide(1)
             ->withQueryString();
 
         return Inertia::render('workspace/tasks', [

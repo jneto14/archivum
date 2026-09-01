@@ -3,6 +3,7 @@ import { EmptyState } from '@/components/empty-state';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
+import type { PageLink } from '@/components/pagination';
 import { Panel } from '@/components/panel';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -33,6 +34,7 @@ type Props = {
         data: ActivityRow[];
         prev_page_url: string | null;
         next_page_url: string | null;
+        links: PageLink[];
         from: number | null;
         to: number | null;
         total: number;
@@ -189,6 +191,7 @@ export default function WorkspaceActivity({ workspace, activities }: Props) {
                         <Pagination
                             prev={activities.prev_page_url}
                             next={activities.next_page_url}
+                            links={activities.links}
                             from={activities.from}
                             to={activities.to}
                             total={activities.total}

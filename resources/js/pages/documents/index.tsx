@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/empty-state';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
+import type { PageLink } from '@/components/pagination';
 import { Panel } from '@/components/panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -60,7 +61,12 @@ type Props = {
     documents: {
         data: DocumentRow[];
         links: { prev: string | null; next: string | null };
-        meta: { from: number | null; to: number | null; total: number };
+        meta: {
+            from: number | null;
+            to: number | null;
+            total: number;
+            links: PageLink[];
+        };
     };
     filters: {
         q: string | null;
@@ -403,6 +409,7 @@ export default function DocumentIndex({
                     <Pagination
                         prev={documents.links.prev}
                         next={documents.links.next}
+                        links={documents.meta.links}
                         from={documents.meta.from}
                         to={documents.meta.to}
                         total={total}

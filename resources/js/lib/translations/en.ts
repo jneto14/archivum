@@ -28,6 +28,7 @@ export default {
     'pagination.showing': 'Showing :from–:to of :total',
     'pagination.previous': 'Previous',
     'pagination.next': 'Next',
+    'pagination.go_to_page': 'Go to page :page',
 
     'nav.group_archive': 'Archive',
     'nav.group_configuration': 'Configuration',

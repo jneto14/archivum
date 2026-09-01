@@ -31,7 +31,8 @@ class ActivityController extends Controller
             ->where('workspace_id', $workspace->id)
             ->with('causer')
             ->latest('id')
-            ->paginate(25);
+            ->paginate(25)
+            ->onEachSide(1);
 
         return Inertia::render('workspace/activity', [
             'workspace' => ['id' => $workspace->id, 'name' => $workspace->name],
