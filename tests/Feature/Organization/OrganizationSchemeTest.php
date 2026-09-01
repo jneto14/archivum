@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Organization;
 
+use App\Actions\Organization\CreateScheme;
 use App\Enums\NodeValueStrategy;
 use App\Enums\WorkspaceRole;
 use App\Models\OrganizationScheme;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class OrganizationSchemeTest extends TestCase
@@ -175,5 +177,39 @@ class OrganizationSchemeTest extends TestCase
         $this->assertTrue($member->user->can('view', $scheme));
         $this->assertTrue($admin->user->can('update', $scheme));
         $this->assertFalse($member->user->can('update', $scheme));
+    }
+
+    public function test_the_create_action_refuses_a_scheme_with_no_levels()
+    {
+        $workspace = Workspace::factory()->create();
+
+        // The form request rejects an empty `levels` array before the action
+        // sees it, so the action's own guard — which any other caller relies
+        // on — is only reachable directly.
+        try {
+            app(CreateScheme::class)->handle($workspace, 'Empty Archive', []);
+            $this->fail('A scheme with no levels is not a scheme.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('levels', $exception->errors());
+        }
+
+        $this->assertDatabaseMissing('organization_schemes', ['name' => 'Empty Archive']);
+    }
+
+    public function test_the_create_action_refuses_duplicate_level_keys()
+    {
+        $workspace = Workspace::factory()->create();
+
+        try {
+            app(CreateScheme::class)->handle($workspace, 'Ambiguous Archive', [
+                ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
+                ['name' => 'Cover 2', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
+            ]);
+            $this->fail('Two levels sharing a key would make a rule ambiguous about where it files.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('levels', $exception->errors());
+        }
+
+        $this->assertDatabaseMissing('organization_schemes', ['name' => 'Ambiguous Archive']);
     }
 }

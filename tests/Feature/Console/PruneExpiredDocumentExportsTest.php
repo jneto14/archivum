@@ -64,4 +64,25 @@ class PruneExpiredDocumentExportsTest extends TestCase
 
         Storage::disk('local')->assertExists('exports/moved.csv');
     }
+
+    public function test_it_skips_an_expired_export_whose_result_never_recorded_a_file()
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put('exports/old.csv', 'Title');
+
+        $workspace = Workspace::factory()->create();
+
+        // A completed export whose result carries something other than a file
+        // reference — nothing to delete, and no reason to blow up on it.
+        Task::factory()->for($workspace)->completed()->create([
+            'result' => ['documents_count' => 0],
+            'finished_at' => now()->subDays(8),
+        ]);
+
+        $this->artisan('exports:prune')
+            ->expectsOutputToContain('Pruned 0 expired document export(s).')
+            ->assertSuccessful();
+
+        Storage::disk('local')->assertExists('exports/old.csv');
+    }
 }

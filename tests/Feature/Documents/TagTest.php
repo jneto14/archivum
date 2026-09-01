@@ -40,6 +40,63 @@ class TagTest extends TestCase
         $this->assertNotNull($document);
     }
 
+    public function test_member_can_create_a_tag()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+
+        $response = $this->actingAs($member->user)
+            ->post(route('tags.store', $workspace), ['name' => 'Utilities']);
+
+        $response->assertRedirect();
+
+        $this->assertSame(
+            ['Utilities'],
+            Tag::query()->where('workspace_id', $workspace->id)->pluck('name')->all(),
+        );
+    }
+
+    public function test_a_tag_name_must_be_unique_within_the_workspace()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        Tag::factory()->for($workspace)->create(['name' => 'Utilities']);
+
+        $response = $this->actingAs($member->user)
+            ->post(route('tags.store', $workspace), ['name' => 'Utilities']);
+
+        $response->assertSessionHasErrors('name');
+        $this->assertSame(1, Tag::query()->count());
+    }
+
+    public function test_the_same_tag_name_may_exist_in_two_workspaces()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+
+        // Uniqueness is scoped to the workspace, so an unscoped unique rule
+        // would let one workspace's vocabulary block another's.
+        Tag::factory()->create(['name' => 'Utilities']);
+
+        $this->actingAs($member->user)
+            ->post(route('tags.store', $workspace), ['name' => 'Utilities'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(2, Tag::query()->where('name', 'Utilities')->count());
+    }
+
+    public function test_outsider_cannot_create_a_tag()
+    {
+        $workspace = Workspace::factory()->create();
+        $outsider = WorkspaceUser::factory()->create(['role' => WorkspaceRole::Admin]);
+
+        $this->actingAs($outsider->user)
+            ->post(route('tags.store', $workspace), ['name' => 'Utilities'])
+            ->assertForbidden();
+
+        $this->assertSame(0, Tag::query()->where('workspace_id', $workspace->id)->count());
+    }
+
     public function test_a_tag_with_no_documents_reports_no_last_used_date()
     {
         $workspace = Workspace::factory()->create();

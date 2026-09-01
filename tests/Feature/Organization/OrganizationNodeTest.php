@@ -160,6 +160,55 @@ class OrganizationNodeTest extends TestCase
         $this->assertDatabaseHas('organization_nodes', ['id' => $node->id]);
     }
 
+    public function test_workspace_admin_can_create_a_child_node_under_a_parent()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $scheme = $this->createScheme($workspace);
+        $levels = $scheme->levels()->orderBy('position')->get();
+        $cover = app(CreateOrganizationNode::class)->handle($levels[0], null, '001');
+
+        $response = $this->actingAs($admin->user)->post(route('organization.schemes.nodes.store', $scheme), [
+            'level_id' => $levels[1]->id,
+            'parent_id' => $cover->id,
+            'value' => 'A',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('organization_nodes', [
+            'level_id' => $levels[1]->id,
+            'parent_id' => $cover->id,
+            'value' => 'A',
+        ]);
+    }
+
+    public function test_a_node_cannot_be_created_under_a_parent_from_another_scheme()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $scheme = $this->createScheme($workspace);
+
+        // A workspace holds one scheme, so the foreign parent has to come from
+        // a second workspace this admin also belongs to.
+        $otherWorkspace = Workspace::factory()->create();
+        WorkspaceUser::factory()->for($otherWorkspace)->create([
+            'user_id' => $admin->user_id,
+            'role' => WorkspaceRole::Admin,
+        ]);
+        $otherScheme = $this->createScheme($otherWorkspace);
+        $foreignParent = app(CreateOrganizationNode::class)
+            ->handle($otherScheme->levels()->orderBy('position')->first(), null, '001');
+
+        $response = $this->actingAs($admin->user)->post(route('organization.schemes.nodes.store', $scheme), [
+            'level_id' => $scheme->levels()->orderBy('position')->skip(1)->first()->id,
+            'parent_id' => $foreignParent->id,
+            'value' => 'A',
+        ]);
+
+        $response->assertNotFound();
+        $this->assertDatabaseMissing('organization_nodes', ['parent_id' => $foreignParent->id]);
+    }
+
     private function createScheme(Workspace $workspace, ?int $coverCapacity = null): OrganizationScheme
     {
         return app(CreateScheme::class)->handle($workspace, 'Traditional Archive', [
