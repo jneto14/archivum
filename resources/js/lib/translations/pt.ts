@@ -71,6 +71,9 @@ export default {
     'documents.index.filter_all_types': 'Todos os tipos',
     'documents.index.filter_tag_placeholder': 'Etiqueta',
     'documents.index.filter_all_tags': 'Todas as etiquetas',
+    'demo.banner':
+        'Esta é uma demonstração pública. Tudo é apagado e reposto a :datetime.',
+    'demo.credentials': 'Conta de demonstração',
     'documents.index.filter_date_any': 'Qualquer data',
     'documents.index.filter_date_clear': 'Limpar o filtro de data',
     'documents.index.export': 'Exportar',

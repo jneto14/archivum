@@ -17,6 +17,13 @@ declare module '@inertiajs/core' {
             sidebarOpen: boolean;
             workspace: Workspace | null;
             workspaces: WorkspaceMembership[];
+            /** Only present when this installation is a public demo. */
+            demo: {
+                email: string;
+                password: string;
+                /** ISO 8601 instant of the next scheduled wipe. */
+                nextResetAt: string;
+            } | null;
             canSwitchWorkspace: boolean;
             isWorkspaceAdmin: boolean;
             documentsCount: number | null;

@@ -206,6 +206,44 @@ Redis runs with no eviction policy for the same reason: sessions live on
 database 0 and the cache on database 1, and an `allkeys` policy under memory
 pressure would sign people out to make room for cache entries.
 
+## Demo mode
+
+An opt-in mode for a public demo: every night a scheduled task drops the
+database and deletes every uploaded file, then reseeds a small archive that is
+already in use — a filing scheme, documents on shelves, tags, and attachments
+whose text is already extracted, so search works on the first query.
+
+**It is off unless two variables are set, and the reset refuses to run
+otherwise.**
+
+```dotenv
+DEMO_MODE=true
+DEMO_RESET_CONFIRM=https://demo.example.com   # must equal this APP_URL
+DEMO_RESET_AT=04:00                           # optional, app timezone
+DEMO_EMAIL=demo@example.com                   # shown on the login screen
+DEMO_PASSWORD=demo1234
+```
+
+Two variables rather than one because the accident worth defending against is
+not a mistyped boolean — it is a working `.env` copied from the demo onto a real
+installation, which is what people do when they want a config that is known to
+work. `DEMO_MODE=true` survives that copy intact. `DEMO_RESET_CONFIRM` does not:
+it has to repeat the installation's own `APP_URL`, so it stops matching the
+moment the URL changes and can only be made to match again by deliberately
+retyping the new host.
+
+`php artisan demo:reset` typed by hand refuses on the same two checks, because a
+guard that lives only in the scheduler protects only the scheduler. On an
+ordinary installation nothing is scheduled at all.
+
+Demo mode also blocks password changes — otherwise the first visitor locks
+everyone else out until the next reset — and forces mail into the `log` mailer,
+so invitations and export links never reach a real inbox. That last one disables
+password reset in passing, which is intended.
+
+Run it from the scheduler container: it mounts the same `archivum-attachments`
+volume as the app, so it can delete the files as well as the records.
+
 ## Timeouts
 
 Three numbers have to stay in order, or a long OCR run is handed to a second

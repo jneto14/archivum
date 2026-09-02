@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Settings\ApiTokenController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
+use App\Http\Middleware\DenyInDemoMode;
 use Illuminate\Auth\Middleware\RequirePassword;
 use Illuminate\Support\Facades\Route;
 
@@ -23,7 +24,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('security.edit');
 
     Route::put('settings/password', [SecurityController::class, 'update'])
-        ->middleware('throttle:6,1')
+        ->middleware(['throttle:6,1', DenyInDemoMode::class])
         ->name('user-password.update');
 
     Route::inertia('settings/appearance', 'settings/appearance')->name('appearance.edit');

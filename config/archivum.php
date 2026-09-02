@@ -163,4 +163,42 @@ return [
         'pt' => 'Português',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Demo Mode
+    |--------------------------------------------------------------------------
+    |
+    | Turns the installation into a public demo: a scheduled task wipes every
+    | record and every uploaded file back to a seeded dataset once a day, so a
+    | visitor can delete, rename and upload freely without leaving a mess for
+    | the next one.
+    |
+    | Off unless BOTH of these are set, and the reset command refuses to run
+    | otherwise no matter how it is invoked. Two variables rather than one
+    | because the realistic accident is not a mistyped boolean — it is a
+    | working .env copied from the demo onto a real installation.
+    | DEMO_RESET_CONFIRM must repeat that installation's own APP_URL, so a
+    | copied value stops matching the moment the URL changes and cannot travel
+    | between hosts.
+    |
+    | Demo mode also blocks password changes, so the first visitor cannot lock
+    | everyone else out until the next reset, and forces mail into the log
+    | mailer so invitations and export links never reach a real inbox.
+    |
+    */
+
+    'demo' => [
+        'enabled' => (bool) env('DEMO_MODE', false),
+
+        /** Must equal this installation's APP_URL for `demo:reset` to run. */
+        'reset_confirm' => env('DEMO_RESET_CONFIRM'),
+
+        /** 24-hour HH:MM, in the application timezone, shown in the banner. */
+        'reset_at' => env('DEMO_RESET_AT', '04:00'),
+
+        /** Credentials the login screen offers, since a demo has nobody to ask. */
+        'email' => env('DEMO_EMAIL', 'demo@archivum.example'),
+        'password' => env('DEMO_PASSWORD', 'demo1234'),
+    ],
+
 ];

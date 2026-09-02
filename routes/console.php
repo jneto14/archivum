@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Console\Commands\PruneExpiredDocumentExports;
+use App\Console\Commands\ResetDemo;
+use App\Support\DemoMode;
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command(PruneExpiredDocumentExports::class)->daily();
@@ -15,3 +17,13 @@ Schedule::command('activitylog:clean')->daily();
 | record worth keeping forever.
 */
 Schedule::command('queue:prune-failed', ['--hours' => 336])->daily();
+
+/*
+| Registered only on a demo installation, so an ordinary one has nothing
+| scheduled that could ever wipe it. The command refuses on its own account
+| too — this is the outer of two independent guards, not the only one.
+*/
+if (DemoMode::enabled()) {
+    Schedule::command(ResetDemo::class)
+        ->dailyAt((string) config('archivum.demo.reset_at'));
+}
