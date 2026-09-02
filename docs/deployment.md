@@ -255,18 +255,21 @@ Caddy and Traefik have no equivalent limit and need nothing.
 
 ### Serving under a path
 
-Serving the application at `https://example.com/archivum` rather than on its own
-name is **partly supported**. The server side works:
+An installation can be served at `https://example.com/archivum` rather than on
+a name of its own. One setting says so:
 
 ```dotenv
 APP_URL=https://example.com/archivum
-ASSET_URL=https://example.com/archivum
 ```
 
-`APP_URL` puts the prefix on every URL the server generates, and `ASSET_URL`
-puts it on the built asset paths — at runtime, with no rebuild. The proxy must
-**strip the prefix** before forwarding, because the application's routes are
-registered without it:
+The prefix is read back out of `APP_URL`, so there is one statement of where
+the installation lives. No rebuild and no `ASSET_URL` — the published image
+carries one build and learns the prefix at runtime.
+
+The proxy must **strip the prefix** before forwarding, which is what a
+`proxy_pass` with a trailing slash does. Routes are registered without it, so
+the application never sees the prefix on the way in; it only puts it back on
+everything it hands out.
 
 ```nginx
 location /archivum/ {
@@ -274,15 +277,52 @@ location /archivum/ {
 }
 ```
 
-What does not yet work is the client. The interface is a single-page
-application, and its URLs are compiled into the JavaScript bundle at build time
-as root-relative paths — `/login`, not `/archivum/login`. The published image
-carries one build, so it cannot know a prefix an operator chose afterwards.
-Server-rendered navigation and the first page load are correct; a link followed
-inside the application resolves against the wrong root.
+#### What had to happen for this to work
 
-Until that is fixed, serve the application on its own hostname or subdomain.
-`https://archivum.example.com` needs none of this.
+Worth knowing, because most of it is not the server.
+
+**Generated URLs.** Redirects, server-rendered links and asset paths are built
+from `APP_URL` by `ForceApplicationUrl`. Inertia is told the same prefix for the
+URL it reports as the current page, or the first navigation would rewrite the
+address bar to the wrong root and a reload would land on nothing.
+
+**Where that forcing lives is load-bearing.** `URL::forceRootUrl()` makes the
+generator produce absolute URLs for *everything*, including
+`wayfinder:generate`, which runs on the command line during the asset build and
+writes every route URL into the JavaScript bundle. Done from a service provider,
+the build bakes its own `APP_URL` into the bundle — and the image is built from
+`.env.example`, so every installation would ship a front end posting to
+`http://localhost`. It is middleware for that reason, and
+`ReverseProxyTest` fails if it moves back.
+
+**Chunk loading.** `laravel-vite-plugin` sets Vite's base from `ASSET_URL` at
+build time, which bakes `/build/assets/...` into every chunk-to-chunk import. A
+prefixed installation would ask the domain root for them and never boot, and
+setting `ASSET_URL` afterwards cannot reach inside the JavaScript. `vite.config.ts`
+sets `base: './'` instead, so each import resolves against the module that
+asked for it — already under whatever prefix the entry came from.
+
+**Route URLs in the bundle.** Wayfinder compiles them at build time as
+root-relative literals. What it does give is a single seam: every route reads
+its path back out of its own definition when called, and every other shape
+(`.get()`, `.post()`, `.form()`) goes through that. So the bundle rewrites those
+definitions once, before anything renders, against a prefix the server puts in a
+`<meta name="app-path-prefix">` tag. Every URL moves at the same moment — a
+`Link`'s `href`, a `Form`'s `action`, what the router is handed. See
+`resources/js/lib/path-prefix.ts`.
+
+A build **does** bake the path of its own `APP_URL` into those literals, so an
+image someone built for their own prefixed installation already carries it. The
+rewrite skips a URL that is already under the prefix, which makes both kinds of
+build correct.
+
+**Fonts.** The font stylesheet is inlined into the page, where its URLs are
+resolved against the document rather than the stylesheet. They go through
+`asset()` instead — see `App\Support\FontStyles`.
+
+The cost is that the route modules are loaded eagerly rather than split per
+page: about 12 KB gzipped on the first load, paid whether or not a prefix is
+set. That is the price of one image working under any prefix.
 
 ## Demo mode
 
