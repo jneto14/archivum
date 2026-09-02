@@ -72,6 +72,8 @@ export default {
     'demo.banner':
         'This is a public demo. Everything is wiped and reset on :datetime.',
     'demo.credentials': 'Demo account',
+    'demo.email_locked':
+        'Fixed on the demo — this is the address printed on the login screen.',
     'documents.index.filter_date_any': 'Any date',
     'documents.index.filter_date_clear': 'Clear the date filter',
     'documents.index.export': 'Export',

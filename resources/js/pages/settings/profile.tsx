@@ -14,6 +14,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useIsDemo } from '@/hooks/use-demo';
 import { useTranslation } from '@/hooks/use-translation';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
@@ -35,6 +36,7 @@ export default function Profile({
     timezones: string[];
 }) {
     const t = useTranslation();
+    const isDemo = useIsDemo();
     const { auth } = usePage<PageProps>().props;
 
     setLayoutProps({
@@ -112,18 +114,35 @@ export default function Profile({
                                     {t('settings.profile.email_label')}
                                 </Label>
 
+                                {/*
+                                 * Read-only on a demo rather than hidden: it
+                                 * is the address on the login screen, so the
+                                 * visitor should see what they signed in as —
+                                 * they just cannot change it out from under
+                                 * whoever arrives next. The rest of this form
+                                 * stays editable, because switching the
+                                 * interface to another language is one of the
+                                 * things a demo is for.
+                                 */}
                                 <Input
                                     id="email"
                                     type="email"
-                                    className="mt-1 block w-full"
+                                    className="mt-1 block w-full read-only:bg-muted read-only:text-muted-foreground"
                                     defaultValue={auth.user.email}
                                     name="email"
                                     required
+                                    readOnly={isDemo}
                                     autoComplete="username"
                                     placeholder={t(
                                         'settings.profile.email_placeholder',
                                     )}
                                 />
+
+                                {isDemo && (
+                                    <p className="text-xs text-muted-foreground">
+                                        {t('demo.email_locked')}
+                                    </p>
+                                )}
 
                                 <InputError
                                     className="mt-2"
@@ -249,7 +268,12 @@ export default function Profile({
                 </Form>
             </div>
 
-            <DeleteUser />
+            {/*
+             * Withheld on a demo: deleting this account takes the
+             * credentials printed on the login screen with it, and nobody
+             * can sign in again until the nightly reset seeds it back.
+             */}
+            {!isDemo && <DeleteUser />}
         </>
     );
 }

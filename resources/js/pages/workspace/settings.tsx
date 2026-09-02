@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useIsDemo } from '@/hooks/use-demo';
 import { useTranslation } from '@/hooks/use-translation';
 import {
     create as schemeCreate,
@@ -72,6 +73,7 @@ export default function WorkspaceSettings({
     limits,
 }: Props) {
     const t = useTranslation();
+    const isDemo = useIsDemo();
 
     const [renameOpen, setRenameOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
@@ -268,7 +270,14 @@ export default function WorkspaceSettings({
                 </CardContent>
             </Card>
 
-            {isPlatformAdmin && (
+            {/*
+             * Withheld on a demo. The limits are the ceiling that stops an
+             * upload spree filling the volume before the nightly reset, and
+             * the demo account is a platform admin, so the visitor would be
+             * editing the only thing protecting the installation from them.
+             * The read-only usage page still shows where a workspace stands.
+             */}
+            {isPlatformAdmin && !isDemo && (
                 <Card>
                     <CardHeader>
                         <CardTitle>
@@ -524,108 +533,119 @@ export default function WorkspaceSettings({
                 </CardContent>
             </Card>
 
-            <Card className="border-red-100 dark:border-red-200/10">
-                <CardHeader>
-                    <CardTitle>
-                        {t('workspace.settings.delete_workspace_card_title')}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">
-                        <div className="space-y-0.5 text-red-600 dark:text-red-100">
-                            <p className="font-medium">
-                                {t('workspace.settings.delete_warning_title')}
-                            </p>
-                            <p className="text-sm">
-                                {t(
-                                    'workspace.settings.delete_warning_description',
-                                )}
-                            </p>
-                        </div>
+            {/*
+             * Withheld on a demo, where this is the one button that empties
+             * it for everybody until the next reset — and the confirm-by-name
+             * dialog is no obstacle when the name is on the screen behind it.
+             */}
+            {!isDemo && (
+                <Card className="border-red-100 dark:border-red-200/10">
+                    <CardHeader>
+                        <CardTitle>
+                            {t(
+                                'workspace.settings.delete_workspace_card_title',
+                            )}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">
+                            <div className="space-y-0.5 text-red-600 dark:text-red-100">
+                                <p className="font-medium">
+                                    {t(
+                                        'workspace.settings.delete_warning_title',
+                                    )}
+                                </p>
+                                <p className="text-sm">
+                                    {t(
+                                        'workspace.settings.delete_warning_description',
+                                    )}
+                                </p>
+                            </div>
 
-                        <Dialog
-                            open={deleteOpen}
-                            onOpenChange={(open) => {
-                                setDeleteOpen(open);
+                            <Dialog
+                                open={deleteOpen}
+                                onOpenChange={(open) => {
+                                    setDeleteOpen(open);
 
-                                if (!open) {
-                                    setDeleteConfirmName('');
-                                }
-                            }}
-                        >
-                            <DialogTrigger asChild>
-                                <Button variant="destructive">
-                                    {t(
-                                        'workspace.settings.delete_workspace_button',
-                                    )}
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogTitle>
-                                    {t(
-                                        'workspace.settings.delete_confirm_title',
-                                        { name: workspace.name },
-                                    )}
-                                </DialogTitle>
-                                <DialogDescription>
-                                    {t(
-                                        'workspace.settings.delete_confirm_description',
-                                    )}{' '}
-                                    <strong>{workspace.name}</strong>{' '}
-                                    {t(
-                                        'workspace.settings.delete_confirm_suffix',
-                                    )}
-                                </DialogDescription>
-                                <form
-                                    onSubmit={submitDelete}
-                                    className="space-y-4"
-                                >
-                                    <div className="grid gap-2">
-                                        <Label
-                                            htmlFor="confirm_name"
-                                            className="sr-only"
-                                        >
-                                            {t(
-                                                'workspace.settings.confirm_name_label',
-                                            )}
-                                        </Label>
-                                        <Input
-                                            id="confirm_name"
-                                            value={deleteConfirmName}
-                                            onChange={(event) =>
-                                                setDeleteConfirmName(
-                                                    event.target.value,
-                                                )
-                                            }
-                                        />
-                                    </div>
-                                    <DialogFooter className="gap-2">
-                                        <DialogClose asChild>
-                                            <Button variant="secondary">
+                                    if (!open) {
+                                        setDeleteConfirmName('');
+                                    }
+                                }}
+                            >
+                                <DialogTrigger asChild>
+                                    <Button variant="destructive">
+                                        {t(
+                                            'workspace.settings.delete_workspace_button',
+                                        )}
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogTitle>
+                                        {t(
+                                            'workspace.settings.delete_confirm_title',
+                                            { name: workspace.name },
+                                        )}
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        {t(
+                                            'workspace.settings.delete_confirm_description',
+                                        )}{' '}
+                                        <strong>{workspace.name}</strong>{' '}
+                                        {t(
+                                            'workspace.settings.delete_confirm_suffix',
+                                        )}
+                                    </DialogDescription>
+                                    <form
+                                        onSubmit={submitDelete}
+                                        className="space-y-4"
+                                    >
+                                        <div className="grid gap-2">
+                                            <Label
+                                                htmlFor="confirm_name"
+                                                className="sr-only"
+                                            >
                                                 {t(
-                                                    'workspace.settings.cancel_button',
+                                                    'workspace.settings.confirm_name_label',
+                                                )}
+                                            </Label>
+                                            <Input
+                                                id="confirm_name"
+                                                value={deleteConfirmName}
+                                                onChange={(event) =>
+                                                    setDeleteConfirmName(
+                                                        event.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                        <DialogFooter className="gap-2">
+                                            <DialogClose asChild>
+                                                <Button variant="secondary">
+                                                    {t(
+                                                        'workspace.settings.cancel_button',
+                                                    )}
+                                                </Button>
+                                            </DialogClose>
+                                            <Button
+                                                type="submit"
+                                                variant="destructive"
+                                                disabled={
+                                                    deleteConfirmName !==
+                                                    workspace.name
+                                                }
+                                            >
+                                                {t(
+                                                    'workspace.settings.delete_workspace_button',
                                                 )}
                                             </Button>
-                                        </DialogClose>
-                                        <Button
-                                            type="submit"
-                                            variant="destructive"
-                                            disabled={
-                                                deleteConfirmName !==
-                                                workspace.name
-                                            }
-                                        >
-                                            {t(
-                                                'workspace.settings.delete_workspace_button',
-                                            )}
-                                        </Button>
-                                    </DialogFooter>
-                                </form>
-                            </DialogContent>
-                        </Dialog>
-                    </div>
-                </CardContent>
-            </Card>
+                                        </DialogFooter>
+                                    </form>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             <Dialog
                 open={revealedToken !== null}
