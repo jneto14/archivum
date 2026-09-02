@@ -85,9 +85,11 @@ Published on every `v*` tag to two registries, holding the same `amd64` and
 `arm64` images:
 
 ```text
-jneto14/archivum:0.2.0            Docker Hub
-ghcr.io/jneto14/archivum:0.2.0  GHCR
+jneto14/archivum:latest            Docker Hub
+ghcr.io/jneto14/archivum:latest  GHCR
 ```
+
+Each release also publishes its own `x.y.z` and `x.y` tags.
 
 Docker Hub is the default because a short name is only ever resolved there —
 `docker pull jneto14/archivum` expands to `docker.io/jneto14/archivum` and Docker
@@ -98,10 +100,10 @@ doing where Docker Hub's anonymous pull limit is a problem:
 ARCHIVUM_IMAGE=ghcr.io/jneto14/archivum
 ```
 
-`ARCHIVUM_VERSION` chooses the tag, and is `latest` when unset. Set it to a
-released version — `ARCHIVUM_VERSION=0.2.0` — if you would rather an upgrade be
-something you ask for than something a restart can do; the cost is that
-security fixes wait for you to edit the file.
+`ARCHIVUM_VERSION` chooses the tag, and is `latest` when unset, which is what
+an installation should normally run. Setting it to a release from the
+[changelog](../CHANGELOG.md) holds the stack on that version until you change
+it — an upgrade you ask for, at the cost of every fix waiting for you to ask.
 
 To build the image yourself rather than pull it:
 
@@ -141,7 +143,7 @@ were created with, so an edited `.env` has no effect at all:
 
 This works because the config cache is built by the entrypoint when the
 container starts, not when the image is built. That is what makes one image
-environment-agnostic: the same `jneto14/archivum:0.2.0` runs anywhere, and
+environment-agnostic: the same `jneto14/archivum` image runs anywhere, and
 nothing about your installation is baked into it.
 
 `OCR_JOB_TIMEOUT` shows why the distinction bites. It moves three things at

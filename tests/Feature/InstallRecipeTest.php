@@ -129,21 +129,42 @@ class InstallRecipeTest extends TestCase
     }
 
     /**
-     * Neither recipe may pin a version.
+     * Files a self-hoster copies from, and must not find a version in.
      *
-     * A literal `ARCHIVUM_VERSION=0.2.0` in a block people copy is stale the
-     * moment the next release ships, and it installs that stale version
-     * silently — the stack starts, so nothing says the image is a year old.
-     * `latest` is the documented default; pinning stays available and stays
-     * described in prose, where a reader chooses it rather than inherits it.
+     * @var list<string>
      */
-    public function test_the_documented_recipes_do_not_pin_a_version()
+    private const DOCUMENTATION = [
+        'README.md',
+        'CHANGELOG.md',
+        'docs/deployment.md',
+        'docker/production/DOCKERHUB.md',
+        'compose.prod.yaml',
+    ];
+
+    /**
+     * No document may write a released version into ARCHIVUM_VERSION.
+     *
+     * Whoever installs this decides what it runs, and what they nearly always
+     * want is the current release. A literal `ARCHIVUM_VERSION=0.2.0` — in a
+     * recipe, in a table, or in a sentence offering it as an example — is
+     * stale the moment the next release ships, and it installs that stale
+     * version silently: the stack starts, so nothing says the image is old.
+     *
+     * `ARCHIVUM_VERSION=local` is allowed, and is the one case where the
+     * variable names something that does not go out of date: an image built
+     * from a checkout.
+     */
+    public function test_the_documentation_never_writes_a_version_into_archivum_version()
     {
-        foreach (['install' => $this->installRecipe(), 'demo' => $this->demoRecipe()] as $name => $recipe) {
+        foreach (self::DOCUMENTATION as $file) {
+            $path = base_path($file);
+
+            $this->assertFileExists($path);
+
             $this->assertDoesNotMatchRegularExpression(
-                '/^ARCHIVUM_VERSION=/m',
-                $recipe,
-                "The {$name} recipe in docs/deployment.md pins ARCHIVUM_VERSION. A copied recipe would install that version forever.",
+                '/ARCHIVUM_VERSION=[v0-9{]/',
+                (string) file_get_contents($path),
+                "{$file} writes a version into ARCHIVUM_VERSION. Whoever installs this wants the current release, and a documented version is stale as soon as the next one ships.",
             );
         }
     }

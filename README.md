@@ -62,8 +62,8 @@ Images are published on every release to Docker Hub and GHCR, for `amd64` and
 `arm64`:
 
 ```text
-jneto14/archivum:0.2.0
-ghcr.io/jneto14/archivum:0.2.0
+jneto14/archivum:latest
+ghcr.io/jneto14/archivum:latest
 ```
 
 ### Development

@@ -91,14 +91,14 @@ The scheduler runs one replica — `schedule:work` keeps its own clock, so a sec
 
 ## Configuration
 
-Everything is environment variables, and none of them are baked into the image. The same `jneto14/archivum:{{VERSION}}` runs anywhere.
+Everything is environment variables, and none of them are baked into the image. The same `jneto14/archivum` image runs anywhere.
 
 | Variable | |
 | --- | --- |
 | `APP_KEY` | 32 random bytes in base64. Changing it later makes existing sessions and encrypted values unreadable |
 | `APP_PORT` | Host port for the web container. Defaults to 80 |
 | `ARCHIVUM_IMAGE` | Switch registries, e.g. `ghcr.io/jneto14/archivum` |
-| `ARCHIVUM_VERSION` | The tag to run. `latest` when unset; set it to a release, e.g. `{{VERSION}}`, to pin one |
+| `ARCHIVUM_VERSION` | The tag to run. `latest` when unset, which is what an installation normally wants; a release holds it there until you change it |
 | `ARCHIVUM_ENV_FILE` | Point the stack at a different env file |
 | `ARCHIVUM_MIGRATE` | `false` to skip migrations on start and run them yourself |
 | `OCR_ENABLED` | `false` to switch text extraction off |
