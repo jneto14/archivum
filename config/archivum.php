@@ -23,6 +23,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Path Prefix
+    |--------------------------------------------------------------------------
+    |
+    | The path an installation is served under, taken from APP_URL: '/archivum'
+    | for https://example.com/archivum, and '' for an installation on its own
+    | hostname. Derived rather than configured separately, so there is one
+    | statement of where this installation lives and nothing to keep in step.
+    |
+    | The proxy in front is expected to strip this prefix before forwarding,
+    | which is what a `proxy_pass` with a trailing slash does. Routes are
+    | registered without it, so the application never sees it on the way in —
+    | it only has to put it back on everything it hands out, including the URLs
+    | compiled into the JavaScript bundle.
+    |
+    */
+
+    'path_prefix' => mb_rtrim((string) parse_url((string) env('APP_URL', ''), PHP_URL_PATH), '/'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Trusted Proxies
     |--------------------------------------------------------------------------
     |

@@ -255,18 +255,21 @@ Caddy and Traefik have no equivalent limit and need nothing.
 
 ### Serving under a path
 
-Serving the application at `https://example.com/archivum` rather than on its own
-name is **partly supported**. The server side works:
+An installation can be served at `https://example.com/archivum` rather than on
+a name of its own. One setting says so:
 
 ```dotenv
 APP_URL=https://example.com/archivum
-ASSET_URL=https://example.com/archivum
 ```
 
-`APP_URL` puts the prefix on every URL the server generates, and `ASSET_URL`
-puts it on the built asset paths — at runtime, with no rebuild. The proxy must
-**strip the prefix** before forwarding, because the application's routes are
-registered without it:
+The prefix is read back out of `APP_URL`, so there is one statement of where
+the installation lives. No rebuild and no `ASSET_URL` — the published image
+carries one build and learns the prefix at runtime.
+
+The proxy must **strip the prefix** before forwarding, which is what a
+`proxy_pass` with a trailing slash does. Routes are registered without it, so
+the application never sees the prefix on the way in; it only puts it back on
+everything it hands out.
 
 ```nginx
 location /archivum/ {
@@ -274,15 +277,52 @@ location /archivum/ {
 }
 ```
 
-What does not yet work is the client. The interface is a single-page
-application, and its URLs are compiled into the JavaScript bundle at build time
-as root-relative paths — `/login`, not `/archivum/login`. The published image
-carries one build, so it cannot know a prefix an operator chose afterwards.
-Server-rendered navigation and the first page load are correct; a link followed
-inside the application resolves against the wrong root.
+#### What had to happen for this to work
 
-Until that is fixed, serve the application on its own hostname or subdomain.
-`https://archivum.example.com` needs none of this.
+Worth knowing, because most of it is not the server.
+
+**Generated URLs.** Redirects, server-rendered links and asset paths are built
+from `APP_URL` by `ForceApplicationUrl`. Inertia is told the same prefix for the
+URL it reports as the current page, or the first navigation would rewrite the
+address bar to the wrong root and a reload would land on nothing.
+
+**Where that forcing lives is load-bearing.** `URL::forceRootUrl()` makes the
+generator produce absolute URLs for *everything*, including
+`wayfinder:generate`, which runs on the command line during the asset build and
+writes every route URL into the JavaScript bundle. Done from a service provider,
+the build bakes its own `APP_URL` into the bundle — and the image is built from
+`.env.example`, so every installation would ship a front end posting to
+`http://localhost`. It is middleware for that reason, and
+`ReverseProxyTest` fails if it moves back.
+
+**Chunk loading.** `laravel-vite-plugin` sets Vite's base from `ASSET_URL` at
+build time, which bakes `/build/assets/...` into every chunk-to-chunk import. A
+prefixed installation would ask the domain root for them and never boot, and
+setting `ASSET_URL` afterwards cannot reach inside the JavaScript. `vite.config.ts`
+sets `base: './'` instead, so each import resolves against the module that
+asked for it — already under whatever prefix the entry came from.
+
+**Route URLs in the bundle.** Wayfinder compiles them at build time as
+root-relative literals. What it does give is a single seam: every route reads
+its path back out of its own definition when called, and every other shape
+(`.get()`, `.post()`, `.form()`) goes through that. So the bundle rewrites those
+definitions once, before anything renders, against a prefix the server puts in a
+`<meta name="app-path-prefix">` tag. Every URL moves at the same moment — a
+`Link`'s `href`, a `Form`'s `action`, what the router is handed. See
+`resources/js/lib/path-prefix.ts`.
+
+A build **does** bake the path of its own `APP_URL` into those literals, so an
+image someone built for their own prefixed installation already carries it. The
+rewrite skips a URL that is already under the prefix, which makes both kinds of
+build correct.
+
+**Fonts.** The font stylesheet is inlined into the page, where its URLs are
+resolved against the document rather than the stylesheet. They go through
+`asset()` instead — see `App\Support\FontStyles`.
+
+The cost is that the route modules are loaded eagerly rather than split per
+page: about 12 KB gzipped on the first load, paid whether or not a prefix is
+set. That is the price of one image working under any prefix.
 
 ## Demo mode
 
@@ -340,6 +380,95 @@ a real inbox. That disables password reset in passing, which is intended.
 
 Run it from the scheduler container: it mounts the same `archivum-attachments`
 volume as the app, so it can delete the files as well as the records.
+
+### A public demo, start to finish
+
+The whole thing, for a demo served under a path behind nginx. This is the
+configuration the project's own demo runs.
+
+```dotenv
+APP_NAME=Archivum
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://demo.example.com/archivum
+APP_KEY=base64:generate-your-own
+
+# Bind to loopback, so the proxy is the only way in. That is what makes
+# TRUSTED_PROXIES=* safe: nothing can reach the application to forge a header.
+APP_PORT=127.0.0.1:9001
+TRUSTED_PROXIES=*
+
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_DATABASE=archivum
+DB_USERNAME=archivum
+DB_PASSWORD=change-me
+
+REDIS_HOST=redis
+CACHE_STORE=redis
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=database
+
+SCOUT_DRIVER=database
+
+ADMIN_EMAIL=you@example.com
+ADMIN_PASSWORD=change-me-too
+
+# Without these it is an ordinary installation that happens to be public: no
+# banner, no credentials on the login screen, and nothing is ever reset.
+DEMO_MODE=true
+DEMO_RESET_CONFIRM=https://demo.example.com/archivum
+DEMO_RESET_AT=04:00
+DEMO_EMAIL=demo@example.com
+DEMO_PASSWORD=demo1234
+
+ARCHIVUM_VERSION=0.2.0
+```
+
+Two things that are easy to get wrong here.
+
+**`DEMO_RESET_CONFIRM` must repeat `APP_URL`**, or `demo:reset` refuses and the
+demo quietly never resets. A trailing slash on either is fine; they are compared
+without one.
+
+**`ASSET_URL` is not needed.** It was, before the image learned to work under a
+path at runtime. Setting it does no harm, but `APP_URL` is the only statement of
+where the installation lives, and one statement is better than two that can
+drift.
+
+#### Seed it with `demo:reset`, not `db:seed`
+
+```bash
+docker compose --env-file .env -f compose.prod.yaml up -d
+docker compose --env-file .env -f compose.prod.yaml exec app php artisan demo:reset
+```
+
+`db:seed` creates an ordinary administrator and an empty workspace. The demo's
+dataset — the filing scheme, the documents on shelves, the attachments with
+their text already extracted — comes from `demo:reset`, which is also what the
+scheduler runs every night. Seeding the ordinary way leaves a demo with nothing
+in it until 04:00, and then destroys the account you just made.
+
+#### The proxy
+
+```nginx
+location /archivum/ {
+    # The trailing slash is what strips the prefix. Without it the application
+    # sees /archivum/login, which matches no route, and every page is a 404.
+    proxy_pass http://127.0.0.1:9001/;
+
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    # The Link header preloads around thirty modules and does not fit the
+    # default buffer. Too small and nginx answers 502 without saying why.
+    proxy_buffer_size       32k;
+    proxy_buffers         8 32k;
+    proxy_busy_buffers_size 64k;
+}
+```
 
 ## Timeouts
 

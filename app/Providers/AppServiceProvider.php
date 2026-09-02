@@ -16,12 +16,14 @@ use App\Services\Ocr\TesseractEngine;
 use App\Support\DemoMode;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use Inertia\Inertia;
 use Laravel\Passkeys\Passkeys;
 use Spatie\Activitylog\Models\Activity;
 
@@ -56,7 +58,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureTrustedProxies();
-        $this->configureUrls();
+        $this->configureInertiaUrls();
         $this->configureDefaults();
         $this->configureWorkspaceMembership();
         $this->configurePasskeys();
@@ -100,50 +102,31 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Generate every URL from APP_URL rather than from the incoming request.
+     * Put the path prefix back on the URL Inertia reports for the current page.
      *
-     * Left to itself Laravel builds URLs from what the request appears to say,
-     * which behind a reverse proxy is what the proxy forwarded rather than what
-     * the browser asked for. Two things go wrong, and both of them look like
-     * the application being broken rather than the deployment being
-     * misdescribed:
+     * Inertia takes the address bar from this value rather than from the
+     * browser. The proxy strips the prefix before the request arrives, so left
+     * alone the application would say the current page is `/login` — and the
+     * first navigation would rewrite the address bar to the wrong root, where
+     * a reload then lands on nothing.
      *
-     * A proxy that terminates TLS forwards plain HTTP, so redirects come back
-     * as `http://` and the browser refuses them or downgrades the connection.
+     * The default resolver is kept and only prefixed, so query strings and
+     * anything else it handles keep working.
      *
-     * And an installation served under a path — `https://example.com/archivum`
-     * — is reached by a proxy that strips the prefix before forwarding, so the
-     * application never sees it. It generates `/login`, which resolves against
-     * the wrong root and lands outside the installation entirely.
-     *
-     * Forcing the root URL fixes both, because APP_URL is the one place that
-     * states what the outside world calls this installation. The scheme is
-     * forced as well: the root URL settles what generated links look like, but
-     * `secure_url()` and the framework's own "is this request secure" checks
-     * read the scheme, and those decide things like whether a session cookie is
-     * marked Secure.
-     *
-     * This is not the whole job. `configureTrustedProxies()` above is what
-     * makes the forwarded headers believed at all, and the client-side router
-     * has a path prefix of its own to learn about — see docs/deployment.md.
-     *
-     * @return void No return value; fixes the URL generator's root and scheme as a side effect.
+     * @return void No return value; replaces Inertia's page URL resolver as a side effect.
      */
-    protected function configureUrls(): void
+    protected function configureInertiaUrls(): void
     {
-        $url = (string) config('app.url');
+        $prefix = (string) config('archivum.path_prefix');
 
-        if ($url === '') {
+        if ($prefix === '') {
             return;
         }
 
-        URL::forceRootUrl($url);
-
-        $scheme = parse_url($url, PHP_URL_SCHEME);
-
-        if (is_string($scheme)) {
-            URL::forceScheme($scheme);
-        }
+        Inertia::resolveUrlUsing(fn (Request $request): string => $prefix . Str::start(
+            Str::after($request->fullUrl(), $request->getSchemeAndHttpHost()),
+            '/',
+        ));
     }
 
     /**
