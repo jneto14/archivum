@@ -24,6 +24,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useIsDemo } from '@/hooks/use-demo';
 import { useTranslation } from '@/hooks/use-translation';
 import workspaces, {
     index,
@@ -38,6 +39,7 @@ type Props = {
 
 export default function WorkspaceIndex({ workspaces: allWorkspaces }: Props) {
     const t = useTranslation();
+    const isDemo = useIsDemo();
     const [createOpen, setCreateOpen] = useState(false);
     const form = useForm({ name: '' });
 
@@ -82,60 +84,77 @@ export default function WorkspaceIndex({ workspaces: allWorkspaces }: Props) {
                     title={t('workspace.index.heading')}
                     description={t('workspace.index.description')}
                 >
-                    <Dialog
-                        open={createOpen}
-                        onOpenChange={(open) => {
-                            setCreateOpen(open);
+                    {/*
+                     * Left out on a demo: the route refuses it, nothing
+                     * bounds how many a visitor could create, and each one
+                     * outlives them in the next visitor's switcher.
+                     */}
+                    {!isDemo && (
+                        <Dialog
+                            open={createOpen}
+                            onOpenChange={(open) => {
+                                setCreateOpen(open);
 
-                            if (!open) {
-                                form.reset();
-                                form.clearErrors();
-                            }
-                        }}
-                    >
-                        <DialogTrigger asChild>
-                            <Button size="sm">
-                                {t('workspace.index.create_button')}
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogTitle>
-                                {t('workspace.index.create_dialog_title')}
-                            </DialogTitle>
-                            <form onSubmit={submitCreate} className="space-y-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="name">
-                                        {t('workspace.index.name_label')}
-                                    </Label>
-                                    <Input
-                                        id="name"
-                                        value={form.data.name}
-                                        onChange={(event) =>
-                                            form.setData(
-                                                'name',
-                                                event.target.value,
-                                            )
-                                        }
-                                        required
-                                    />
-                                    <InputError message={form.errors.name} />
-                                </div>
-                                <DialogFooter>
-                                    <DialogClose asChild>
-                                        <Button type="button" variant="ghost">
-                                            {t('workspace.index.cancel_button')}
+                                if (!open) {
+                                    form.reset();
+                                    form.clearErrors();
+                                }
+                            }}
+                        >
+                            <DialogTrigger asChild>
+                                <Button size="sm">
+                                    {t('workspace.index.create_button')}
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogTitle>
+                                    {t('workspace.index.create_dialog_title')}
+                                </DialogTitle>
+                                <form
+                                    onSubmit={submitCreate}
+                                    className="space-y-4"
+                                >
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="name">
+                                            {t('workspace.index.name_label')}
+                                        </Label>
+                                        <Input
+                                            id="name"
+                                            value={form.data.name}
+                                            onChange={(event) =>
+                                                form.setData(
+                                                    'name',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            required
+                                        />
+                                        <InputError
+                                            message={form.errors.name}
+                                        />
+                                    </div>
+                                    <DialogFooter>
+                                        <DialogClose asChild>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                            >
+                                                {t(
+                                                    'workspace.index.cancel_button',
+                                                )}
+                                            </Button>
+                                        </DialogClose>
+                                        <Button
+                                            type="submit"
+                                            disabled={form.processing}
+                                        >
+                                            {t('workspace.index.save_button')}
                                         </Button>
-                                    </DialogClose>
-                                    <Button
-                                        type="submit"
-                                        disabled={form.processing}
-                                    >
-                                        {t('workspace.index.save_button')}
-                                    </Button>
-                                </DialogFooter>
-                            </form>
-                        </DialogContent>
-                    </Dialog>
+                                    </DialogFooter>
+                                </form>
+                            </DialogContent>
+                        </Dialog>
+                    )}
                 </PageHeader>
 
                 <Panel>

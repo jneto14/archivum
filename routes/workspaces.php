@@ -10,16 +10,41 @@ use App\Http\Controllers\Workspaces\WorkspaceSettingsController;
 use App\Http\Controllers\Workspaces\WorkspaceSwitchController;
 use App\Http\Controllers\Workspaces\WorkspaceUsageController;
 use App\Http\Controllers\Workspaces\WorkspaceUserController;
+use App\Http\Middleware\DenyInDemoMode;
 use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Workspaces
+|--------------------------------------------------------------------------
+|
+| Three of these carry DenyInDemoMode. The demo account is a platform admin,
+| so a visitor holding the credentials from the login screen can reach all of
+| them: deleting the workspace empties the demo, creating them is unbounded
+| and leaves the next visitor a switcher full of strangers' names, and the
+| limits are what stop an upload spree filling the volume before the nightly
+| reset — raising them removes the only ceiling there is.
+|
+| Renaming, membership and everything below is left alone: it is the product,
+| the reset undoes it, and RemoveWorkspaceUser already refuses to leave a
+| workspace with no admin.
+|
+*/
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('workspaces', [WorkspaceController::class, 'index'])->name('workspaces.index');
-    Route::post('workspaces', [WorkspaceController::class, 'store'])->name('workspaces.store');
+    Route::post('workspaces', [WorkspaceController::class, 'store'])
+        ->middleware(DenyInDemoMode::class)
+        ->name('workspaces.store');
     Route::patch('workspaces/{workspace}', [WorkspaceController::class, 'update'])->name('workspaces.update');
-    Route::delete('workspaces/{workspace}', [WorkspaceController::class, 'destroy'])->name('workspaces.destroy');
+    Route::delete('workspaces/{workspace}', [WorkspaceController::class, 'destroy'])
+        ->middleware(DenyInDemoMode::class)
+        ->name('workspaces.destroy');
     Route::post('workspaces/{workspace}/switch', [WorkspaceSwitchController::class, 'store'])->name('workspaces.switch');
     Route::get('workspaces/{workspace}/usage', [WorkspaceUsageController::class, 'show'])->name('workspaces.usage');
-    Route::patch('workspaces/{workspace}/limits', [WorkspaceLimitController::class, 'update'])->name('workspaces.limits.update');
+    Route::patch('workspaces/{workspace}/limits', [WorkspaceLimitController::class, 'update'])
+        ->middleware(DenyInDemoMode::class)
+        ->name('workspaces.limits.update');
     Route::get('workspaces/{workspace}/settings', [WorkspaceSettingsController::class, 'show'])->name('workspaces.settings.show');
 
     Route::get('workspaces/{workspace}/users', [WorkspaceUserController::class, 'index'])->name('workspaces.users.index');

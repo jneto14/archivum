@@ -74,6 +74,8 @@ export default {
     'demo.banner':
         'Esta é uma demonstração pública. Tudo é apagado e reposto a :datetime.',
     'demo.credentials': 'Conta de demonstração',
+    'demo.email_locked':
+        'Fixo na demonstração — é o endereço indicado no ecrã de entrada.',
     'documents.index.filter_date_any': 'Qualquer data',
     'documents.index.filter_date_clear': 'Limpar o filtro de data',
     'documents.index.export': 'Exportar',

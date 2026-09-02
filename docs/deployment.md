@@ -236,10 +236,29 @@ retyping the new host.
 guard that lives only in the scheduler protects only the scheduler. On an
 ordinary installation nothing is scheduled at all.
 
-Demo mode also blocks password changes — otherwise the first visitor locks
-everyone else out until the next reset — and forces mail into the `log` mailer,
-so invitations and export links never reach a real inbox. That last one disables
-password reset in passing, which is intended.
+Demo mode also withholds what a visitor could use to leave the demo useless to
+whoever arrives next. The credentials are printed on the login screen and the
+demo account is both a workspace admin and a platform admin, so everyone arrives
+holding the keys. None of this is about damage — the nightly reset repairs
+everything. It is about the hours in between:
+
+- **Being locked out.** Changing the password, changing the account's email and
+  deleting the account are all refused. Each one makes the credentials the login
+  screen advertises wrong until the next reset.
+- **Being left nothing to look at.** Deleting the workspace is refused, and so
+  is creating new ones — nothing bounds how many a visitor could make, and each
+  outlives them in the next visitor's switcher.
+- **Losing the ceiling.** The workspace limits are what stop an upload spree
+  filling the volume before the reset, and a platform admin can edit them.
+  Editing them is refused.
+
+The refusals live on the routes, and the interface leaves the matching buttons
+out — a button that always errors reads as a broken demo rather than a demo.
+Everything else is the product and is left alone, API tokens included: they
+grant nothing the printed credentials do not, and they do not survive the reset.
+
+Mail is forced into the `log` mailer, so invitations and export links never reach
+a real inbox. That disables password reset in passing, which is intended.
 
 Run it from the scheduler container: it mounts the same `archivum-attachments`
 volume as the app, so it can delete the files as well as the records.
