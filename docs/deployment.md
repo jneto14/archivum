@@ -39,7 +39,7 @@ SCOUT_DRIVER=database
 ADMIN_EMAIL=you@example.com
 ADMIN_PASSWORD=change-me-too
 
-ARCHIVUM_VERSION=0.1.0
+ARCHIVUM_VERSION=0.2.0
 EOF
 
 docker compose --env-file .env -f compose.prod.yaml up -d
@@ -88,8 +88,8 @@ Published on every `v*` tag to two registries, holding the same `amd64` and
 `arm64` images:
 
 ```text
-jneto14/archivum:0.1.0            Docker Hub
-ghcr.io/jneto14/archivum:0.1.0  GHCR
+jneto14/archivum:0.2.0            Docker Hub
+ghcr.io/jneto14/archivum:0.2.0  GHCR
 ```
 
 Docker Hub is the default because a short name is only ever resolved there —
@@ -99,7 +99,7 @@ doing where Docker Hub's anonymous pull limit is a problem:
 
 ```dotenv
 ARCHIVUM_IMAGE=ghcr.io/jneto14/archivum
-ARCHIVUM_VERSION=0.1.0
+ARCHIVUM_VERSION=0.2.0
 ```
 
 To build the image yourself rather than pull it:
@@ -140,7 +140,7 @@ were created with, so an edited `.env` has no effect at all:
 
 This works because the config cache is built by the entrypoint when the
 container starts, not when the image is built. That is what makes one image
-environment-agnostic: the same `jneto14/archivum:0.1.0` runs anywhere, and
+environment-agnostic: the same `jneto14/archivum:0.2.0` runs anywhere, and
 nothing about your installation is baked into it.
 
 `OCR_JOB_TIMEOUT` shows why the distinction bites. It moves three things at

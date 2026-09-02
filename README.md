@@ -62,8 +62,8 @@ Images are published on every release to Docker Hub and GHCR, for `amd64` and
 `arm64`:
 
 ```text
-jneto14/archivum:0.1.0
-ghcr.io/jneto14/archivum:0.1.0
+jneto14/archivum:0.2.0
+ghcr.io/jneto14/archivum:0.2.0
 ```
 
 ### Development
@@ -110,7 +110,7 @@ scheduler.
 
 ## Status
 
-**Current release: [0.1.0](CHANGELOG.md).**
+**Current release: [0.2.0](CHANGELOG.md).**
 
 The core domain — workspaces, documents, physical organization, search and text
 extraction — is built, tested and documented. The major version is 0 because
