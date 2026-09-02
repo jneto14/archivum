@@ -125,6 +125,43 @@ class AttachmentInlineSafetyTest extends TestCase
         $this->assertStringStartsWith('attachment;', (string) $response->headers->get('content-disposition'));
     }
 
+    /**
+     * The interface has to reach the same verdict as the response does. It
+     * previously worked it out from the mime type on its own, which put a
+     * broken image where the "cannot preview" message belonged the moment the
+     * server stopped serving SVGs inline.
+     */
+    public function test_the_serialised_attachment_agrees_with_how_it_is_served()
+    {
+        foreach ([
+            ['scan.pdf', 'application/pdf', true],
+            ['diagram.svg', 'image/svg+xml', false],
+            ['invoice.html', 'text/html', false],
+        ] as [$filename, $mime, $expected]) {
+            $attachment = $this->upload(
+                UploadedFile::fake()->createWithContent($filename, 'x'),
+            );
+
+            $this->assertSame(
+                $expected,
+                $attachment->is_previewable,
+                "{$filename} previewable flag",
+            );
+
+            $this->assertArrayHasKey('is_previewable', $attachment->toArray());
+
+            $response = $this
+                ->actingAs($attachment->document->workspace->users()->firstOrFail())
+                ->get(route('attachments.preview', $attachment));
+
+            $this->assertSame(
+                $expected,
+                str_starts_with((string) $response->headers->get('content-disposition'), 'inline;'),
+                "{$filename} served inline",
+            );
+        }
+    }
+
     private function upload(UploadedFile $file): DocumentAttachment
     {
         Storage::fake('local');

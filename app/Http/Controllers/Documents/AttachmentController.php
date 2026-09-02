@@ -20,35 +20,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class AttachmentController extends Controller
 {
     /**
-     * The only content types ever served inline, and the exact type each is
-     * served as.
-     *
-     * An attachment is a file somebody uploaded, served from the application's
-     * own origin. Letting the browser decide what it is means an uploaded
-     * `invoice.html` comes back as `text/html` and its script runs with the
-     * viewer's session — able to read the CSRF token and act as them. So the
-     * type is chosen here from a list, never taken from the file.
-     *
-     * `image/svg+xml` is deliberately absent. An SVG is a document that can
-     * carry script, not a picture, and it is the one image type that would
-     * turn this list back into the hole it closes.
-     *
-     * Anything not listed is still downloadable — an archive should accept
-     * whatever its owner has — but it is handed over as an opaque download
-     * rather than rendered.
-     *
-     * @var list<string>
-     */
-    private const INLINE_SAFE_TYPES = [
-        'application/pdf',
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'image/webp',
-        'image/avif',
-    ];
-
-    /**
      * Upload one or more files and attach them to the given document.
      *
      * @param StoreAttachmentRequest $request The incoming request, carrying the uploaded `files`.
@@ -111,7 +82,7 @@ class AttachmentController extends Controller
     {
         $this->authorize('view', $attachment);
 
-        $inlineSafe = in_array($attachment->mime_type, self::INLINE_SAFE_TYPES, true);
+        $inlineSafe = $attachment->is_previewable;
 
         return Storage::disk($attachment->disk)->response(
             $attachment->path,

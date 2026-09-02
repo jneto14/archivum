@@ -50,6 +50,8 @@ type AttachmentRow = {
     id: string;
     filename: string;
     mime_type: string;
+    /** Appended by the model — see DocumentAttachment::INLINE_SAFE_TYPES. */
+    is_previewable: boolean;
     size: number;
     ocr_status: OcrStatus;
     created_at: string;
