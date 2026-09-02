@@ -1,4 +1,5 @@
 import { Form, Head, setLayoutProps } from '@inertiajs/react';
+import { DemoCredentials } from '@/components/demo-credentials';
 import InputError from '@/components/input-error';
 import PasskeyVerify from '@/components/passkey-verify';
 import PasswordInput from '@/components/password-input';
@@ -28,6 +29,8 @@ export default function Login({ status, canResetPassword }: Props) {
     return (
         <>
             <Head title={t('auth.login.head_title')} />
+
+            <DemoCredentials />
 
             <PasskeyVerify />
 

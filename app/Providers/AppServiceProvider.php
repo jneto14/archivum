@@ -13,6 +13,7 @@ use App\Models\WorkspaceUser;
 use App\Policies\ActivityPolicy;
 use App\Services\Ocr\Contracts\OcrEngine;
 use App\Services\Ocr\TesseractEngine;
+use App\Support\DemoMode;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -57,6 +58,32 @@ class AppServiceProvider extends ServiceProvider
         $this->configurePasskeys();
         $this->configurePlatformAdminAccess();
         $this->configureActivityLog();
+        $this->configureDemoMode();
+    }
+
+    /**
+     * Apply the restrictions a public demo needs.
+     *
+     * Mail is redirected at the transport rather than at each sender, because
+     * the failure to avoid is a demo quietly emailing a stranger: workspace
+     * invitations and export links both go out on their own, and a per-feature
+     * switch is one someone will forget to add to the next feature that sends
+     * something. Nothing is sent from a demo, whatever asks.
+     *
+     * This also disables password reset in practice — the mail carrying the
+     * link is never delivered — which is the intended outcome. Changing a
+     * password from inside the application is blocked separately, by
+     * DenyInDemoMode on the route.
+     *
+     * @return void No return value; overrides the mail transport as a side effect.
+     */
+    protected function configureDemoMode(): void
+    {
+        if (!DemoMode::enabled()) {
+            return;
+        }
+
+        config(['mail.default' => 'log']);
     }
 
     /**

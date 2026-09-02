@@ -7,6 +7,7 @@ namespace App\Http\Middleware;
 use App\Actions\Workspace\CalculateWorkspaceUsage;
 use App\Enums\WorkspaceRole;
 use App\Models\Workspace;
+use App\Support\DemoMode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Inertia\Middleware;
@@ -86,6 +87,15 @@ class HandleInertiaRequests extends Middleware
                 'name' => $w->name,
                 'role' => (string) $w->pivot->role,
             ])->all(),
+            // Present on every page, signed in or not: the login screen needs
+            // the credentials and the banner needs the deadline, and a visitor
+            // who spends ten minutes filing something deserves to know it will
+            // be gone by morning.
+            'demo' => DemoMode::enabled() ? [
+                'email' => (string) config('archivum.demo.email'),
+                'password' => (string) config('archivum.demo.password'),
+                'nextResetAt' => DemoMode::nextResetAt()->toIso8601String(),
+            ] : null,
             'canSwitchWorkspace' => (bool) config('archivum.multi_workspace_enabled'),
             'isWorkspaceAdmin' => $isWorkspaceAdmin,
             'documentsCount' => $workspace ? app(CalculateWorkspaceUsage::class)->documents($workspace) : null,

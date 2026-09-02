@@ -69,6 +69,9 @@ export default {
     'documents.index.filter_all_types': 'All types',
     'documents.index.filter_tag_placeholder': 'Tag',
     'documents.index.filter_all_tags': 'All tags',
+    'demo.banner':
+        'This is a public demo. Everything is wiped and reset on :datetime.',
+    'demo.credentials': 'Demo account',
     'documents.index.filter_date_any': 'Any date',
     'documents.index.filter_date_clear': 'Clear the date filter',
     'documents.index.export': 'Export',
