@@ -25,3 +25,12 @@ Two symptoms this caused on the Tasks page: a failure message ran off the right 
 Fixing the wrapping is only half of it. An auto-layout table sizes columns from content, so a long unbreakable token (a path, a UUID) still widens the column no matter what max-width the child carries. Prose columns need `table-fixed` with explicit `w-[n%]` heads, plus `min-w-[...]` on the table so narrow screens scroll instead of crushing every column.
 
 Cap anything a backend can make arbitrarily long — an exception message, a filename — with `line-clamp-*` plus a `title`, rather than trusting it to be short.
+
+## Frontend behaviour has a runner now — use it for anything locale- or timezone-dependent
+Vitest + React Testing Library live in `resources/js`, beside what they test (`calendar-date.ts` / `calendar-date.test.ts`), and run inside `composer ci:check`. `vitest.config.ts` is deliberately separate from `vite.config.ts` — the app config carries the Laravel and Wayfinder plugins, and Wayfinder shells out to `php artisan`.
+
+Add a test whenever behaviour depends on something that is right by accident on the machine you wrote it on: the app locale (dates, month names, first day of week), the user's saved timezone, or a component that must render nothing. ARC-94 shipped a native `<input type="date">` rendering in the browser's locale and took six days to find, after the identical defect had already been fixed elsewhere.
+
+Two habits: assert the *difference* between locales rather than a fixed string (`expect(inPortuguese).not.toBe(inEnglish)` — pinning `31 de ago. de 2026` only pins ICU), and stub `TZ` with `vi.stubEnv` across several zones, because in one zone the naive implementation passes too.
+
+Before trusting a new test, revert the line it covers and watch it go red. Vitest reads the DOM, never the pixels — it does not replace opening the app and looking at it.

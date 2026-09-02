@@ -67,8 +67,8 @@ One command runs everything CI runs:
 ./vendor/bin/sail composer ci:check
 ```
 
-which is ESLint, Prettier, `tsc`, Pint, PHPStan (via Larastan) and the Pest
-suite. Run this rather than the individual tools — it is what catches the
+which is ESLint, Prettier, `tsc`, Vitest, Pint, PHPStan (via Larastan) and the
+Pest suite. Run this rather than the individual tools — it is what catches the
 formatting failures the others miss.
 
 Narrower loops while working:
@@ -76,6 +76,7 @@ Narrower loops while working:
 ```bash
 ./vendor/bin/sail artisan test --compact tests/Feature/Documents/DocumentIndexTest.php
 ./vendor/bin/sail artisan test --compact --filter=test_admin_can_change_a_members_role
+./vendor/bin/sail npm run test:watch
 ./vendor/bin/sail php vendor/bin/pint --dirty
 ```
 
@@ -113,6 +114,41 @@ A failure in `QueryBudgetTest` is not automatically a bug. Adding a feature may
 legitimately add a query — re-measure, satisfy yourself it is necessary, and
 move the number deliberately in the same change.
 
+### Frontend tests
+
+Vitest and React Testing Library, in `resources/js`, beside what they test
+(`calendar-date.ts` / `calendar-date.test.ts`). `vitest.config.ts` is separate
+from `vite.config.ts` on purpose: the application config carries the Laravel and
+Wayfinder plugins, and a test run has no business booting the framework.
+
+```bash
+./vendor/bin/sail npm run test          # once
+./vendor/bin/sail npm run test:watch    # while working
+```
+
+This is not here for coverage. It exists for the class of defect nothing else in
+`ci:check` can see, which is anything that renders **correctly on the machine it
+was written on**:
+
+- **Locale.** Dates, month names, the first day of the week. ARC-94 shipped a
+  native `<input type="date">` that rendered in the browser's locale rather than
+  the app's; it took six days and a person switching language to find, and the
+  same defect had already been fixed once elsewhere.
+- **Timezone.** The `YYYY-MM-DD` helpers in `lib/calendar-date.ts` exist to
+  survive a round trip west of Greenwich. Their tests stub `TZ` and run in five
+  zones, because in one zone the naive implementation passes too.
+- **Rendering nothing.** `DemoBanner` and `DemoCredentials` ship to every
+  installation and must be invisible on almost all of them.
+
+Two habits worth keeping:
+
+- **Assert the difference, not the string.** `expect(inPortuguese).not.toBe(inEnglish)`
+  proves the component followed the app's locale. Pinning `31 de ago. de 2026`
+  only proves ICU has not changed its abbreviations.
+- **Check the test fails without the fix.** Revert the line under test, watch it
+  go red, put it back. A locale test written against a component that ignores
+  the locale passes just as happily on the machine where they agree.
+
 ## Conventions
 
 Path-scoped conventions live in `.ai/rules/`, indexed by `.ai/rules/index.md`.
@@ -134,7 +170,9 @@ Most of them are there because something shipped broken first.
 
 `ci:check` passes on layouts that are visibly broken. ESLint, Prettier, `tsc`,
 Pint, PHPStan and Pest do not know what overflow, clipping, an invisible active
-state or an unreadable colour ramp look like.
+state or an unreadable colour ramp look like — and neither does Vitest, which
+reads the DOM and never the pixels. It can tell you a calendar came out in
+Portuguese; it cannot tell you it came out on top of the field below it.
 
 For any change to layout, spacing, colour tokens or responsive behaviour: open
 the application and look at it — at phone width, at tablet width with the
