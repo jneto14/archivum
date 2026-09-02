@@ -381,6 +381,95 @@ a real inbox. That disables password reset in passing, which is intended.
 Run it from the scheduler container: it mounts the same `archivum-attachments`
 volume as the app, so it can delete the files as well as the records.
 
+### A public demo, start to finish
+
+The whole thing, for a demo served under a path behind nginx. This is the
+configuration the project's own demo runs.
+
+```dotenv
+APP_NAME=Archivum
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://demo.example.com/archivum
+APP_KEY=base64:generate-your-own
+
+# Bind to loopback, so the proxy is the only way in. That is what makes
+# TRUSTED_PROXIES=* safe: nothing can reach the application to forge a header.
+APP_PORT=127.0.0.1:9001
+TRUSTED_PROXIES=*
+
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_DATABASE=archivum
+DB_USERNAME=archivum
+DB_PASSWORD=change-me
+
+REDIS_HOST=redis
+CACHE_STORE=redis
+SESSION_DRIVER=redis
+QUEUE_CONNECTION=database
+
+SCOUT_DRIVER=database
+
+ADMIN_EMAIL=you@example.com
+ADMIN_PASSWORD=change-me-too
+
+# Without these it is an ordinary installation that happens to be public: no
+# banner, no credentials on the login screen, and nothing is ever reset.
+DEMO_MODE=true
+DEMO_RESET_CONFIRM=https://demo.example.com/archivum
+DEMO_RESET_AT=04:00
+DEMO_EMAIL=demo@example.com
+DEMO_PASSWORD=demo1234
+
+ARCHIVUM_VERSION=0.2.0
+```
+
+Two things that are easy to get wrong here.
+
+**`DEMO_RESET_CONFIRM` must repeat `APP_URL`**, or `demo:reset` refuses and the
+demo quietly never resets. A trailing slash on either is fine; they are compared
+without one.
+
+**`ASSET_URL` is not needed.** It was, before the image learned to work under a
+path at runtime. Setting it does no harm, but `APP_URL` is the only statement of
+where the installation lives, and one statement is better than two that can
+drift.
+
+#### Seed it with `demo:reset`, not `db:seed`
+
+```bash
+docker compose --env-file .env -f compose.prod.yaml up -d
+docker compose --env-file .env -f compose.prod.yaml exec app php artisan demo:reset
+```
+
+`db:seed` creates an ordinary administrator and an empty workspace. The demo's
+dataset — the filing scheme, the documents on shelves, the attachments with
+their text already extracted — comes from `demo:reset`, which is also what the
+scheduler runs every night. Seeding the ordinary way leaves a demo with nothing
+in it until 04:00, and then destroys the account you just made.
+
+#### The proxy
+
+```nginx
+location /archivum/ {
+    # The trailing slash is what strips the prefix. Without it the application
+    # sees /archivum/login, which matches no route, and every page is a 404.
+    proxy_pass http://127.0.0.1:9001/;
+
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    # The Link header preloads around thirty modules and does not fit the
+    # default buffer. Too small and nginx answers 502 without saying why.
+    proxy_buffer_size       32k;
+    proxy_buffers         8 32k;
+    proxy_busy_buffers_size 64k;
+}
+```
+
 ## Timeouts
 
 Three numbers have to stay in order, or a long OCR run is handed to a second

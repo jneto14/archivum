@@ -71,6 +71,89 @@ class InstallRecipeTest extends TestCase
      *
      * @return string The body of the `cat > .env` block.
      */
+    /**
+     * The demo recipe has its own settings whose absence is silently wrong, and
+     * they are worse than the install recipe's: an installation missing them is
+     * not broken, it is an ordinary one that happens to be public. No banner
+     * warning visitors their work is temporary, no credentials on the login
+     * screen, nothing ever reset, and none of the restrictions that stop the
+     * first visitor leaving it useless to the next.
+     */
+    public function test_the_documented_demo_recipe_turns_demo_mode_on()
+    {
+        $recipe = $this->demoRecipe();
+
+        foreach (['DEMO_MODE=true', 'DEMO_RESET_CONFIRM=', 'DEMO_EMAIL=', 'DEMO_PASSWORD='] as $setting) {
+            $this->assertStringContainsString(
+                $setting,
+                $recipe,
+                "The demo recipe in docs/deployment.md does not set {$setting}.",
+            );
+        }
+    }
+
+    /**
+     * `demo:reset` refuses unless DEMO_RESET_CONFIRM repeats the installation's
+     * own APP_URL, so a recipe where the two disagree documents a demo that
+     * quietly never resets.
+     */
+    public function test_the_demo_recipe_confirms_its_own_app_url()
+    {
+        $recipe = $this->demoRecipe();
+
+        preg_match('/^APP_URL=(.*)$/m', $recipe, $appUrl);
+        preg_match('/^DEMO_RESET_CONFIRM=(.*)$/m', $recipe, $confirm);
+
+        $this->assertSame(
+            mb_rtrim($appUrl[1] ?? 'a', '/'),
+            mb_rtrim($confirm[1] ?? 'b', '/'),
+            'DEMO_RESET_CONFIRM must repeat APP_URL, or demo:reset refuses to run.',
+        );
+    }
+
+    /**
+     * The demo dataset comes from `demo:reset`. Seeding the ordinary way leaves
+     * a demo with nothing in it until the small hours, and then destroys
+     * whatever account was made in the meantime.
+     */
+    public function test_the_demo_recipe_seeds_with_demo_reset()
+    {
+        $path = base_path('docs/deployment.md');
+        $documentation = (string) file_get_contents($path);
+
+        $this->assertStringContainsString(
+            'artisan demo:reset',
+            mb_substr($documentation, (int) mb_strpos($documentation, '### A public demo')),
+            'The demo recipe should seed with demo:reset rather than db:seed.',
+        );
+    }
+
+    /**
+     * The dotenv block from the "A public demo" section of
+     * `docs/deployment.md`.
+     *
+     * @return string The body of that block.
+     */
+    private function demoRecipe(): string
+    {
+        $path = base_path('docs/deployment.md');
+
+        $this->assertFileExists($path);
+
+        $documentation = (string) file_get_contents($path);
+        $section = mb_strstr($documentation, '### A public demo');
+
+        $this->assertIsString($section, 'docs/deployment.md should document a public demo recipe.');
+
+        $this->assertSame(
+            1,
+            preg_match('/```dotenv$(.*?)^```/ms', (string) $section, $matches),
+            'The public demo section should open with a dotenv block.',
+        );
+
+        return $matches[1];
+    }
+
     private function installRecipe(): string
     {
         $path = base_path('docs/deployment.md');
