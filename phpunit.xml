@@ -20,6 +20,14 @@
     <php>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <!--
+            Load-bearing since AppServiceProvider::configureUrls() started
+            generating every URL from APP_URL. Unpinned, a developer whose .env
+            points at their own hostname would see route assertions across the
+            suite compare against it. This is also the framework's own default
+            test host, so nothing else has to know.
+        -->
+        <env name="APP_URL" value="http://localhost"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>

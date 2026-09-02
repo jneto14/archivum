@@ -23,6 +23,30 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Trusted Proxies
+    |--------------------------------------------------------------------------
+    |
+    | Which proxies may be believed when they say, through X-Forwarded-*, what
+    | the original request looked like. Nothing is trusted unless named here:
+    | `*` for a container stack whose proxy address the network assigns, or a
+    | comma-separated list of addresses.
+    |
+    | Set it only where the application cannot be reached around that proxy. A
+    | directly exposed installation that trusts every proxy is trusting whatever
+    | X-Forwarded-For a client cares to send, which hands anyone a fresh address
+    | per attempt and walks them past the login throttle.
+    |
+    | Read here rather than in bootstrap/app.php, where it would look right and
+    | be silently dead: the middleware closure there runs before the framework
+    | loads .env, so the value would arrive only on installations that happen to
+    | set it as a real process variable — and never on one with a cached config.
+    |
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES', ''),
+
+    /*
+    |--------------------------------------------------------------------------
     | Multi-Workspace
     |--------------------------------------------------------------------------
     |

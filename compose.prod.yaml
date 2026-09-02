@@ -136,7 +136,28 @@ services:
         volumes:
             - 'archivum-mysql:/var/lib/mysql'
         healthcheck:
-            test: ['CMD', 'mysqladmin', 'ping', '-p${DB_PASSWORD}']
+            # Reads the password out of the container's own environment rather
+            # than letting compose interpolate `${DB_PASSWORD}` into the
+            # command. Compose interpolation and `env_file` are two different
+            # mechanisms reading two different files — see the header of this
+            # file — and when they disagree the healthcheck gets an empty `-p`,
+            # blocks on `Enter password:` and never passes. Nothing then starts,
+            # because `app` waits on `service_healthy`. Reading the variable the
+            # server itself was given makes the two impossible to disagree.
+            #
+            # `$$` is escaped for compose, so the shell inside the container is
+            # what expands it. This also keeps the password out of
+            # `docker inspect` and out of the rendered compose config.
+            #
+            # Probes over TCP on 127.0.0.1 rather than the unix socket, because
+            # TCP is how the application connects — a socket that answers while
+            # the network listener is not up yet is not the thing worth waiting
+            # for.
+            test:
+                [
+                    'CMD-SHELL',
+                    'mysqladmin ping -h 127.0.0.1 -u root -p"$$MYSQL_ROOT_PASSWORD" --silent',
+                ]
             interval: 10s
             timeout: 5s
             retries: 10

@@ -206,6 +206,84 @@ Redis runs with no eviction policy for the same reason: sessions live on
 database 0 and the cache on database 1, and an `allkeys` policy under memory
 pressure would sign people out to make room for cache entries.
 
+## Behind a reverse proxy
+
+The stack publishes a plain HTTP port. Anything in front of it — nginx, Caddy,
+Traefik, a tunnel — terminates TLS and forwards a request that no longer looks
+like the one the browser made. Three settings put that back.
+
+```dotenv
+APP_URL=https://archivum.example.com
+TRUSTED_PROXIES=*
+```
+
+`APP_URL` is the address the outside world uses, and every generated URL is
+built from it rather than from the forwarded request. Without that, a proxy that
+terminates TLS makes the application believe it was reached over plain HTTP, so
+the redirect after signing in comes back as `http://` and the browser either
+refuses it or quietly leaves TLS behind.
+
+`TRUSTED_PROXIES` decides whether the `X-Forwarded-*` headers are believed at
+all. Nothing is trusted by default, which costs two things that are easy to miss
+because neither produces an error: the session cookie is not marked `Secure`,
+and every request appears to come from the proxy, so the login and password
+throttles count the whole internet as one client and lock everybody out
+together. `*` is the usual answer for a container stack, where the proxy's
+address is assigned by the network.
+
+Set it **only** when there is a proxy and the application cannot be reached
+around it. On a directly exposed installation, trusting every proxy means
+trusting whatever `X-Forwarded-For` a client sends — so anyone can present a
+fresh address per attempt and walk straight past the login throttle.
+
+`ReverseProxyTest` covers both.
+
+### Large response headers
+
+The application sends a `Link:` header preloading its JavaScript modules —
+around thirty entries, several kilobytes. That is larger than the default
+response-header buffer of most proxies, and a proxy that cannot buffer a header
+answers **502** rather than saying what happened.
+
+```nginx
+proxy_buffer_size 32k;
+proxy_buffers 8 32k;
+proxy_busy_buffers_size 64k;
+```
+
+Caddy and Traefik have no equivalent limit and need nothing.
+
+### Serving under a path
+
+Serving the application at `https://example.com/archivum` rather than on its own
+name is **partly supported**. The server side works:
+
+```dotenv
+APP_URL=https://example.com/archivum
+ASSET_URL=https://example.com/archivum
+```
+
+`APP_URL` puts the prefix on every URL the server generates, and `ASSET_URL`
+puts it on the built asset paths — at runtime, with no rebuild. The proxy must
+**strip the prefix** before forwarding, because the application's routes are
+registered without it:
+
+```nginx
+location /archivum/ {
+    proxy_pass http://127.0.0.1:8080/;   # the trailing slash strips the prefix
+}
+```
+
+What does not yet work is the client. The interface is a single-page
+application, and its URLs are compiled into the JavaScript bundle at build time
+as root-relative paths — `/login`, not `/archivum/login`. The published image
+carries one build, so it cannot know a prefix an operator chose afterwards.
+Server-rendered navigation and the first page load are correct; a link followed
+inside the application resolves against the wrong root.
+
+Until that is fixed, serve the application on its own hostname or subdomain.
+`https://archivum.example.com` needs none of this.
+
 ## Demo mode
 
 An opt-in mode for a public demo: every night a scheduled task drops the
