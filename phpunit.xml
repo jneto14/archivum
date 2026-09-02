@@ -23,6 +23,15 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
+        <!--
+            Pinned like the drivers above, and for the same reason: without it
+            the suite inherits whatever a developer has in .env. A machine set
+            up as a demo turns on the demo restrictions mid-run, and unrelated
+            tests — password changes, the mailer — fail for reasons that have
+            nothing to do with the change being tested. The demo tests set it
+            themselves through the environment where they need it on.
+        -->
+        <env name="DEMO_MODE" value="false"/>
         <env name="DB_DATABASE" value="testing"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>

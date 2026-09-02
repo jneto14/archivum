@@ -72,9 +72,19 @@ class DemoRestrictionsTest extends TestCase
         $this->refreshApplication();
 
         $this->assertSame('log', config('mail.default'));
+    }
 
-        putenv('DEMO_MODE');
-        unset($_ENV['DEMO_MODE'], $_SERVER['DEMO_MODE']);
+    /**
+     * Restore the suite-wide default rather than unsetting it: removing the
+     * variable takes phpunit.xml's own `DEMO_MODE=false` with it, and later
+     * tests in the process then boot with it absent.
+     */
+    protected function tearDown(): void
+    {
+        putenv('DEMO_MODE=false');
+        $_ENV['DEMO_MODE'] = $_SERVER['DEMO_MODE'] = 'false';
+
+        parent::tearDown();
     }
 
     public function test_an_ordinary_installation_keeps_its_configured_mailer()

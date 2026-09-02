@@ -94,7 +94,7 @@ class DemoSeederTest extends TestCase
             ->where('filename', 'invoice-2026-0184.pdf')
             ->firstOrFail();
 
-        $this->assertStringContainsString('NORTE PAPELARIA', $invoice->ocr_text);
+        $this->assertStringContainsString('NORTHGATE STATIONERY', $invoice->ocr_text);
     }
 
     /**

@@ -23,12 +23,26 @@ class DemoScheduleTest extends TestCase
     /** @var list<string> */
     private array $commands = [];
 
+    /**
+     * Restore the suite-wide default rather than unsetting it. Removing the
+     * variable entirely takes phpunit.xml's own `DEMO_MODE=false` with it, and
+     * every later test in the process then boots with it simply absent — which
+     * is how turning demo mode on in a developer's .env managed to fail
+     * unrelated tests in Settings.
+     */
     protected function tearDown(): void
     {
-        putenv('DEMO_MODE');
-        unset($_ENV['DEMO_MODE'], $_SERVER['DEMO_MODE']);
+        $this->setDemoMode(false);
 
         parent::tearDown();
+    }
+
+    private function setDemoMode(bool $enabled): void
+    {
+        $value = $enabled ? 'true' : 'false';
+
+        putenv("DEMO_MODE={$value}");
+        $_ENV['DEMO_MODE'] = $_SERVER['DEMO_MODE'] = $value;
     }
 
     public function test_an_ordinary_installation_has_nothing_scheduled_that_could_wipe_it()
@@ -57,8 +71,7 @@ class DemoScheduleTest extends TestCase
      */
     private function bootWithDemoMode(bool $enabled): void
     {
-        putenv('DEMO_MODE=' . ($enabled ? 'true' : 'false'));
-        $_ENV['DEMO_MODE'] = $_SERVER['DEMO_MODE'] = $enabled ? 'true' : 'false';
+        $this->setDemoMode($enabled);
 
         $this->refreshApplication();
 

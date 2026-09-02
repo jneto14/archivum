@@ -89,7 +89,7 @@ class DemoSeeder extends Seeder
      */
     private function seedWorkspace(User $user): Workspace
     {
-        $workspace = Workspace::query()->create(['name' => 'Arquivo Municipal']);
+        $workspace = Workspace::query()->create(['name' => 'City Archive']);
 
         WorkspaceUser::query()->create([
             'workspace_id' => $workspace->id,
@@ -119,15 +119,15 @@ class DemoSeeder extends Seeder
     {
         $scheme = OrganizationScheme::query()->create([
             'workspace_id' => $workspace->id,
-            'name' => 'Depósito',
+            'name' => 'Repository',
         ]);
 
         $levels = [];
 
         foreach ([
-            ['name' => 'Sala', 'key' => 'sala', 'strategy' => NodeValueStrategy::Manual, 'capacity' => null],
-            ['name' => 'Armário', 'key' => 'armario', 'strategy' => NodeValueStrategy::Alphabetical, 'capacity' => 4],
-            ['name' => 'Prateleira', 'key' => 'prateleira', 'strategy' => NodeValueStrategy::Sequential, 'capacity' => 6],
+            ['name' => 'Room', 'key' => 'room', 'strategy' => NodeValueStrategy::Manual, 'capacity' => null],
+            ['name' => 'Cabinet', 'key' => 'cabinet', 'strategy' => NodeValueStrategy::Alphabetical, 'capacity' => 4],
+            ['name' => 'Shelf', 'key' => 'shelf', 'strategy' => NodeValueStrategy::Sequential, 'capacity' => 6],
         ] as $position => $level) {
             $levels[] = OrganizationLevel::query()->create([
                 'scheme_id' => $scheme->id,
@@ -142,7 +142,7 @@ class DemoSeeder extends Seeder
         $room = OrganizationNode::query()->create([
             'level_id' => $levels[0]->id,
             'parent_id' => null,
-            'value' => 'Piso 1',
+            'value' => 'Floor 1',
         ]);
 
         $shelves = [];
@@ -174,10 +174,10 @@ class DemoSeeder extends Seeder
         $types = [];
 
         foreach ([
-            'fatura' => 'Fatura',
-            'contrato' => 'Contrato',
-            'certidao' => 'Certidão',
-            'oficio' => 'Ofício',
+            'invoice' => 'Invoice',
+            'agreement' => 'Agreement',
+            'certificate' => 'Certificate',
+            'letter' => 'Letter',
         ] as $key => $name) {
             $types[$key] = DocumentType::query()->create([
                 'workspace_id' => $workspace->id,
@@ -191,7 +191,7 @@ class DemoSeeder extends Seeder
 
     private function seedTags(Workspace $workspace): void
     {
-        foreach (['2026', 'urgente', 'pago', 'arrendamento', 'património'] as $name) {
+        foreach (['2026', 'urgent', 'paid', 'tenancy', 'property'] as $name) {
             Tag::query()->create([
                 'workspace_id' => $workspace->id,
                 'name' => $name,
@@ -211,36 +211,36 @@ class DemoSeeder extends Seeder
     ): void {
         $documents = [
             [
-                'title' => 'Fatura 2026/0184 — Norte Papelaria',
-                'type' => 'fatura',
+                'title' => 'Invoice 2026/0184 — Northgate Stationery',
+                'type' => 'invoice',
                 'date' => '2026-03-14',
-                'tags' => ['2026', 'pago'],
+                'tags' => ['2026', 'paid'],
                 'file' => 'invoice-2026-0184.pdf',
             ],
             [
-                'title' => 'Contrato de arrendamento — Rua do Almada 42',
-                'type' => 'contrato',
+                'title' => 'Tenancy agreement — 42 Almond Road',
+                'type' => 'agreement',
                 'date' => '2026-01-01',
-                'tags' => ['arrendamento', '2026'],
-                'file' => 'contrato-arrendamento.pdf',
+                'tags' => ['tenancy', '2026'],
+                'file' => 'tenancy-agreement.pdf',
             ],
             [
-                'title' => 'Certidão predial — Cedofeita 3921',
-                'type' => 'certidao',
+                'title' => 'Land registry certificate — Ashfield 3921',
+                'type' => 'certificate',
                 'date' => '2026-02-02',
-                'tags' => ['património'],
-                'file' => 'certidao-predial.pdf',
+                'tags' => ['property'],
+                'file' => 'land-registry-certificate.pdf',
             ],
             [
-                'title' => 'Ofício 44/2026 — Câmara Municipal',
-                'type' => 'oficio',
+                'title' => 'Letter 44/2026 — City Council',
+                'type' => 'letter',
                 'date' => '2026-02-19',
-                'tags' => ['2026', 'urgente'],
+                'tags' => ['2026', 'urgent'],
                 'file' => null,
             ],
             [
-                'title' => 'Ata da reunião de 8 de janeiro',
-                'type' => 'oficio',
+                'title' => 'Minutes of the meeting of 8 January',
+                'type' => 'letter',
                 'date' => '2026-01-08',
                 'tags' => [],
                 'file' => null,
