@@ -32,14 +32,14 @@ export default function ManageTwoFactor(props: Props) {
         errors,
     } = useTwoFactorAuth();
     const [showSetupModal, setShowSetupModal] = useState<boolean>(false);
-    const prevTwoFactorEnabled = useRef(twoFactorEnabled);
+    const prevTwoFactorEnabledRef = useRef(twoFactorEnabled);
 
     useEffect(() => {
-        if (prevTwoFactorEnabled.current && !twoFactorEnabled) {
+        if (prevTwoFactorEnabledRef.current && !twoFactorEnabled) {
             clearTwoFactorAuthData();
         }
 
-        prevTwoFactorEnabled.current = twoFactorEnabled;
+        prevTwoFactorEnabledRef.current = twoFactorEnabled;
     }, [twoFactorEnabled, clearTwoFactorAuthData]);
 
     if (!(props.canManageTwoFactor ?? false)) {

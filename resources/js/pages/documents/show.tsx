@@ -101,7 +101,12 @@ export default function DocumentShow({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { workspace } = usePage().props;
     const [moveOpen, setMoveOpen] = useState(false);
-    const [queue, setQueue] = useState<File[]>([]);
+    // Each queued file carries an id rather than being identified by its
+    // position. Rows are removed one at a time, and keying them by index made
+    // React reuse a removed row's DOM for the row that moved up into its
+    // place. A name is not enough on its own — picking the same file twice is
+    // legitimate, and two identical keys is its own bug.
+    const [queue, setQueue] = useState<{ id: string; file: File }[]>([]);
     const [uploadError, setUploadError] = useState<string | undefined>(
         undefined,
     );
@@ -127,15 +132,18 @@ export default function DocumentShow({
         const picked = Array.from(event.target.files ?? []);
 
         if (picked.length > 0) {
-            setQueue((current) => [...current, ...picked]);
+            setQueue((current) => [
+                ...current,
+                ...picked.map((file) => ({ id: crypto.randomUUID(), file })),
+            ]);
             setUploadError(undefined);
         }
 
         event.target.value = '';
     };
 
-    const removeQueued = (index: number) => {
-        setQueue((current) => current.filter((_, at) => at !== index));
+    const removeQueued = (id: string) => {
+        setQueue((current) => current.filter((queued) => queued.id !== id));
     };
 
     const uploadAttachments = () => {
@@ -145,7 +153,7 @@ export default function DocumentShow({
 
         router.post(
             attachmentStore.url(document.id),
-            { files: queue },
+            { files: queue.map((queued) => queued.file) },
             {
                 forceFormData: true,
                 preserveScroll: true,
@@ -308,16 +316,18 @@ export default function DocumentShow({
                                                 { count: queue.length },
                                             )}
                                         </p>
-                                        {queue.map((queued, index) => (
+                                        {queue.map((queued) => (
                                             <div
-                                                key={`${queued.name}-${index}`}
+                                                key={queued.id}
                                                 className="flex items-center gap-2"
                                             >
                                                 <span className="min-w-0 flex-1 truncate text-sm">
-                                                    {queued.name}
+                                                    {queued.file.name}
                                                 </span>
                                                 <span className="shrink-0 text-xs text-muted-foreground">
-                                                    {formatBytes(queued.size)}
+                                                    {formatBytes(
+                                                        queued.file.size,
+                                                    )}
                                                 </span>
                                                 <Button
                                                     variant="ghost"
@@ -325,10 +335,13 @@ export default function DocumentShow({
                                                     className="size-7 shrink-0"
                                                     aria-label={t(
                                                         'documents.show.remove_queued_file',
-                                                        { name: queued.name },
+                                                        {
+                                                            name: queued.file
+                                                                .name,
+                                                        },
                                                     )}
                                                     onClick={() =>
-                                                        removeQueued(index)
+                                                        removeQueued(queued.id)
                                                     }
                                                 >
                                                     <XIcon className="size-4" />

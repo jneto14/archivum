@@ -129,9 +129,9 @@ export default function TwoFactorRecoveryCodes({
                                     )}
                                 >
                                     {recoveryCodesList.length ? (
-                                        recoveryCodesList.map((code, index) => (
+                                        recoveryCodesList.map((code) => (
                                             <div
-                                                key={index}
+                                                key={code}
                                                 role="listitem"
                                                 className="select-text"
                                             >

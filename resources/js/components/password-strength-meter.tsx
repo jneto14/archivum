@@ -93,9 +93,9 @@ export default function PasswordStrengthMeter({ password }: Props) {
         <div className="space-y-2">
             <div className="flex items-center gap-2">
                 <div className="flex h-1.5 flex-1 gap-1">
-                    {LEVELS.map((_, index) => (
+                    {LEVELS.map((level, index) => (
                         <div
-                            key={index}
+                            key={level.labelKey}
                             className={cn(
                                 'h-full flex-1 rounded-full bg-muted transition-colors',
                                 index < score && level.barColor,

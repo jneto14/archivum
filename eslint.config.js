@@ -1,9 +1,9 @@
 import js from '@eslint/js';
+import eslintReact from '@eslint-react/eslint-plugin';
 import stylistic from '@stylistic/eslint-plugin';
 import prettier from 'eslint-config-prettier/flat';
 import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript';
 import importPlugin, { createNodeResolver } from 'eslint-plugin-import-x';
-import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 import typescript from 'typescript-eslint';
@@ -30,22 +30,15 @@ export default [
     js.configs.recommended,
     reactHooks.configs.flat['recommended-latest'],
     ...typescript.configs.recommended,
+    // Each preset gets its own entry in the array. Merging two into one object
+    // with spread — which this config used to do — replaces the `rules` key
+    // instead of combining it, so everything the presets enabled was silently
+    // dropped. `react/jsx-key` was off for months that way (ARC-96).
+    eslintReact.configs['recommended-typescript'],
     {
-        ...react.configs.flat.recommended,
-        ...react.configs.flat['jsx-runtime'],
         languageOptions: {
             globals: {
                 ...globals.browser,
-            },
-        },
-        rules: {
-            'react/react-in-jsx-scope': 'off',
-            'react/prop-types': 'off',
-            'react/no-unescaped-entities': 'off',
-        },
-        settings: {
-            react: {
-                version: 'detect',
             },
         },
     },

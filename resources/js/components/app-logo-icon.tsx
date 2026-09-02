@@ -15,11 +15,11 @@ export default function AppLogoIcon(props: SVGAttributes<SVGElement>) {
     // Scoped because the mark renders more than once per page — the sidebar
     // header and the workspace switcher — and duplicate ids would make every
     // instance after the first resolve its mask against the wrong element.
-    const scope = useId().replace(/:/g, '');
-    const cut = `${scope}-cut`;
-    const letter = `${scope}-letter`;
-    const clipBar = `${scope}-clip-bar`;
-    const clipColumn = `${scope}-clip-column`;
+    const scopeId = useId().replace(/:/g, '');
+    const cut = `${scopeId}-cut`;
+    const letter = `${scopeId}-letter`;
+    const clipBar = `${scopeId}-clip-bar`;
+    const clipColumn = `${scopeId}-clip-column`;
 
     return (
         <svg

@@ -38,12 +38,30 @@ type LevelRow = {
 
 type SchemeFormValue = { id: string; name: string; levels: LevelRow[] };
 
-type LevelDraft = {
+/** The fields a level actually submits. */
+type LevelFields = {
     name: string;
     key: string;
     capacity: string;
     value_strategy: string;
 };
+
+/**
+ * A level as one editable row in the form.
+ *
+ * The id is client-only and stripped by the submit transform. These rows are
+ * added and removed by hand, so keying them by array index made React reuse a
+ * removed row's DOM for the row that slid up into its place — the caret and
+ * focus stayed where they were while the values moved beneath them.
+ *
+ * The first row's id is a literal rather than a generated one. `useForm` keeps
+ * its initial value only on the first render, so a generated id would in fact
+ * be stable — but the expression still runs on every render, and twice per
+ * render under Strict Mode. Depending on `useState` throwing the extra values
+ * away is depending on an implementation detail, and a row that exists from the
+ * start has no need of a generated identity anyway.
+ */
+type LevelDraft = LevelFields & { id: string };
 
 type Props = {
     workspaceId: string;
@@ -99,14 +117,26 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
     }>({
         name: scheme?.name ?? '',
         levels: [
-            { name: '', key: '', capacity: '', value_strategy: 'sequential' },
+            {
+                id: 'level-0',
+                name: '',
+                key: '',
+                capacity: '',
+                value_strategy: 'sequential',
+            },
         ],
     });
 
     const addLevel = () =>
         form.setData('levels', [
             ...form.data.levels,
-            { name: '', key: '', capacity: '', value_strategy: 'sequential' },
+            {
+                id: crypto.randomUUID(),
+                name: '',
+                key: '',
+                capacity: '',
+                value_strategy: 'sequential',
+            },
         ]);
 
     const removeLevel = (index: number) =>
@@ -127,7 +157,7 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
             ),
         );
 
-    const newLevelForm = useForm<LevelDraft>({
+    const newLevelForm = useForm<LevelFields>({
         name: '',
         key: '',
         capacity: '',
@@ -473,7 +503,7 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                             <CardContent className="space-y-4">
                                 {form.data.levels.map((level, index) => (
                                     <div
-                                        key={index}
+                                        key={level.id}
                                         className="grid grid-cols-[1fr_1fr_auto_1fr_auto] items-end gap-2 rounded-md border p-3"
                                     >
                                         <div className="grid gap-2">
