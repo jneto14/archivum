@@ -2,7 +2,6 @@ import { usePage } from '@inertiajs/react';
 import { CalendarIcon, XIcon } from 'lucide-react';
 import { useState } from 'react';
 import type { DateRange } from 'react-day-picker';
-import { enUS, pt } from 'react-day-picker/locale';
 
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -12,20 +11,9 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { useTranslation } from '@/hooks/use-translation';
+import { parseCalendarDate, toCalendarDate } from '@/lib/calendar-date';
+import { calendarLocaleProps } from '@/lib/calendar-locale';
 import { cn } from '@/lib/utils';
-
-const LOCALES = { pt, en: enUS };
-
-/**
- * First day of the week per app locale, as `react-day-picker` counts it
- * (0 = Sunday).
- *
- * Stated here rather than taken from the date-fns locale object, whose `pt`
- * reports Sunday: it leans Brazilian, while this app's Portuguese is European,
- * where the week starts on Monday. Anything not listed falls back to the
- * library's own default for its locale.
- */
-const WEEK_STARTS_ON: Record<string, 0 | 1> = { pt: 1, en: 0 };
 
 type Props = {
     /** Start of the range as `YYYY-MM-DD`, or null for open-ended. */
@@ -56,7 +44,10 @@ export function DateRangePicker({ from, to, onChange, className }: Props) {
     const [draft, setDraft] = useState<DateRange | undefined>(undefined);
 
     const committed: DateRange | undefined = from
-        ? { from: parse(from), to: to ? parse(to) : undefined }
+        ? {
+              from: parseCalendarDate(from),
+              to: to ? parseCalendarDate(to) : undefined,
+          }
         : undefined;
 
     // While the popover is open the calendar shows the draft, so that clicking
@@ -66,13 +57,17 @@ export function DateRangePicker({ from, to, onChange, className }: Props) {
 
     const commit = (range: DateRange | undefined) => {
         onChange(
-            range?.from ? toIso(range.from) : null,
-            range?.to ? toIso(range.to) : null,
+            range?.from ? toCalendarDate(range.from) : null,
+            range?.to ? toCalendarDate(range.to) : null,
         );
     };
 
     const label = from
-        ? formatRange(parse(from), to === null ? null : parse(to), locale)
+        ? formatRange(
+              parseCalendarDate(from),
+              to === null ? null : parseCalendarDate(to),
+              locale,
+          )
         : t('documents.index.filter_date_any');
 
     return (
@@ -137,8 +132,7 @@ export function DateRangePicker({ from, to, onChange, className }: Props) {
                     mode="range"
                     numberOfMonths={1}
                     autoFocus
-                    locale={LOCALES[locale as keyof typeof LOCALES] ?? enUS}
-                    weekStartsOn={WEEK_STARTS_ON[locale]}
+                    {...calendarLocaleProps(locale)}
                     defaultMonth={selected?.from}
                     selected={selected}
                     onSelect={(range) => {
@@ -153,7 +147,8 @@ export function DateRangePicker({ from, to, onChange, className }: Props) {
                         if (
                             range?.from &&
                             range.to &&
-                            toIso(range.from) !== toIso(range.to)
+                            toCalendarDate(range.from) !==
+                                toCalendarDate(range.to)
                         ) {
                             commit(range);
                             setOpen(false);
@@ -165,32 +160,15 @@ export function DateRangePicker({ from, to, onChange, className }: Props) {
     );
 }
 
-/**
- * Parse `YYYY-MM-DD` into a local Date, avoiding `new Date(string)`, which
- * treats a bare date as UTC.
- */
-function parse(value: string): Date {
-    const [year, month, day] = value.split('-').map(Number);
-
-    return new Date(year, month - 1, day);
-}
-
-/** Serialise a Date back to `YYYY-MM-DD` using its local components. */
-function toIso(date: Date): string {
-    return [
-        date.getFullYear(),
-        String(date.getMonth() + 1).padStart(2, '0'),
-        String(date.getDate()).padStart(2, '0'),
-    ].join('-');
-}
-
 /** Whether two ranges cover the same days. */
 function sameRange(
     a: DateRange | undefined,
     b: DateRange | undefined,
 ): boolean {
     const key = (range: DateRange | undefined) =>
-        [range?.from, range?.to].map((d) => (d ? toIso(d) : '')).join('/');
+        [range?.from, range?.to]
+            .map((d) => (d ? toCalendarDate(d) : ''))
+            .join('/');
 
     return key(a) === key(b);
 }
