@@ -38,6 +38,14 @@ type PreviewableAttachment = {
     id: string;
     filename: string;
     mime_type: string;
+    /**
+     * Whether the server will serve this inline at all.
+     *
+     * Asked rather than worked out from the mime type: an SVG is `image/*` but
+     * is served as an opaque download, so deciding here would put a broken
+     * image where the "cannot preview" message belongs.
+     */
+    is_previewable: boolean;
 };
 
 type Props = {
@@ -296,8 +304,10 @@ export function DocumentPreviewDialog({
     }
 
     const url = attachmentPreview.url(attachment.id);
-    const isPdf = attachment.mime_type === 'application/pdf';
-    const isImage = attachment.mime_type.startsWith('image/');
+    const isPdf =
+        attachment.is_previewable && attachment.mime_type === 'application/pdf';
+    const isImage =
+        attachment.is_previewable && attachment.mime_type.startsWith('image/');
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
