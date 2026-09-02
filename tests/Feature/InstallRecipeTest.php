@@ -129,6 +129,26 @@ class InstallRecipeTest extends TestCase
     }
 
     /**
+     * Neither recipe may pin a version.
+     *
+     * A literal `ARCHIVUM_VERSION=0.2.0` in a block people copy is stale the
+     * moment the next release ships, and it installs that stale version
+     * silently — the stack starts, so nothing says the image is a year old.
+     * `latest` is the documented default; pinning stays available and stays
+     * described in prose, where a reader chooses it rather than inherits it.
+     */
+    public function test_the_documented_recipes_do_not_pin_a_version()
+    {
+        foreach (['install' => $this->installRecipe(), 'demo' => $this->demoRecipe()] as $name => $recipe) {
+            $this->assertDoesNotMatchRegularExpression(
+                '/^ARCHIVUM_VERSION=/m',
+                $recipe,
+                "The {$name} recipe in docs/deployment.md pins ARCHIVUM_VERSION. A copied recipe would install that version forever.",
+            );
+        }
+    }
+
+    /**
      * The dotenv block from the "A public demo" section of
      * `docs/deployment.md`.
      *
