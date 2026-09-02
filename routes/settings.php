@@ -17,7 +17,14 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    /*
+     * Deleting the account is the password restriction's twin: the credentials
+     * on the demo's login screen stop working, and nobody can sign in again
+     * until the nightly reset seeds the account back.
+     */
+    Route::delete('settings/profile', [ProfileController::class, 'destroy'])
+        ->middleware(DenyInDemoMode::class)
+        ->name('profile.destroy');
 
     Route::get('settings/security', [SecurityController::class, 'edit'])
         ->middleware(RequirePassword::class)
