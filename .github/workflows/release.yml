@@ -174,3 +174,54 @@ jobs:
         run: |
           docker buildx imagetools inspect "${GHCR_IMAGE}:${GITHUB_REF_NAME#v}"
           docker buildx imagetools inspect "${DOCKERHUB_IMAGE}:${GITHUB_REF_NAME#v}"
+
+  # The Docker Hub overview is a page in the repository, not a web form, so a
+  # change to the install recipe is reviewed in a PR like everything else.
+  #
+  # It runs after the manifest so the page never describes an image that cannot
+  # be pulled, and only for a plain vX.Y.Z: the page documents `latest`, and
+  # `latest` does not move for a prerelease.
+  overview:
+    name: sync the Docker Hub overview
+    runs-on: ubuntu-24.04
+    needs: manifest
+    if: github.event_name == 'push' && !contains(github.ref_name, '-')
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The file is a template because the page is published once per release
+      # and has to name that release. {{REF}} pins every repository link to the
+      # tag, so someone who pulled 0.1.0 reads the 0.1.0 instructions rather
+      # than whatever main says today.
+      - name: Resolve the release into the overview
+        run: |
+          set -euo pipefail
+
+          version="${GITHUB_REF_NAME#v}"
+          minor="${version%.*}"
+
+          sed \
+            -e "s|{{REF}}|${GITHUB_REF_NAME}|g" \
+            -e "s|{{VERSION}}|${version}|g" \
+            -e "s|{{MINOR}}|${minor}|g" \
+            docker/production/DOCKERHUB.md > DOCKERHUB.rendered.md
+
+          if grep -n '{{' DOCKERHUB.rendered.md; then
+            echo "::error::unresolved placeholder in the overview" >&2
+            exit 1
+          fi
+
+      - name: Push it to Docker Hub
+        uses: peter-evans/dockerhub-description@1b9a80c056b620d92cedb9d9b5a223409c68ddfa # v5.0.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          # Needs read/write/delete scope — wider than the push above requires.
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ env.DOCKERHUB_IMAGE }}
+          readme-filepath: ./DOCKERHUB.rendered.md
+          short-description: 'Track and search your physical documents: scans, tags and the drawer each one lives in.'
