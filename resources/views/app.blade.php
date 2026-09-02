@@ -34,8 +34,17 @@
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
-        {{-- Shared with every page: an Archivum install is one product, and no
-             screen behind the login is worth a preview card of its own. --}}
+        {{-- An internal application has nothing to rank, and a login page in a
+             search index quietly announces that an organisation keeps an
+             archive at this address. The X-Robots-Tag header on every response
+             says the same thing for the routes that serve files rather than
+             HTML. --}}
+        <meta name="robots" content="noindex, nofollow">
+
+        {{-- The card is for links people paste into a chat, not for search
+             engines. Shared with every page: an Archivum install is one
+             product, and no screen behind the login is worth a preview card of
+             its own. --}}
         @php($metaDescription = __('meta.description'))
         <meta name="description" content="{{ $metaDescription }}">
         <meta property="og:type" content="website">

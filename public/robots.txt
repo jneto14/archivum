@@ -1,2 +1,14 @@
+# Archivum is an internal application: everything but the login screen sits
+# behind authentication, so there is nothing here worth indexing.
+#
+# This is a request, not a control. Crawlers that ignore it are unaffected, and
+# so is anyone who has the address — see the SECURITY policy for what actually
+# restricts access.
+#
+# Every response also carries `X-Robots-Tag: noindex, nofollow`, which is what
+# removes a page already in an index. Note the interaction: a crawler blocked
+# here never fetches the page and so never sees that header. To clear an
+# installation that has already been indexed, allow crawling below until it has
+# been recrawled, then put this back.
 User-agent: *
-Disallow:
+Disallow: /
