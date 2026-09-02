@@ -3,6 +3,7 @@ import { PlusIcon, Trash2Icon } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState } from 'react';
 import DocumentController from '@/actions/App/Http/Controllers/Documents/DocumentController';
+import { DatePicker } from '@/components/date-picker';
 import InputError from '@/components/input-error';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
@@ -241,16 +242,21 @@ export default function DocumentForm({
                                             'documents.form.document_date_label',
                                         )}
                                     </Label>
-                                    <Input
+                                    <DatePicker
                                         id="document_date"
-                                        type="date"
-                                        value={form.data.document_date ?? ''}
-                                        onChange={(event) =>
+                                        value={form.data.document_date || null}
+                                        onChange={(value) =>
                                             form.setData(
                                                 'document_date',
-                                                event.target.value,
+                                                value ?? '',
                                             )
                                         }
+                                        placeholder={t(
+                                            'documents.form.document_date_any',
+                                        )}
+                                        clearLabel={t(
+                                            'documents.form.document_date_clear',
+                                        )}
                                     />
                                     <InputError
                                         message={form.errors.document_date}

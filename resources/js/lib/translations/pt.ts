@@ -94,6 +94,8 @@ export default {
     'documents.form.document_type_label': 'Tipo de documento',
     'documents.form.document_type_placeholder': 'Seleciona um tipo',
     'documents.form.document_date_label': 'Data do documento',
+    'documents.form.document_date_any': 'Sem data',
+    'documents.form.document_date_clear': 'Limpar a data do documento',
     'documents.form.title_label': 'Título',
     'documents.form.title_placeholder': 'Fatura FT2026/1240',
     'documents.form.tags_section_title': 'Etiquetas',

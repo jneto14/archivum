@@ -91,6 +91,8 @@ export default {
     'documents.form.document_type_label': 'Document type',
     'documents.form.document_type_placeholder': 'Select a type',
     'documents.form.document_date_label': 'Document date',
+    'documents.form.document_date_any': 'No date',
+    'documents.form.document_date_clear': 'Clear the document date',
     'documents.form.title_label': 'Title',
     'documents.form.title_placeholder': 'Invoice FT2026/1240',
     'documents.form.tags_section_title': 'Tags',
