@@ -38,8 +38,6 @@ SCOUT_DRIVER=database
 
 ADMIN_EMAIL=you@example.com
 ADMIN_PASSWORD=change-me-too
-
-ARCHIVUM_VERSION=0.2.0
 EOF
 
 docker compose --env-file .env -f compose.prod.yaml up -d
@@ -66,7 +64,6 @@ worth understanding before you edit them:
 | `SCOUT_DRIVER` | Scout defaults to `collection`, which filters in PHP and never touches the full-text index this application builds. Search would return plausible results, produced entirely the wrong way |
 | `QUEUE_CONNECTION` | Stays on the database on purpose — see [Environment](#environment) below |
 | `ADMIN_PASSWORD` | Leave it out and the seeder generates one and prints it **once** |
-| `ARCHIVUM_VERSION` | Pin a release. `latest` moves on its own, so an unpinned stack can change version simply by being restarted |
 
 `InstallRecipeTest` checks this block still names the settings whose framework
 defaults are dangerous.
@@ -88,9 +85,11 @@ Published on every `v*` tag to two registries, holding the same `amd64` and
 `arm64` images:
 
 ```text
-jneto14/archivum:0.2.0            Docker Hub
-ghcr.io/jneto14/archivum:0.2.0  GHCR
+jneto14/archivum:latest            Docker Hub
+ghcr.io/jneto14/archivum:latest  GHCR
 ```
+
+Each release also publishes its own `x.y.z` and `x.y` tags.
 
 Docker Hub is the default because a short name is only ever resolved there —
 `docker pull jneto14/archivum` expands to `docker.io/jneto14/archivum` and Docker
@@ -99,8 +98,12 @@ doing where Docker Hub's anonymous pull limit is a problem:
 
 ```dotenv
 ARCHIVUM_IMAGE=ghcr.io/jneto14/archivum
-ARCHIVUM_VERSION=0.2.0
 ```
+
+`ARCHIVUM_VERSION` chooses the tag, and is `latest` when unset, which is what
+an installation should normally run. Setting it to a release from the
+[changelog](../CHANGELOG.md) holds the stack on that version until you change
+it — an upgrade you ask for, at the cost of every fix waiting for you to ask.
 
 To build the image yourself rather than pull it:
 
@@ -140,7 +143,7 @@ were created with, so an edited `.env` has no effect at all:
 
 This works because the config cache is built by the entrypoint when the
 container starts, not when the image is built. That is what makes one image
-environment-agnostic: the same `jneto14/archivum:0.2.0` runs anywhere, and
+environment-agnostic: the same `jneto14/archivum` image runs anywhere, and
 nothing about your installation is baked into it.
 
 `OCR_JOB_TIMEOUT` shows why the distinction bites. It moves three things at
@@ -156,10 +159,13 @@ one of them works as an escape hatch, but it is not the route to take twice.
 ## Upgrading
 
 ```bash
-# Change ARCHIVUM_VERSION in .env, then:
 docker compose --env-file .env -f compose.prod.yaml pull
 docker compose --env-file .env -f compose.prod.yaml up -d
 ```
+
+`pull` fetches whatever `ARCHIVUM_VERSION` names, so on a default installation
+it fetches the current release. On one that pins a version, change the pin
+first or `pull` re-fetches the tag it already has.
 
 Replacing the containers is what applies the new code, and replacing the worker
 **is** `queue:restart` — a running worker holds the old classes in memory and
@@ -421,8 +427,6 @@ DEMO_RESET_CONFIRM=https://demo.example.com/archivum
 DEMO_RESET_AT=04:00
 DEMO_EMAIL=demo@example.com
 DEMO_PASSWORD=demo1234
-
-ARCHIVUM_VERSION=0.2.0
 ```
 
 Two things that are easy to get wrong here.

@@ -129,6 +129,47 @@ class InstallRecipeTest extends TestCase
     }
 
     /**
+     * Files a self-hoster copies from, and must not find a version in.
+     *
+     * @var list<string>
+     */
+    private const DOCUMENTATION = [
+        'README.md',
+        'CHANGELOG.md',
+        'docs/deployment.md',
+        'docker/production/DOCKERHUB.md',
+        'compose.prod.yaml',
+    ];
+
+    /**
+     * No document may write a released version into ARCHIVUM_VERSION.
+     *
+     * Whoever installs this decides what it runs, and what they nearly always
+     * want is the current release. A literal `ARCHIVUM_VERSION=0.2.0` — in a
+     * recipe, in a table, or in a sentence offering it as an example — is
+     * stale the moment the next release ships, and it installs that stale
+     * version silently: the stack starts, so nothing says the image is old.
+     *
+     * `ARCHIVUM_VERSION=local` is allowed, and is the one case where the
+     * variable names something that does not go out of date: an image built
+     * from a checkout.
+     */
+    public function test_the_documentation_never_writes_a_version_into_archivum_version()
+    {
+        foreach (self::DOCUMENTATION as $file) {
+            $path = base_path($file);
+
+            $this->assertFileExists($path);
+
+            $this->assertDoesNotMatchRegularExpression(
+                '/ARCHIVUM_VERSION=[v0-9{]/',
+                (string) file_get_contents($path),
+                "{$file} writes a version into ARCHIVUM_VERSION. Whoever installs this wants the current release, and a documented version is stale as soon as the next one ships.",
+            );
+        }
+    }
+
+    /**
      * The dotenv block from the "A public demo" section of
      * `docs/deployment.md`.
      *
