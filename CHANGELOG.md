@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 While the major version is 0, the public surface — the database schema, the
 environment variables and the image's behaviour — may change in a minor
-release. Pin `ARCHIVUM_VERSION` and read this file before upgrading.
+release. Read this file before upgrading.
 
 ## [Unreleased]
 

@@ -14,8 +14,9 @@
 # `--env-file`. Variables used below — APP_PORT, DB_*, ARCHIVUM_* — need the
 # second. Pass `--env-file` and they both come from one place.
 #
-# Pin ARCHIVUM_VERSION to a released version rather than riding `latest`, so an
-# upgrade is something you choose. ARCHIVUM_IMAGE switches registries:
+# The image tag is `latest` unless ARCHIVUM_VERSION names a released version,
+# which is worth doing if you would rather an upgrade be something you ask for.
+# ARCHIVUM_IMAGE switches registries:
 #
 #   ARCHIVUM_IMAGE=ghcr.io/jneto14/archivum
 #

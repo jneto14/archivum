@@ -38,8 +38,6 @@ SCOUT_DRIVER=database
 
 ADMIN_EMAIL=you@example.com
 ADMIN_PASSWORD=change-me-too
-
-ARCHIVUM_VERSION=0.2.0
 EOF
 
 docker compose --env-file .env -f compose.prod.yaml up -d
@@ -66,7 +64,6 @@ worth understanding before you edit them:
 | `SCOUT_DRIVER` | Scout defaults to `collection`, which filters in PHP and never touches the full-text index this application builds. Search would return plausible results, produced entirely the wrong way |
 | `QUEUE_CONNECTION` | Stays on the database on purpose — see [Environment](#environment) below |
 | `ADMIN_PASSWORD` | Leave it out and the seeder generates one and prints it **once** |
-| `ARCHIVUM_VERSION` | Pin a release. `latest` moves on its own, so an unpinned stack can change version simply by being restarted |
 
 `InstallRecipeTest` checks this block still names the settings whose framework
 defaults are dangerous.
@@ -99,8 +96,12 @@ doing where Docker Hub's anonymous pull limit is a problem:
 
 ```dotenv
 ARCHIVUM_IMAGE=ghcr.io/jneto14/archivum
-ARCHIVUM_VERSION=0.2.0
 ```
+
+`ARCHIVUM_VERSION` chooses the tag, and is `latest` when unset. Set it to a
+released version — `ARCHIVUM_VERSION=0.2.0` — if you would rather an upgrade be
+something you ask for than something a restart can do; the cost is that
+security fixes wait for you to edit the file.
 
 To build the image yourself rather than pull it:
 
@@ -156,10 +157,13 @@ one of them works as an escape hatch, but it is not the route to take twice.
 ## Upgrading
 
 ```bash
-# Change ARCHIVUM_VERSION in .env, then:
 docker compose --env-file .env -f compose.prod.yaml pull
 docker compose --env-file .env -f compose.prod.yaml up -d
 ```
+
+`pull` fetches whatever `ARCHIVUM_VERSION` names, so on a default installation
+it fetches the current release. On one that pins a version, change the pin
+first or `pull` re-fetches the tag it already has.
 
 Replacing the containers is what applies the new code, and replacing the worker
 **is** `queue:restart` — a running worker holds the old classes in memory and
@@ -421,8 +425,6 @@ DEMO_RESET_CONFIRM=https://demo.example.com/archivum
 DEMO_RESET_AT=04:00
 DEMO_EMAIL=demo@example.com
 DEMO_PASSWORD=demo1234
-
-ARCHIVUM_VERSION=0.2.0
 ```
 
 Two things that are easy to get wrong here.
