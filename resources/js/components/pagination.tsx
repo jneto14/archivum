@@ -96,6 +96,14 @@ export function Pagination({ prev, next, links, from, to, total }: Props) {
                         {pages.map((link, index) =>
                             link.label === ELLIPSIS ? (
                                 <span
+                                    // The index is the identity here, not a
+                                    // stand-in for one: an ellipsis has no
+                                    // content to key on and there are two of
+                                    // them, left and right. The list is
+                                    // replaced wholesale on every page change
+                                    // rather than reordered, so there is
+                                    // nothing for a stable key to preserve.
+                                    // eslint-disable-next-line @eslint-react/no-array-index-key
                                     key={`ellipsis-${index}`}
                                     aria-hidden="true"
                                     className="px-1.5 text-sm text-muted-foreground"

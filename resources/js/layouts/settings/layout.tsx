@@ -47,12 +47,12 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                         className="flex flex-col space-y-1"
                         aria-label={t('settings.layout.title')}
                     >
-                        {sidebarNavItems.map((item, index) => {
+                        {sidebarNavItems.map((item) => {
                             const isActive = isCurrentOrParentUrl(item.href);
 
                             return (
                                 <Button
-                                    key={`${toUrl(item.href)}-${index}`}
+                                    key={toUrl(item.href)}
                                     size="sm"
                                     variant="ghost"
                                     asChild

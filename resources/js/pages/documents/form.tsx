@@ -87,10 +87,21 @@ export default function DocumentForm({
         ],
     });
 
+    // Each row carries an id that outlives its position. Keying these rows by
+    // array index meant removing one made React reuse the removed row's DOM
+    // for the row that slid up into its place — the focused input and the
+    // caret stayed put while the values shifted under them.
+    //
+    // The rows loaded from the document take their id from the metadata key,
+    // which is already unique within the object and is a fixed value rather
+    // than one generated during render. Rows added afterwards are created in an
+    // event handler, where generating one is fine; the prefix keeps the two
+    // sets from ever colliding.
     const [metadataPairs, setMetadataPairs] = useState<
-        { key: string; value: string }[]
+        { id: string; key: string; value: string }[]
     >(
         Object.entries(document?.metadata ?? {}).map(([key, value]) => ({
+            id: `existing:${key}`,
             key,
             value,
         })),
@@ -114,7 +125,10 @@ export default function DocumentForm({
     };
 
     const addMetadataPair = () =>
-        setMetadataPairs([...metadataPairs, { key: '', value: '' }]);
+        setMetadataPairs([
+            ...metadataPairs,
+            { id: `added:${crypto.randomUUID()}`, key: '', value: '' },
+        ]);
     const removeMetadataPair = (index: number) =>
         setMetadataPairs(metadataPairs.filter((_, i) => i !== index));
     const updateMetadataPair = (
@@ -351,7 +365,7 @@ export default function DocumentForm({
                         <CardContent className="space-y-3">
                             {metadataPairs.map((pair, index) => (
                                 <div
-                                    key={index}
+                                    key={pair.id}
                                     className="flex items-center gap-2"
                                 >
                                     <Input

@@ -28,7 +28,7 @@ export function Breadcrumbs({
                             const isLast = index === breadcrumbs.length - 1;
 
                             return (
-                                <Fragment key={index}>
+                                <Fragment key={`${item.title}-${item.href}`}>
                                     <BreadcrumbItem
                                         className={
                                             isLast ? 'min-w-0' : 'shrink-0'
