@@ -106,13 +106,13 @@ export default function DocumentShow({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { workspace } = usePage().props;
     const [moveOpen, setMoveOpen] = useState(false);
-    // Starts already open if the page loads with a session mid-flight (e.g.
-    // the desktop tab was reloaded while pairing), so the QR code and its
-    // live status come straight back instead of looking like nothing is
-    // happening while the phone is still mid-upload.
-    const [captureOpen, setCaptureOpen] = useState(
-        activeCaptureSession !== null,
-    );
+    // Always starts closed, even if the page loads with a session already
+    // active (a reload mid-pairing, or one left open from an earlier visit)
+    // — popping the dialog open on its own, unasked, was more surprising
+    // than useful. The button still finds that same session rather than
+    // starting a redundant one, since DocumentCaptureDialog only creates a
+    // new session when it opens with none active.
+    const [captureOpen, setCaptureOpen] = useState(false);
     // Each queued file carries an id rather than being identified by its
     // position. Rows are removed one at a time, and keying them by index made
     // React reuse a removed row's DOM for the row that moved up into its

@@ -45,8 +45,12 @@ export function DocumentCaptureDialog({
     // below, and again if `open` toggles before the first request lands.
     const startingSessionRef = useRef(false);
 
+    // 5s rather than the usual 2s: this is a convenience refresh while
+    // someone is standing in front of a document with their phone out, not a
+    // live collaboration feature, so trading a little latency for a lot
+    // fewer requests is the right side to lean on.
     const { start, stop } = usePoll(
-        2000,
+        5000,
         { only: ['document', 'active_capture_session'] },
         { autoStart: false },
     );
@@ -86,17 +90,22 @@ export function DocumentCaptureDialog({
     }, [open, activeSession, documentId]);
 
     const endSession = () => {
-        if (activeSession === null) {
-            onOpenChange(false);
+        // Closed synchronously, before the cancel request even goes out.
+        // Waiting for the response first (this used to run `onOpenChange`
+        // from the request's `onFinish`) left a window where `open` was
+        // still `true` and `activeSession` had already gone back to `null`
+        // — the auto-start effect above reacts to exactly that, so clicking
+        // "end session" started a brand new one before this one had
+        // finished being cancelled.
+        onOpenChange(false);
 
-            return;
+        if (activeSession !== null) {
+            router.post(
+                cancelCaptureSession.url([documentId, activeSession.id]),
+                {},
+                { preserveScroll: true },
+            );
         }
-
-        router.post(
-            cancelCaptureSession.url([documentId, activeSession.id]),
-            {},
-            { preserveScroll: true, onFinish: () => onOpenChange(false) },
-        );
     };
 
     const photosCountLabel = (count: number) => {
