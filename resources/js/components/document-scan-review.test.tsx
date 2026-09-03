@@ -7,13 +7,8 @@ import en from '@/lib/translations/en';
 const page = vi.hoisted(() => ({ props: { locale: 'en' } }));
 vi.mock('@inertiajs/react', () => ({ usePage: () => page }));
 
-/**
- * `document-scan.ts` wraps jscanify + OpenCV.js, neither of which run
- * meaningfully under jsdom (no real image decoding, no WASM). Mocking the
- * module lets these tests focus on what actually broke before: the review
- * step silently uploading the original photo instead of the straightened
- * one whenever the straightening step failed for any reason.
- */
+// Neither jscanify nor OpenCV.js run meaningfully under jsdom, so the whole
+// module is mocked; what matters here is which file `onConfirm` receives.
 const documentScan = vi.hoisted(() => ({
     loadOpenCv: vi.fn(),
     detectDocumentCorners: vi.fn(),
@@ -104,9 +99,7 @@ it('falls back to the original photo if straightening throws, rather than upload
     );
 
     await waitFor(() => expect(onConfirm).toHaveBeenCalledWith(file));
-    // The fallback is silent from the user's point of view otherwise — this
-    // is what lets a real failure surface somewhere other than a phone
-    // browser's console that nobody's going to open.
+    // Otherwise the fallback is indistinguishable from a successful scan.
     expect(onStraightenFailed).toHaveBeenCalledWith('warp failed');
 });
 

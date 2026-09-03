@@ -16,10 +16,8 @@ type Props = {
 };
 
 /**
- * The same signed URL serves the page and every action on it (see
- * routes/capture.php) — the `signed` middleware validates the request URL as
- * a whole, not tied to a route name, so re-using the current location is what
- * keeps the signature valid on every request.
+ * One signed URL serves the page and every action on it (routes/capture.php),
+ * so re-using the current location is what keeps the signature valid.
  */
 const actionUrl = () => window.location.pathname + window.location.search;
 
@@ -32,10 +30,9 @@ const endedMessageKey = {
 } as const;
 
 /**
- * The phone side of "scan with your phone" (ARC-105). No app shell: this page
- * is opened by scanning a QR code, on a device that was never signed in, so
- * it renders bare full-screen (see the `capture/` case in app.tsx's layout
- * switch) rather than through the desktop app's sidebar shell.
+ * The phone side of "scan with your phone" (ARC-105). Reached by scanning a
+ * QR code on a device that was never signed in, so it renders bare
+ * full-screen — see the `capture/` case in app.tsx's layout switch.
  */
 export default function CaptureShow({
     document_title: documentTitle,
@@ -48,10 +45,8 @@ export default function CaptureShow({
     const scanInputRef = useRef<HTMLInputElement>(null);
     const [sending, setSending] = useState(false);
     const [error, setError] = useState<string | undefined>(undefined);
-    // The just-taken photo, awaiting the "make it look like a scan" review
-    // step below — nothing is uploaded until that step's confirmed. Only the
-    // "scan" capture button ever sets this; the plain one uploads straight
-    // away, exactly like before this review step existed.
+    // Set only by the scan button: the photo awaiting review. The plain
+    // button uploads straight away.
     const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
 
     const uploadPhoto = (file: File) => {

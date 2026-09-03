@@ -45,10 +45,7 @@ export function DocumentCaptureDialog({
     // below, and again if `open` toggles before the first request lands.
     const startingSessionRef = useRef(false);
 
-    // 5s rather than the usual 2s: this is a convenience refresh while
-    // someone is standing in front of a document with their phone out, not a
-    // live collaboration feature, so trading a little latency for a lot
-    // fewer requests is the right side to lean on.
+    // A convenience refresh, not a live feed — worth far fewer requests.
     const { start, stop } = usePoll(
         5000,
         { only: ['document', 'active_capture_session'] },
@@ -65,10 +62,8 @@ export function DocumentCaptureDialog({
         return stop;
     }, [open, start, stop]);
 
-    // Opening the dialog with no session already running starts one — the
-    // button that opens it has nothing else to do. Re-opening after a
-    // session ended (activeSession back to null) starts a fresh one the same
-    // way, which is the point: a new QR code for another round of photos.
+    // Opening with no session running starts one, including after an earlier
+    // session ended — that's how a new QR code is issued.
     useEffect(() => {
         if (!open || activeSession !== null || startingSessionRef.current) {
             return;
@@ -90,13 +85,8 @@ export function DocumentCaptureDialog({
     }, [open, activeSession, documentId]);
 
     const endSession = () => {
-        // Closed synchronously, before the cancel request even goes out.
-        // Waiting for the response first (this used to run `onOpenChange`
-        // from the request's `onFinish`) left a window where `open` was
-        // still `true` and `activeSession` had already gone back to `null`
-        // — the auto-start effect above reacts to exactly that, so clicking
-        // "end session" started a brand new one before this one had
-        // finished being cancelled.
+        // Closed before the request goes out: closing afterwards leaves a
+        // window where the effect above starts a replacement session.
         onOpenChange(false);
 
         if (activeSession !== null) {
