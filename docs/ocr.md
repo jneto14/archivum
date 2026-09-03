@@ -108,6 +108,32 @@ queue retry_after  >  worker --timeout  >=  job timeout  >=  max_pages × ocr.ti
 All of them derive from `OCR_MAX_PAGES` and `OCR_TIMEOUT`, so raising the page
 cap moves the whole chain. `QueueTimeoutTest` fails if it stops holding.
 
+## What is made of the text
+
+Two things, both once extraction completes and both on the queue, so nothing is
+computed while somebody waits for a page.
+
+**A fingerprint, to catch a document filed twice.** The text is reduced to a
+64-bit SimHash (`TextFingerprint`) and compared against every other attachment
+in the same workspace; anything within `INTAKE_DUPLICATE_MAX_DISTANCE` bits is
+recorded on the attachment as the copy it appears to be of, and the document
+page says so with a link and a way to dismiss it. A plain hash would be useless
+here — the case worth catching is one page scanned twice, and OCR reads a few
+characters differently on each pass.
+
+Shingles carrying a number count for four, which is what makes the threshold
+work at all: two invoices from the same supplier are the same page of prose with
+a different number, a different date and a different total, and measured plain
+they sit as close as a rescan does.
+
+**Suggested values, to save typing them.** `SuggestDocumentMetadata` reads dates,
+currency amounts, tax numbers and vehicle registrations out of the text and the
+edit form offers them for the fields still empty. Nothing is written without
+being accepted, and the heuristics are precision-first: an amount needs a
+currency marker beside it, a tax number needs its check digit to agree. See
+[documents.md](documents.md) for how a suggestion decides which key it belongs
+in.
+
 ## Searching it
 
 See [search.md](search.md) for the two modes, and why the extracted text is

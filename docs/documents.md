@@ -57,6 +57,18 @@ fields are open-ended and rarely filtered on. A field that turns out to be
 queried constantly can be promoted to an indexed generated column later, when
 there is usage to justify the cost.
 
+There is deliberately no schema declaring which fields a type has. The keys are
+whatever the workspace types, and a type's fields are only the keys its
+documents already carry.
+
+That is also how a suggestion read out of an attachment's text decides where to
+go (see [ocr.md](ocr.md)): each kind of value it recognises carries a list of
+alias names, and adopts a key already used by other documents of the same type
+when one of them matches. A workspace whose invoices all say *total* is not
+handed a second field called *amount*. With no match, the kind's default key is
+used. A suggestion is only ever offered for a field that is still empty, and
+only ever applied when somebody accepts it.
+
 ## Tags
 
 Free-form labels, scoped to the workspace and unique within it. A tag is shared
