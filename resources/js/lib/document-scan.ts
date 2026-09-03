@@ -1,22 +1,13 @@
 /**
- * Client-side "make it look like a real scan" pipeline for the phone capture
- * page (ARC-105): detect a document's edges in a captured photo, let the user
- * confirm or drag the corners into place, then straighten the photo into the
- * rectangle they marked.
+ * Detect a document in a photo and straighten it, for the phone capture page
+ * (ARC-105). Detection and warping are jscanify's
+ * (https://github.com/ColonelParrot/jscanify, MIT License) — `jscanify/client`
+ * rather than the package default, which is a Node build.
  *
- * The detection/warp algorithm is jscanify's own
- * (https://github.com/ColonelParrot/jscanify, MIT License), used directly via
- * its `jscanify/client` export. That subpath is a plain browser build with no
- * dependency beyond a global `cv` — the package's *default* export instead
- * resolves to a Node build requiring `canvas`/`jsdom`, which is why the import
- * below is `jscanify/client` and not bare `jscanify`.
- *
- * jscanify's browser build expects a `<script>`-tag OpenCV.js that sets
- * `window.cv` itself. This app loads OpenCV.js as an ES module instead
- * (`@techstark/opencv-js`, dynamically — it's ~13MB, so only the first photo
- * that actually needs processing pays for it), so `loadOpenCv()` assigns the
- * loaded module to `window.cv` to satisfy that expectation.
+ * Read .ai/rules/lib.md before touching how OpenCV.js is imported or fed:
+ * both the static import and `toFullSizeCanvas()` look redundant and are not.
  */
+import * as openCvNamespace from '@techstark/opencv-js';
 import JScanify from 'jscanify/client';
 
 export type Point = { x: number; y: number };
@@ -30,85 +21,68 @@ export type DocumentCorners = {
 
 type Mat = { delete(): void };
 
-/**
- * The narrow slice of the OpenCV.js API this module calls directly (jscanify
- * calls the rest itself, via the global `window.cv` set below).
- */
+/** The slice of OpenCV.js this module calls; jscanify calls the rest itself. */
 type OpenCv = {
     Mat: new () => Mat;
     imread(source: HTMLCanvasElement | HTMLImageElement): Mat;
 };
 
+/** OpenCV.js before initialization finishes: a promise of itself. */
+type OpenCvExport = Partial<OpenCv> & {
+    then?: (
+        onFulfilled: (value: OpenCv) => void,
+        onRejected: (reason: unknown) => void,
+    ) => void;
+};
+
 let openCvPromise: Promise<OpenCv> | null = null;
 
 /**
- * Load OpenCV.js, once, and expose it as `window.cv` for jscanify's browser
- * build to find. Later calls reuse the same in-flight or already finished
- * load rather than injecting the module again.
- *
- * Mirrors the readiness dance `@techstark/opencv-js`'s own README documents:
- * depending on the build, the default export is either already a `Mat`-
- * bearing object, a `Promise` of one, or an object that fires
- * `onRuntimeInitialized` once its WASM has finished loading.
- *
- * A failed load is *not* cached: this is a ~13MB WASM download over
- * whatever connection the phone has, and caching a rejected promise would
- * mean one dropped request permanently breaks every photo taken for the
- * rest of that page's lifetime — always falling back to the unprocessed
- * original, with the only sign being a console error nobody's looking at.
- * Each call after a failure gets a fresh attempt instead.
+ * Wait for OpenCV.js's WASM runtime, once, and publish it as the global `cv`
+ * jscanify reads. Failures aren't cached, so a later photo can try again.
  *
  * @returns The ready-to-use OpenCV.js module.
+ *
+ * @throws If the module never resolves to something with OpenCV's API on it.
  */
 export function loadOpenCv(): Promise<OpenCv> {
-    if (openCvPromise === null) {
-        openCvPromise = import('@techstark/opencv-js')
-            .then(
-                (imported) =>
-                    new Promise<OpenCv>((resolve) => {
-                        const cvModule = (imported.default ??
-                            imported) as OpenCv & {
-                            then?: (onFulfilled: (cv: OpenCv) => void) => void;
-                            onRuntimeInitialized?: () => void;
-                        };
+    openCvPromise ??= initializeOpenCv()
+        .then((cv) => {
+            globalThis.cv = cv as unknown as typeof globalThis.cv;
 
-                        const ready = (cv: OpenCv) => {
-                            // `@techstark/opencv-js` already declares `cv`
-                            // as a global itself (see its `_cv.d.ts`) —
-                            // this is that same global, assigned so
-                            // jscanify's browser build (written for a
-                            // `<script>`-tag OpenCV.js) can find it. The
-                            // double cast is because our own narrower
-                            // `OpenCv` type has far fewer members than
-                            // theirs.
-                            globalThis.cv =
-                                cv as unknown as typeof globalThis.cv;
-                            resolve(cv);
-                        };
+            return cv;
+        })
+        .catch((error: unknown) => {
+            openCvPromise = null;
 
-                        if (typeof cvModule.then === 'function') {
-                            cvModule.then(ready);
-                        } else if (cvModule.Mat) {
-                            ready(cvModule);
-                        } else {
-                            cvModule.onRuntimeInitialized = () =>
-                                ready(cvModule);
-                        }
-                    }),
-            )
-            .catch((error: unknown) => {
-                openCvPromise = null;
-
-                throw error;
-            });
-    }
+            throw error;
+        });
 
     return openCvPromise;
 }
 
+/** @returns OpenCV.js once its runtime is ready to be called. */
+function initializeOpenCv(): Promise<OpenCv> {
+    const exported = ((openCvNamespace as { default?: unknown }).default ??
+        openCvNamespace) as OpenCvExport;
+
+    // `imread`, not `Mat`: `Mat` is a stub present before the runtime is.
+    if (typeof exported.imread === 'function') {
+        return Promise.resolve(exported as OpenCv);
+    }
+
+    if (typeof exported.then === 'function') {
+        return new Promise<OpenCv>((resolve, reject) =>
+            exported.then!(resolve, reject),
+        );
+    }
+
+    return Promise.reject(new Error('OpenCV.js exported no usable module'));
+}
+
 let scanner: JScanify | null = null;
 
-/** @returns A shared jscanify instance — it holds no state of its own beyond `window.cv`, so one is enough for the page's lifetime. */
+/** @returns A shared jscanify instance — it holds no state beyond the global `cv`, so one is enough for the page's lifetime. */
 function getScanner(): JScanify {
     scanner ??= new JScanify();
 
@@ -116,11 +90,25 @@ function getScanner(): JScanify {
 }
 
 /**
- * The full image as its own four corners, inset slightly so the drag handles
- * start visibly inside the photo. Used whenever detection finds nothing to
- * work with — an unremarkable photo, a document that fills the whole frame,
- * or a background too similar to the page — so the user still gets an
- * adjustable quad rather than an error.
+ * OpenCV.js reads an `<img>` at its layout size, so it must be handed a
+ * canvas instead to get coordinates in the photo's real pixels.
+ *
+ * @param image The photo to copy.
+ *
+ * @returns A canvas holding `image` at full resolution.
+ */
+function toFullSizeCanvas(image: HTMLImageElement): HTMLCanvasElement {
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    canvas.getContext('2d')?.drawImage(image, 0, 0);
+
+    return canvas;
+}
+
+/**
+ * The fallback quad when detection finds nothing, inset so the drag handles
+ * start visibly inside the photo.
  *
  * @param width Image width in pixels.
  * @param height Image height in pixels.
@@ -139,21 +127,7 @@ export function defaultCorners(width: number, height: number): DocumentCorners {
     };
 }
 
-/**
- * jscanify's detection is just "the largest contour in the image" — on a
- * clean, high-contrast photo that's the document, but on a busy background
- * (or a photo with no visible border around the page) it can just as easily
- * be the outer edge of the picture itself. That failure mode is dangerous
- * precisely because it *looks* like a confident detection — four plausible
- * corners, near the image's own edges — while actually cropping nothing at
- * all, which reads as "the scan feature doesn't do anything."
- *
- * A quad covering almost the entire frame is far more likely to be that
- * misdetection than an intentional edge-to-edge photo of a page, so it's
- * treated as a failed detection instead: the caller falls back to
- * `defaultCorners()`, and the UI tells the user to drag the corners
- * themselves rather than silently "succeeding" with a no-op crop.
- */
+/** Above this share of the frame, jscanify found the photo's edge, not a document. */
 const SUSPICIOUS_FULL_FRAME_AREA_RATIO = 0.92;
 
 /** @returns The area of the quadrilateral `corners`, via the shoelace formula. */
@@ -176,12 +150,12 @@ function quadArea(corners: DocumentCorners): number {
 }
 
 /**
- * @param corners A detected quad, in an image's own pixel coordinates.
+ * @param corners A detected quad, in the image's own pixel coordinates.
  * @param imageWidth The image's width, in pixels.
  * @param imageHeight The image's height, in pixels.
  *
- * @returns Whether `corners` cover so much of the image that it was more
- * likely a misdetection of the frame itself than a real document.
+ * @returns Whether `corners` cover so much of the image that they are more
+ * likely the frame than a document within it.
  */
 export function isSuspiciouslyFullFrame(
     corners: DocumentCorners,
@@ -195,21 +169,20 @@ export function isSuspiciouslyFullFrame(
 }
 
 /**
- * Find the largest rectangular contour in an image and return its four
- * corners, or `null` if nothing looked like a document (including a
- * "detection" implausible enough to be the image's own frame — see
- * `isSuspiciouslyFullFrame()`).
+ * Find the document in a photo.
  *
- * @param cv The loaded OpenCV.js module (from `loadOpenCv()`).
+ * @param cv The initialized OpenCV.js module, from `loadOpenCv()`.
  * @param image The photo to search.
  *
- * @returns The detected corners, or `null` if no contour was found.
+ * @returns The document's four corners in `image`'s own pixel coordinates,
+ * or `null` if nothing convincing was found — including a "detection" that
+ * covers the frame (see `isSuspiciouslyFullFrame()`).
  */
 export function detectDocumentCorners(
     cv: OpenCv,
     image: HTMLImageElement,
 ): DocumentCorners | null {
-    const img = cv.imread(image);
+    const img = cv.imread(toFullSizeCanvas(image));
 
     try {
         const contour = getScanner().findPaperContour(img);
@@ -244,34 +217,30 @@ export function detectDocumentCorners(
             bottomRight: bottomRightCorner,
         };
 
-        if (
-            isSuspiciouslyFullFrame(
-                detected,
-                image.naturalWidth,
-                image.naturalHeight,
-            )
-        ) {
-            return null;
-        }
-
-        return detected;
+        return isSuspiciouslyFullFrame(
+            detected,
+            image.naturalWidth,
+            image.naturalHeight,
+        )
+            ? null
+            : detected;
     } finally {
         img.delete();
     }
 }
 
 /**
- * Straighten an image into a rectangle, mapping the given corners (in the
- * source image's own pixel coordinates) onto the output's four corners.
- * `loadOpenCv()` must already have resolved before calling this — that's
- * what wires up the `window.cv` jscanify reads.
+ * Straighten an image, mapping `corners` onto the output's own four corners.
+ * `loadOpenCv()` must already have resolved.
  *
  * @param image The photo to straighten.
- * @param corners The document's corners within `image`.
+ * @param corners The document's corners within `image`, in its own pixel coordinates.
  * @param outputWidth Desired output width, in pixels.
  * @param outputHeight Desired output height, in pixels.
  *
  * @returns A canvas containing the straightened image.
+ *
+ * @throws If jscanify could not produce a result.
  */
 export function warpToCorners(
     image: HTMLImageElement,
@@ -279,12 +248,17 @@ export function warpToCorners(
     outputWidth: number,
     outputHeight: number,
 ): HTMLCanvasElement {
-    const canvas = getScanner().extractPaper(image, outputWidth, outputHeight, {
-        topLeftCorner: corners.topLeft,
-        topRightCorner: corners.topRight,
-        bottomLeftCorner: corners.bottomLeft,
-        bottomRightCorner: corners.bottomRight,
-    });
+    const canvas = getScanner().extractPaper(
+        toFullSizeCanvas(image),
+        outputWidth,
+        outputHeight,
+        {
+            topLeftCorner: corners.topLeft,
+            topRightCorner: corners.topRight,
+            bottomLeftCorner: corners.bottomLeft,
+            bottomRightCorner: corners.bottomRight,
+        },
+    );
 
     if (!canvas) {
         throw new Error('jscanify failed to extract the paper from the image');
@@ -294,14 +268,13 @@ export function warpToCorners(
 }
 
 /**
- * Convert a canvas to a `File`, for handing a warped scan back into the same
- * upload path a raw camera photo already goes through.
+ * Encode a canvas as a `File`, so a warped scan uploads through the same
+ * path a raw camera photo does.
  *
  * @param canvas The canvas to encode.
  * @param filename The filename to give the resulting file.
  *
- * @returns The encoded file, or `null` if the canvas failed to encode (a
- * zero-size canvas, or a browser that refuses `toBlob` for it).
+ * @returns The encoded file, or `null` if the canvas failed to encode.
  */
 export function canvasToFile(
     canvas: HTMLCanvasElement,
