@@ -184,10 +184,8 @@ export default {
     'capture.title': 'Adicionar uma foto',
     'capture.description':
         'As fotos tiradas aqui são adicionadas diretamente a “:document”.',
-    'capture.take_photo_button': 'Tirar uma foto',
-    'capture.add_another_button': 'Tirar outra',
-    'capture.queued_title': 'Prontas a enviar (:count)',
-    'capture.send_button': 'Enviar',
+    'capture.take_scan_button': 'Digitalizar página',
+    'capture.take_photo_button': 'Tirar foto simples',
     'capture.sending': 'A enviar…',
     'capture.sent_count_one': ':count foto enviada',
     'capture.sent_count_other': ':count fotos enviadas',
@@ -199,6 +197,14 @@ export default {
     'capture.ended_cancelled': 'Foi terminada a partir do computador.',
     'capture.ended_expired':
         'Expirou. Inicia uma nova digitalização a partir do computador.',
+    'capture.preparing_scanner': 'A preparar o scanner…',
+    'capture.adjust_corners_hint':
+        'Arrasta os cantos para os limites do documento.',
+    'capture.detection_failed':
+        'Não foi possível detetar os limites do documento automaticamente — arrasta os cantos para os ajustar.',
+    'capture.confirm_scan_button': 'Usar esta digitalização',
+    'capture.retake_button': 'Tirar novamente',
+    'capture.use_original_button': 'Usar original',
 
     'document_types.index.breadcrumb': 'Tipos de documento',
     'document_types.index.head_title': 'Tipos de documento',

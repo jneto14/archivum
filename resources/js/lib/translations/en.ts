@@ -178,10 +178,8 @@ export default {
     'capture.title': 'Add a photo',
     'capture.description':
         'Photos you take here are added straight to “:document”.',
-    'capture.take_photo_button': 'Take a photo',
-    'capture.add_another_button': 'Take another',
-    'capture.queued_title': 'Ready to send (:count)',
-    'capture.send_button': 'Send',
+    'capture.take_scan_button': 'Scan a page',
+    'capture.take_photo_button': 'Take a plain photo',
     'capture.sending': 'Sending…',
     'capture.sent_count_one': ':count photo sent',
     'capture.sent_count_other': ':count photos sent',
@@ -191,6 +189,14 @@ export default {
     'capture.ended_completed': 'You can close this page now.',
     'capture.ended_cancelled': 'It was ended from the computer.',
     'capture.ended_expired': 'It expired. Start a new scan from the computer.',
+    'capture.preparing_scanner': 'Preparing the scanner…',
+    'capture.adjust_corners_hint':
+        'Drag the corners to match the edges of the document.',
+    'capture.detection_failed':
+        "Couldn't find the document's edges automatically — drag the corners to match them.",
+    'capture.confirm_scan_button': 'Use this scan',
+    'capture.retake_button': 'Retake',
+    'capture.use_original_button': 'Use original',
 
     'document_types.index.breadcrumb': 'Document types',
     'document_types.index.head_title': 'Document types',

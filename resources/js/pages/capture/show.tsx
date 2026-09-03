@@ -1,8 +1,9 @@
 import { Head, router } from '@inertiajs/react';
-import { CameraIcon, CheckIcon } from 'lucide-react';
+import { CameraIcon, CheckIcon, ScanLineIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import AppLogoIcon from '@/components/app-logo-icon';
+import { DocumentScanReview } from '@/components/document-scan-review';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/hooks/use-translation';
@@ -43,20 +44,19 @@ export default function CaptureShow({
     photos_count: photosCount,
 }: Props) {
     const t = useTranslation();
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const plainInputRef = useRef<HTMLInputElement>(null);
+    const scanInputRef = useRef<HTMLInputElement>(null);
     const [sending, setSending] = useState(false);
     const [error, setError] = useState<string | undefined>(undefined);
+    // The just-taken photo, awaiting the "make it look like a scan" review
+    // step below — nothing is uploaded until that step's confirmed. Only the
+    // "scan" capture button ever sets this; the plain one uploads straight
+    // away, exactly like before this review step existed.
+    const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
 
-    const takePhoto = (event: ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        event.target.value = '';
-
-        if (!file) {
-            return;
-        }
-
+    const uploadPhoto = (file: File) => {
+        setPendingPhoto(null);
         setSending(true);
-        setError(undefined);
 
         router.post(
             actionUrl(),
@@ -76,15 +76,29 @@ export default function CaptureShow({
         );
     };
 
+    const pickPlainPhoto = (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+
+        if (file) {
+            setError(undefined);
+            uploadPhoto(file);
+        }
+    };
+
+    const pickPhotoToScan = (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        event.target.value = '';
+
+        if (file) {
+            setError(undefined);
+            setPendingPhoto(file);
+        }
+    };
+
     const markDone = () => {
         router.post(actionUrl(), { done: '1' }, { preserveScroll: true });
     };
-
-    const captureButtonLabel = sending
-        ? t('capture.sending')
-        : photosCount === 0
-          ? t('capture.take_photo_button')
-          : t('capture.add_another_button');
 
     return (
         <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6">
@@ -93,7 +107,13 @@ export default function CaptureShow({
             <div className="flex w-full max-w-sm flex-col items-center gap-6">
                 <AppLogoIcon className="size-9 fill-current text-[var(--foreground)] dark:text-white" />
 
-                {active ? (
+                {active && pendingPhoto ? (
+                    <DocumentScanReview
+                        file={pendingPhoto}
+                        onConfirm={uploadPhoto}
+                        onRetake={() => setPendingPhoto(null)}
+                    />
+                ) : active ? (
                     <>
                         <div className="space-y-2 text-center">
                             <h1 className="text-xl font-medium">
@@ -107,23 +127,43 @@ export default function CaptureShow({
                         </div>
 
                         <input
-                            ref={fileInputRef}
+                            ref={scanInputRef}
                             type="file"
                             accept="image/*"
                             capture="environment"
                             className="sr-only"
-                            onChange={takePhoto}
+                            onChange={pickPhotoToScan}
+                        />
+                        <input
+                            ref={plainInputRef}
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="sr-only"
+                            onChange={pickPlainPhoto}
                         />
 
-                        <Button
-                            size="lg"
-                            className="h-16 w-full text-base"
-                            disabled={sending}
-                            onClick={() => fileInputRef.current?.click()}
-                        >
-                            <CameraIcon className="size-5" />
-                            {captureButtonLabel}
-                        </Button>
+                        <div className="flex w-full flex-col gap-2">
+                            <Button
+                                size="lg"
+                                className="h-16 w-full text-base"
+                                disabled={sending}
+                                onClick={() => scanInputRef.current?.click()}
+                            >
+                                <ScanLineIcon className="size-5" />
+                                {t('capture.take_scan_button')}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                disabled={sending}
+                                onClick={() => plainInputRef.current?.click()}
+                            >
+                                <CameraIcon className="size-5" />
+                                {sending
+                                    ? t('capture.sending')
+                                    : t('capture.take_photo_button')}
+                            </Button>
+                        </div>
 
                         <InputError message={error} />
 
