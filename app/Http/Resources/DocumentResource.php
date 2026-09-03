@@ -59,6 +59,10 @@ class DocumentResource extends JsonResource
                 'id' => $attachment->id,
                 'filename' => $attachment->filename,
                 'mime_type' => $attachment->mime_type,
+                // The preview dialog asks rather than infers, so this has to
+                // travel with the attachment: an SVG is `image/*` and is still
+                // served as an opaque download.
+                'is_previewable' => $attachment->is_previewable,
                 'size' => $attachment->size,
                 'ocr_status' => $attachment->ocr_status->value,
                 'created_at' => $attachment->created_at?->toIso8601String(),

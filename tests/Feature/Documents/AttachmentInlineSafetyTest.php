@@ -16,6 +16,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
@@ -160,6 +161,41 @@ class AttachmentInlineSafetyTest extends TestCase
                 "{$filename} served inline",
             );
         }
+    }
+
+    /**
+     * The flag has to reach the page, not merely exist on the model.
+     *
+     * `DocumentResource` builds each attachment as an explicit array, so the
+     * model appending `is_previewable` proves nothing about what the dialog is
+     * handed — and the dialog reads it as the gate on every preview. Absent, it
+     * is `undefined`, which is falsy, so a PDF and a photograph are both
+     * "cannot preview" and the feature is off for everything at once.
+     */
+    public function test_the_document_page_hands_the_dialog_the_previewable_flag()
+    {
+        $attachment = $this->upload(
+            UploadedFile::fake()->create('scan.pdf', 100, 'application/pdf'),
+        );
+
+        $document = $attachment->document;
+        $user = $document->workspace->users()->firstOrFail();
+
+        app(UploadAttachment::class)->handle(
+            $document,
+            UploadedFile::fake()->createWithContent('diagram.svg', '<svg xmlns="http://www.w3.org/2000/svg"></svg>'),
+            $user,
+        );
+
+        $response = $this->actingAs($user)->get(route('documents.show', $document));
+
+        $response->assertInertia(fn (Assert $page) => $page->has('document.attachments', 2));
+
+        $attachments = collect($response->viewData('page')['props']['document']['attachments'])
+            ->keyBy('filename');
+
+        $this->assertTrue($attachments['scan.pdf']['is_previewable'], 'a PDF is previewable');
+        $this->assertFalse($attachments['diagram.svg']['is_previewable'], 'an SVG is not');
     }
 
     private function upload(UploadedFile $file): DocumentAttachment
