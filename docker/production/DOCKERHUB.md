@@ -20,9 +20,9 @@ Uploaded scans have their text extracted in the background — the embedded text
 
 | Tag | |
 | --- | --- |
-| `{{VERSION}}` | An exact release. Pin this |
+| `latest` | The newest release. What the stack runs unless you say otherwise |
+| `{{VERSION}}` | An exact release, for an upgrade you would rather ask for |
 | `{{MINOR}}` | The latest patch of that minor |
-| `latest` | The newest release. Moves on its own |
 
 Built for **linux/amd64** and **linux/arm64**.
 
@@ -59,8 +59,6 @@ SCOUT_DRIVER=database
 
 ADMIN_EMAIL=you@example.com
 ADMIN_PASSWORD=change-me-too
-
-ARCHIVUM_VERSION={{VERSION}}
 EOF
 
 docker compose --env-file .env -f compose.prod.yaml up -d
@@ -93,14 +91,14 @@ The scheduler runs one replica — `schedule:work` keeps its own clock, so a sec
 
 ## Configuration
 
-Everything is environment variables, and none of them are baked into the image. The same `jneto14/archivum:{{VERSION}}` runs anywhere.
+Everything is environment variables, and none of them are baked into the image. The same `jneto14/archivum` image runs anywhere.
 
 | Variable | |
 | --- | --- |
 | `APP_KEY` | 32 random bytes in base64. Changing it later makes existing sessions and encrypted values unreadable |
 | `APP_PORT` | Host port for the web container. Defaults to 80 |
 | `ARCHIVUM_IMAGE` | Switch registries, e.g. `ghcr.io/jneto14/archivum` |
-| `ARCHIVUM_VERSION` | The tag to run. Pin it |
+| `ARCHIVUM_VERSION` | The tag to run. `latest` when unset, which is what an installation normally wants; a release holds it there until you change it |
 | `ARCHIVUM_ENV_FILE` | Point the stack at a different env file |
 | `ARCHIVUM_MIGRATE` | `false` to skip migrations on start and run them yourself |
 | `OCR_ENABLED` | `false` to switch text extraction off |
@@ -133,10 +131,11 @@ The queue deliberately stays on the database rather than Redis: it carries real 
 ## Upgrading
 
 ```bash
-# change ARCHIVUM_VERSION in .env, then:
 docker compose --env-file .env -f compose.prod.yaml pull
 docker compose --env-file .env -f compose.prod.yaml up -d
 ```
+
+On an installation that pins `ARCHIVUM_VERSION`, change the pin first — otherwise `pull` re-fetches the tag it already has.
 
 Replacing the containers is what applies the new code, and replacing the worker **is** `queue:restart` — a running worker holds the old classes in memory. Migrations run on start.
 

@@ -71,6 +71,130 @@ class InstallRecipeTest extends TestCase
      *
      * @return string The body of the `cat > .env` block.
      */
+    /**
+     * The demo recipe has its own settings whose absence is silently wrong, and
+     * they are worse than the install recipe's: an installation missing them is
+     * not broken, it is an ordinary one that happens to be public. No banner
+     * warning visitors their work is temporary, no credentials on the login
+     * screen, nothing ever reset, and none of the restrictions that stop the
+     * first visitor leaving it useless to the next.
+     */
+    public function test_the_documented_demo_recipe_turns_demo_mode_on()
+    {
+        $recipe = $this->demoRecipe();
+
+        foreach (['DEMO_MODE=true', 'DEMO_RESET_CONFIRM=', 'DEMO_EMAIL=', 'DEMO_PASSWORD='] as $setting) {
+            $this->assertStringContainsString(
+                $setting,
+                $recipe,
+                "The demo recipe in docs/deployment.md does not set {$setting}.",
+            );
+        }
+    }
+
+    /**
+     * `demo:reset` refuses unless DEMO_RESET_CONFIRM repeats the installation's
+     * own APP_URL, so a recipe where the two disagree documents a demo that
+     * quietly never resets.
+     */
+    public function test_the_demo_recipe_confirms_its_own_app_url()
+    {
+        $recipe = $this->demoRecipe();
+
+        preg_match('/^APP_URL=(.*)$/m', $recipe, $appUrl);
+        preg_match('/^DEMO_RESET_CONFIRM=(.*)$/m', $recipe, $confirm);
+
+        $this->assertSame(
+            mb_rtrim($appUrl[1] ?? 'a', '/'),
+            mb_rtrim($confirm[1] ?? 'b', '/'),
+            'DEMO_RESET_CONFIRM must repeat APP_URL, or demo:reset refuses to run.',
+        );
+    }
+
+    /**
+     * The demo dataset comes from `demo:reset`. Seeding the ordinary way leaves
+     * a demo with nothing in it until the small hours, and then destroys
+     * whatever account was made in the meantime.
+     */
+    public function test_the_demo_recipe_seeds_with_demo_reset()
+    {
+        $path = base_path('docs/deployment.md');
+        $documentation = (string) file_get_contents($path);
+
+        $this->assertStringContainsString(
+            'artisan demo:reset',
+            mb_substr($documentation, (int) mb_strpos($documentation, '### A public demo')),
+            'The demo recipe should seed with demo:reset rather than db:seed.',
+        );
+    }
+
+    /**
+     * Files a self-hoster copies from, and must not find a version in.
+     *
+     * @var list<string>
+     */
+    private const DOCUMENTATION = [
+        'README.md',
+        'CHANGELOG.md',
+        'docs/deployment.md',
+        'docker/production/DOCKERHUB.md',
+        'compose.prod.yaml',
+    ];
+
+    /**
+     * No document may write a released version into ARCHIVUM_VERSION.
+     *
+     * Whoever installs this decides what it runs, and what they nearly always
+     * want is the current release. A literal `ARCHIVUM_VERSION=0.2.0` — in a
+     * recipe, in a table, or in a sentence offering it as an example — is
+     * stale the moment the next release ships, and it installs that stale
+     * version silently: the stack starts, so nothing says the image is old.
+     *
+     * `ARCHIVUM_VERSION=local` is allowed, and is the one case where the
+     * variable names something that does not go out of date: an image built
+     * from a checkout.
+     */
+    public function test_the_documentation_never_writes_a_version_into_archivum_version()
+    {
+        foreach (self::DOCUMENTATION as $file) {
+            $path = base_path($file);
+
+            $this->assertFileExists($path);
+
+            $this->assertDoesNotMatchRegularExpression(
+                '/ARCHIVUM_VERSION=[v0-9{]/',
+                (string) file_get_contents($path),
+                "{$file} writes a version into ARCHIVUM_VERSION. Whoever installs this wants the current release, and a documented version is stale as soon as the next one ships.",
+            );
+        }
+    }
+
+    /**
+     * The dotenv block from the "A public demo" section of
+     * `docs/deployment.md`.
+     *
+     * @return string The body of that block.
+     */
+    private function demoRecipe(): string
+    {
+        $path = base_path('docs/deployment.md');
+
+        $this->assertFileExists($path);
+
+        $documentation = (string) file_get_contents($path);
+        $section = mb_strstr($documentation, '### A public demo');
+
+        $this->assertIsString($section, 'docs/deployment.md should document a public demo recipe.');
+
+        $this->assertSame(
+            1,
+            preg_match('/```dotenv$(.*?)^```/ms', (string) $section, $matches),
+            'The public demo section should open with a dotenv block.',
+        );
+
+        return $matches[1];
+    }
+
     private function installRecipe(): string
     {
         $path = base_path('docs/deployment.md');

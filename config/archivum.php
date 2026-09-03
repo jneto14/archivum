@@ -23,6 +23,50 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Path Prefix
+    |--------------------------------------------------------------------------
+    |
+    | The path an installation is served under, taken from APP_URL: '/archivum'
+    | for https://example.com/archivum, and '' for an installation on its own
+    | hostname. Derived rather than configured separately, so there is one
+    | statement of where this installation lives and nothing to keep in step.
+    |
+    | The proxy in front is expected to strip this prefix before forwarding,
+    | which is what a `proxy_pass` with a trailing slash does. Routes are
+    | registered without it, so the application never sees it on the way in —
+    | it only has to put it back on everything it hands out, including the URLs
+    | compiled into the JavaScript bundle.
+    |
+    */
+
+    'path_prefix' => mb_rtrim((string) parse_url((string) env('APP_URL', ''), PHP_URL_PATH), '/'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Trusted Proxies
+    |--------------------------------------------------------------------------
+    |
+    | Which proxies may be believed when they say, through X-Forwarded-*, what
+    | the original request looked like. Nothing is trusted unless named here:
+    | `*` for a container stack whose proxy address the network assigns, or a
+    | comma-separated list of addresses.
+    |
+    | Set it only where the application cannot be reached around that proxy. A
+    | directly exposed installation that trusts every proxy is trusting whatever
+    | X-Forwarded-For a client cares to send, which hands anyone a fresh address
+    | per attempt and walks them past the login throttle.
+    |
+    | Read here rather than in bootstrap/app.php, where it would look right and
+    | be silently dead: the middleware closure there runs before the framework
+    | loads .env, so the value would arrive only on installations that happen to
+    | set it as a real process variable — and never on one with a cached config.
+    |
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES', ''),
+
+    /*
+    |--------------------------------------------------------------------------
     | Multi-Workspace
     |--------------------------------------------------------------------------
     |

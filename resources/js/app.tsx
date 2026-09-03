@@ -5,8 +5,18 @@ import { initializeTheme } from '@/hooks/use-appearance';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import { applyPathPrefix } from '@/lib/path-prefix';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+
+// Before anything renders, so no URL is read at its build-time value first.
+// Eager on purpose: a lazily loaded route module would be the one that got
+// away. See lib/path-prefix.ts for why this is the seam.
+applyPathPrefix(
+    import.meta.glob(['./routes/**/*.ts', './actions/**/*.ts'], {
+        eager: true,
+    }),
+);
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),

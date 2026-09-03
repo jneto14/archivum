@@ -30,9 +30,17 @@
             }
         </style>
 
-        <link rel="icon" href="/favicon.ico" sizes="any">
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        {{-- Through asset() so they follow ASSET_URL: a root-relative path
+             here would look outside an installation served under a prefix. --}}
+        <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+        <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
+        <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
+
+        {{-- The path this installation is served under, for the JavaScript
+             bundle, whose route URLs were compiled without it. Read from a meta
+             tag because it must be known before the first route module is used.
+             Empty on an installation with a hostname of its own. --}}
+        <meta name="app-path-prefix" content="{{ config('archivum.path_prefix') }}">
 
         {{-- An internal application has nothing to rank, and a login page in a
              search index quietly announces that an organisation keeps an
@@ -61,7 +69,10 @@
         <meta name="twitter:description" content="{{ $metaDescription }}">
         <meta name="twitter:image" content="{{ url('/og-image.png') }}">
 
-        @fonts
+        {{-- Not @fonts: the stylesheet it inlines carries root-relative asset
+             URLs written at build time, which point outside an installation
+             served under a path. See App\Support\FontStyles. --}}
+        {!! App\Support\FontStyles::render() !!}
 
         @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.tsx', "resources/js/pages/{$page['component']}.tsx"])

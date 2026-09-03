@@ -15,11 +15,15 @@ use App\Services\Ocr\Contracts\OcrEngine;
 use App\Services\Ocr\TesseractEngine;
 use App\Support\DemoMode;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
+use Inertia\Inertia;
 use Laravel\Passkeys\Passkeys;
 use Spatie\Activitylog\Models\Activity;
 
@@ -53,12 +57,76 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->configureTrustedProxies();
+        $this->configureInertiaUrls();
         $this->configureDefaults();
         $this->configureWorkspaceMembership();
         $this->configurePasskeys();
         $this->configurePlatformAdminAccess();
         $this->configureActivityLog();
         $this->configureDemoMode();
+    }
+
+    /**
+     * Decide which proxies may describe the original request.
+     *
+     * Laravel ships the TrustProxies middleware and trusts nobody by default,
+     * so an installation that sets TRUSTED_PROXIES and nothing else gets no
+     * effect at all. What that costs, behind a proxy terminating TLS: the
+     * session cookie is not marked Secure, and every request appears to come
+     * from the proxy's own address, so `throttle:6,1` on the login and password
+     * routes counts the whole internet as one client and locks everybody out
+     * together. Neither failure raises anything.
+     *
+     * Configured here rather than in bootstrap/app.php because the middleware
+     * closure there runs before the framework loads the environment or the
+     * config — an `env()` call in it reads only what the process already had,
+     * so it would work in a container and silently do nothing for an
+     * installation that keeps the value in `.env`, and nothing at all once the
+     * config is cached. Providers boot before any middleware handles a request,
+     * so setting the static here is in time.
+     *
+     * @return void No return value; names the trusted proxies on the middleware as a side effect.
+     */
+    protected function configureTrustedProxies(): void
+    {
+        $proxies = (string) config('archivum.trusted_proxies');
+
+        if ($proxies === '') {
+            return;
+        }
+
+        TrustProxies::at(
+            $proxies === '*' ? '*' : array_map(trim(...), explode(',', $proxies)),
+        );
+    }
+
+    /**
+     * Put the path prefix back on the URL Inertia reports for the current page.
+     *
+     * Inertia takes the address bar from this value rather than from the
+     * browser. The proxy strips the prefix before the request arrives, so left
+     * alone the application would say the current page is `/login` — and the
+     * first navigation would rewrite the address bar to the wrong root, where
+     * a reload then lands on nothing.
+     *
+     * The default resolver is kept and only prefixed, so query strings and
+     * anything else it handles keep working.
+     *
+     * @return void No return value; replaces Inertia's page URL resolver as a side effect.
+     */
+    protected function configureInertiaUrls(): void
+    {
+        $prefix = (string) config('archivum.path_prefix');
+
+        if ($prefix === '') {
+            return;
+        }
+
+        Inertia::resolveUrlUsing(fn (Request $request): string => $prefix . Str::start(
+            Str::after($request->fullUrl(), $request->getSchemeAndHttpHost()),
+            '/',
+        ));
     }
 
     /**
