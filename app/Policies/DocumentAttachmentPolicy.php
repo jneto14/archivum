@@ -37,6 +37,24 @@ class DocumentAttachmentPolicy
     }
 
     /**
+     * Determine whether the user may act on what the application worked out
+     * about the given attachment — currently, dismiss its duplicate warning.
+     *
+     * Any member, rather than the uploader or an admin as deletion requires:
+     * this changes nothing about the file, only whether a notice keeps being
+     * shown to everyone who opens the document.
+     *
+     * @param User $user The acting user.
+     * @param DocumentAttachment $attachment The attachment being updated.
+     *
+     * @return bool True if $user is a member of the attachment's document's workspace.
+     */
+    public function update(User $user, DocumentAttachment $attachment): bool
+    {
+        return $attachment->document->workspace->isMember($user);
+    }
+
+    /**
      * Workspace admins can delete any attachment; other members may only
      * delete attachments they uploaded themselves.
      *

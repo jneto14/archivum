@@ -6,6 +6,7 @@ namespace Tests\Feature\Documents;
 
 use App\Actions\Documents\CreateDocument;
 use App\Actions\Documents\DeleteAttachment;
+use App\Actions\Documents\FindDuplicateAttachment;
 use App\Actions\Documents\SearchDocuments;
 use App\Actions\Workspace\RetryTask;
 use App\Enums\OcrStatus;
@@ -22,6 +23,7 @@ use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use App\Services\Ocr\AttachmentTextExtractor;
 use App\Services\Ocr\Contracts\OcrEngine;
+use App\Services\Ocr\TextFingerprint;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Queue;
@@ -413,7 +415,11 @@ class ExtractAttachmentTextTest extends TestCase
             ],
         ]);
 
-        (new ExtractAttachmentText($attachment, $task))->handle(app(AttachmentTextExtractor::class));
+        (new ExtractAttachmentText($attachment, $task))->handle(
+            app(AttachmentTextExtractor::class),
+            app(TextFingerprint::class),
+            app(FindDuplicateAttachment::class),
+        );
 
         return $task;
     }
