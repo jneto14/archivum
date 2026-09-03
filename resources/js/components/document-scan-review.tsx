@@ -15,7 +15,6 @@ import type { DocumentCorners, Point } from '@/lib/document-scan';
 
 type CornerKey = keyof DocumentCorners;
 
-/** Order doesn't matter for rendering drag handles, one per corner. */
 const CORNER_KEYS: CornerKey[] = [
     'topLeft',
     'topRight',
@@ -23,13 +22,7 @@ const CORNER_KEYS: CornerKey[] = [
     'bottomRight',
 ];
 
-/**
- * The same four corners, but walked around the perimeter — top-left,
- * top-right, bottom-right, bottom-left — rather than `CORNER_KEYS`'s grid
- * order. An `<svg>` `<polygon>` connects its points in the order given, so
- * `CORNER_KEYS`'s order draws a bowtie (top-left to top-right, *then*
- * straight across to bottom-left, crossing the shape) instead of an outline.
- */
+/** `CORNER_KEYS` in grid order would draw the polygon as a bowtie. */
 const PERIMETER_ORDER: CornerKey[] = [
     'topLeft',
     'topRight',
@@ -37,34 +30,32 @@ const PERIMETER_ORDER: CornerKey[] = [
     'bottomLeft',
 ];
 
-/** The largest edge OpenCV will straighten a scan to, on its longer side. Big enough to stay readable, small enough that a phone photo doesn't balloon into a multi-megabyte upload once re-encoded. */
+/** Longest edge of a straightened scan: readable without a huge re-encode. */
 const MAX_OUTPUT_DIMENSION = 2000;
+
+/** Diameter, magnification and edge margin of the magnifier shown while dragging. */
+const LOUPE_SIZE = 104;
+const LOUPE_ZOOM = 2.5;
+const LOUPE_GAP = 12;
+
+/** Past this share of the width, the magnifier moves to the opposite side. */
+const LOUPE_SIDE_THRESHOLD = 0.5;
 
 type Props = {
     file: File;
     onConfirm: (file: File) => void;
     onRetake: () => void;
-    /**
-     * Called when straightening throws, right before falling back to
-     * uploading the original photo. Confirming still succeeds either way —
-     * this is only so the failure is visible somewhere that outlives this
-     * component (it unmounts the moment `onConfirm` runs), instead of only
-     * in a phone browser's console that nobody's going to open.
-     */
+    /** Reports a straightening failure somewhere that outlives this component, which unmounts as soon as `onConfirm` runs. */
     onStraightenFailed?: (message: string) => void;
 };
 
 /**
- * The "make it look like a real scan" review step between taking a photo and
- * sending it: shows the photo with its detected (or default) corners as
- * draggable handles, then straightens the image into whatever quad the user
- * leaves behind.
+ * The review step between taking a photo and sending it: the photo with its
+ * detected (or default) corners as draggable handles, straightened into
+ * whatever quad the user leaves behind.
  *
- * Corners are held as fractions of the image's own size (0–1 on each axis),
- * not pixels — that's what makes them trivial to render at any display size
- * and to drag with a plain percentage-based `left`/`top`. They're only
- * converted to the image's natural pixel coordinates at the point OpenCV
- * actually needs them, in `confirm()`.
+ * Corners are held as fractions of the image's size, so they render and drag
+ * as plain percentages; `confirm()` converts them to pixels for OpenCV.
  */
 export function DocumentScanReview({
     file,
@@ -74,6 +65,7 @@ export function DocumentScanReview({
 }: Props) {
     const t = useTranslation();
     const imgRef = useRef<HTMLImageElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const [imageUrl] = useState(() => URL.createObjectURL(file));
     const [stage, setStage] = useState<
         'detecting' | 'adjusting' | 'processing'
@@ -81,6 +73,20 @@ export function DocumentScanReview({
     const [corners, setCorners] = useState<DocumentCorners | null>(null);
     const [detectionFailed, setDetectionFailed] = useState(false);
     const draggingCornerRef = useRef<CornerKey | null>(null);
+    // Where the pointer and the corner each were when the drag started, so
+    // the corner tracks the finger's movement instead of jumping under it.
+    const dragOriginRef = useRef<{ pointer: Point; corner: Point } | null>(
+        null,
+    );
+    // Mirrors `draggingCornerRef` for rendering the magnifier; the ref stays
+    // the one the move handler reads, since it can't go stale mid-gesture.
+    const [draggingCorner, setDraggingCorner] = useState<CornerKey | null>(
+        null,
+    );
+    const [containerSize, setContainerSize] = useState<{
+        width: number;
+        height: number;
+    } | null>(null);
     const startedProcessingRef = useRef(false);
 
     useEffect(() => {
@@ -108,11 +114,10 @@ export function DocumentScanReview({
                 ),
             );
             setDetectionFailed(detected === null);
-        } catch {
-            // OpenCV failed to load or run (unsupported browser, out of
-            // memory on a huge photo, offline asset blocked). Falling back
-            // to a plain adjustable rectangle keeps the feature usable
-            // rather than turning a processing failure into a dead end.
+        } catch (error) {
+            // An adjustable rectangle keeps the feature usable rather than
+            // making a processing failure a dead end.
+            console.error('Failed to detect the document corners:', error);
             setCorners(
                 toFractions(
                     defaultCorners(img.naturalWidth, img.naturalHeight),
@@ -125,11 +130,8 @@ export function DocumentScanReview({
         }
     };
 
-    // A blob: URL can decode fast enough that the `<img>` below is already
-    // `complete` before React finishes attaching its `onLoad` handler — in
-    // which case that event never fires and `detecting` would last forever.
-    // `handleImageLoad`'s own `startedProcessingRef` guard keeps this from
-    // double-running detection if `onLoad` does still fire afterwards.
+    // A blob: URL can decode before React attaches `onLoad`, in which case
+    // that event never fires and `detecting` would last forever.
     useEffect(() => {
         if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) {
             void handleImageLoad();
@@ -137,16 +139,31 @@ export function DocumentScanReview({
     });
 
     const startDrag = (corner: CornerKey) => (event: ReactPointerEvent) => {
+        const container = containerRef.current;
+
+        if (!container || !corners) {
+            return;
+        }
+
         event.preventDefault();
+        const rect = container.getBoundingClientRect();
+
         draggingCornerRef.current = corner;
+        dragOriginRef.current = {
+            pointer: { x: event.clientX, y: event.clientY },
+            corner: corners[corner],
+        };
+        setDraggingCorner(corner);
+        setContainerSize({ width: rect.width, height: rect.height });
         event.currentTarget.setPointerCapture(event.pointerId);
     };
 
     const drag = (event: ReactPointerEvent) => {
         const corner = draggingCornerRef.current;
-        const container = imgRef.current?.parentElement;
+        const origin = dragOriginRef.current;
+        const container = containerRef.current;
 
-        if (!corner || !container || !corners) {
+        if (!corner || !origin || !container || !corners) {
             return;
         }
 
@@ -155,14 +172,22 @@ export function DocumentScanReview({
         setCorners({
             ...corners,
             [corner]: {
-                x: clamp01((event.clientX - rect.left) / rect.width),
-                y: clamp01((event.clientY - rect.top) / rect.height),
+                x: clamp01(
+                    origin.corner.x +
+                        (event.clientX - origin.pointer.x) / rect.width,
+                ),
+                y: clamp01(
+                    origin.corner.y +
+                        (event.clientY - origin.pointer.y) / rect.height,
+                ),
             },
         });
     };
 
     const endDrag = () => {
         draggingCornerRef.current = null;
+        dragOriginRef.current = null;
+        setDraggingCorner(null);
     };
 
     const confirm = async () => {
@@ -186,11 +211,8 @@ export function DocumentScanReview({
 
             onConfirm(scanned ?? file);
         } catch (error) {
-            // Straightening failed — the original photo is still a
-            // perfectly usable attachment, just not a cropped one. Reported
-            // upward rather than swallowed outright, so a real failure here
-            // is visible somewhere other than a phone browser's console
-            // that nobody's going to open.
+            // The original photo is still a usable attachment, just not a
+            // cropped one — but say so rather than failing silently.
             console.error('Failed to straighten the scan:', error);
             onStraightenFailed?.(
                 error instanceof Error ? error.message : String(error),
@@ -201,13 +223,11 @@ export function DocumentScanReview({
 
     return (
         <div className="flex w-full max-w-sm flex-col items-center gap-4">
-            {/*
-             * The image stays mounted through every stage, `detecting`
-             * included — it's the image's own `onLoad` that drives the
-             * transition out of `detecting` in the first place. Rendering it
-             * only once detection finished would mean it never starts.
-             */}
-            <div className="relative w-full touch-none overflow-hidden rounded-md border select-none">
+            {/* Stays mounted while detecting: its own onLoad starts that. */}
+            <div
+                ref={containerRef}
+                className="relative w-full touch-none overflow-hidden rounded-md border select-none"
+            >
                 <img
                     ref={imgRef}
                     src={imageUrl}
@@ -241,18 +261,30 @@ export function DocumentScanReview({
                 )}
                 {corners &&
                     CORNER_KEYS.map((key) => (
+                        // The hit area is deliberately larger than the dot:
+                        // a fingertip covers far more than 28px.
                         <div
                             key={key}
                             onPointerDown={startDrag(key)}
                             onPointerMove={drag}
                             onPointerUp={endDrag}
-                            className="absolute size-7 -translate-x-1/2 -translate-y-1/2 touch-none rounded-full border-2 border-primary bg-background shadow"
+                            onPointerCancel={endDrag}
+                            className="absolute flex size-12 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center"
                             style={{
                                 left: `${corners[key].x * 100}%`,
                                 top: `${corners[key].y * 100}%`,
                             }}
-                        />
+                        >
+                            <span className="size-7 rounded-full border-2 border-primary bg-background shadow" />
+                        </div>
                     ))}
+                {corners && draggingCorner && containerSize && (
+                    <Loupe
+                        imageUrl={imageUrl}
+                        corner={corners[draggingCorner]}
+                        containerSize={containerSize}
+                    />
+                )}
             </div>
 
             {stage !== 'detecting' && (
@@ -302,6 +334,58 @@ export function DocumentScanReview({
     );
 }
 
+/**
+ * A magnified view of the photo around the corner being dragged — without it,
+ * the one spot you are trying to place is the one spot your finger covers.
+ *
+ * It sits in a top corner of the photo rather than following the finger,
+ * moving to the other side when the drag reaches its half. A magnifier that
+ * tracks the finger has nowhere left to go once the corner nears an edge,
+ * which is exactly when it is needed most.
+ */
+function Loupe({
+    imageUrl,
+    corner,
+    containerSize,
+}: {
+    imageUrl: string;
+    corner: Point;
+    containerSize: { width: number; height: number };
+}) {
+    const center = {
+        x: corner.x * containerSize.width,
+        y: corner.y * containerSize.height,
+    };
+    const onTheLeft = corner.x > LOUPE_SIDE_THRESHOLD;
+
+    return (
+        <div
+            className="pointer-events-none absolute z-10 overflow-hidden rounded-full border-2 border-primary bg-background shadow-lg"
+            style={{
+                width: LOUPE_SIZE,
+                height: LOUPE_SIZE,
+                top: LOUPE_GAP,
+                left: onTheLeft ? LOUPE_GAP : undefined,
+                right: onTheLeft ? undefined : LOUPE_GAP,
+            }}
+        >
+            <img
+                src={imageUrl}
+                alt=""
+                className="absolute max-w-none"
+                style={{
+                    width: containerSize.width * LOUPE_ZOOM,
+                    height: containerSize.height * LOUPE_ZOOM,
+                    left: LOUPE_SIZE / 2 - center.x * LOUPE_ZOOM,
+                    top: LOUPE_SIZE / 2 - center.y * LOUPE_ZOOM,
+                }}
+            />
+            <div className="absolute inset-x-0 top-1/2 h-px bg-primary/70" />
+            <div className="absolute inset-y-0 left-1/2 w-px bg-primary/70" />
+        </div>
+    );
+}
+
 /** @returns `value` clamped to the [0, 1] range. */
 function clamp01(value: number): number {
     return Math.min(1, Math.max(0, value));
@@ -343,12 +427,8 @@ function mapCorners(
 }
 
 /**
- * The straightened image's target size: the corners' own geometry (the
- * longer of the two top/bottom edges, the longer of the two left/right
- * edges), scaled down to `MAX_OUTPUT_DIMENSION` if needed. Using the actual
- * marked rectangle's proportions — rather than a fixed size — is what keeps
- * a tall receipt tall and a landscape certificate wide, instead of
- * stretching everything to the same shape.
+ * The output size, taken from the marked quad's own longest edges so a tall
+ * receipt stays tall and a wide certificate stays wide.
  *
  * @param corners The document's corners, in the source image's own pixel coordinates.
  *
