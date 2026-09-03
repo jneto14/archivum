@@ -11,6 +11,33 @@ release. Read this file before upgrading.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-03
+
+Attachment preview had been showing nothing since 0.2.0 — for images and PDFs
+alike, which is everything it exists for. That is the release.
+
+### Fixed
+
+- Attachment preview renders again. The dialog stopped inferring what it could
+  display and started asking the server through an `is_previewable` flag, but
+  the flag never reached the page: `DocumentResource` builds each attachment as
+  an explicit array and was not carrying it. The dialog read `undefined`, which
+  gates both branches, so every attachment fell through to "cannot preview".
+
+### Changed
+
+- The install recipes no longer pin `ARCHIVUM_VERSION`. A recipe that names the
+  release current when it was written installs that version forever — the stack
+  starts, so nothing reports the image is old. `latest` is what the documented
+  path runs; pinning is described where a reader chooses it rather than
+  inherits it.
+
+#### Development
+
+- `@babel/core` is held on 7. On 8 the React Compiler silently stops compiling
+  part of the tree — 28 components lost their memo cache with a clean install, a
+  successful build and a passing suite.
+
 ## [0.2.0] - 2026-09-02
 
 Mostly about where an installation can live. It now works behind a reverse
@@ -210,6 +237,7 @@ The first tagged release. Everything below shipped in it.
 - A brand-new user invited on a single-workspace installation is added with the
   role the admin chose, rather than failing with "already a member".
 
-[Unreleased]: https://github.com/jneto14/archivum/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/jneto14/archivum/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/jneto14/archivum/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/jneto14/archivum/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jneto14/archivum/releases/tag/v0.1.0
