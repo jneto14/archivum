@@ -24,6 +24,10 @@ createInertiaApp({
         switch (true) {
             case name === 'welcome':
                 return null;
+            // Opened by scanning a QR code on a phone that was never signed
+            // in — the desktop app's sidebar shell has no business there.
+            case name.startsWith('capture/'):
+                return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
             case name.startsWith('settings/'):

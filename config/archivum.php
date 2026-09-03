@@ -193,6 +193,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Mobile Capture
+    |--------------------------------------------------------------------------
+    |
+    | A document's "scan with your phone" pairing session: the desktop shows a
+    | QR code linking to a signed, unauthenticated page, and photos taken
+    | there upload straight to the document. The signature itself proves the
+    | link hasn't been tampered with; this is how long it stays valid before
+    | the phone needs a fresh QR code.
+    |
+    | Short on purpose. The session exists to be scanned and used in one
+    | sitting, standing in front of the paper — not saved for later, which is
+    | what a long-lived unauthenticated upload link would invite.
+    |
+    */
+
+    'capture' => [
+        'session_ttl_minutes' => (int) env('CAPTURE_SESSION_TTL_MINUTES', 10),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Locales
     |--------------------------------------------------------------------------
     |

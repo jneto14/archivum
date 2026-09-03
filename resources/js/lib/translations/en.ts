@@ -159,6 +159,46 @@ export default {
     'documents.show.preview_zoom_out': 'Zoom out',
     'documents.show.preview_fit_width': 'Fit to width',
     'documents.show.preview_page_of': 'Page :current of :total',
+    'documents.show.scan_with_phone_button': 'Scan with phone',
+    'documents.show.capture_dialog_title': 'Scan with your phone',
+    'documents.show.capture_dialog_description':
+        "Scan this code with your phone's camera. Photos you take there are added to this document as you go.",
+    'documents.show.capture_qr_alt':
+        'QR code linking to the phone capture page',
+    'documents.show.capture_photos_count_zero': 'Waiting for the first photo…',
+    'documents.show.capture_photos_count_one': ':count photo received',
+    'documents.show.capture_photos_count_other': ':count photos received',
+    'documents.show.capture_status_completed': 'Done — closed from the phone.',
+    'documents.show.capture_status_cancelled': 'Session ended.',
+    'documents.show.capture_status_expired': 'This session has expired.',
+    'documents.show.capture_end_button': 'End session',
+    'documents.show.capture_close_button': 'Close',
+
+    'capture.head_title': 'Scan',
+    'capture.title': 'Add a photo',
+    'capture.description':
+        'Photos you take here are added straight to “:document”.',
+    'capture.take_scan_button': 'Scan a page',
+    'capture.take_photo_button': 'Take a plain photo',
+    'capture.sending': 'Sending…',
+    'capture.sent_count_one': ':count photo sent',
+    'capture.sent_count_other': ':count photos sent',
+    'capture.done_button': 'Done, close this page',
+    'capture.upload_error': 'Could not send that photo. Try again.',
+    'capture.ended_title': 'This session has ended',
+    'capture.ended_completed': 'You can close this page now.',
+    'capture.ended_cancelled': 'It was ended from the computer.',
+    'capture.ended_expired': 'It expired. Start a new scan from the computer.',
+    'capture.preparing_scanner': 'Preparing the scanner…',
+    'capture.adjust_corners_hint':
+        'Drag the corners to match the edges of the document.',
+    'capture.detection_failed':
+        "Couldn't find the document's edges automatically — drag the corners to match them.",
+    'capture.confirm_scan_button': 'Use this scan',
+    'capture.retake_button': 'Retake',
+    'capture.use_original_button': 'Use original',
+    'capture.straighten_failed':
+        'Could not straighten that photo (:message) — sent the original instead.',
 
     'document_types.index.breadcrumb': 'Document types',
     'document_types.index.head_title': 'Document types',

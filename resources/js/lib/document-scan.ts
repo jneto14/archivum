@@ -1,0 +1,153 @@
+/**
+ * Detect a document in a photo and straighten it, for the phone capture page
+ * (ARC-105). Detection and warping are jscanify's
+ * (https://github.com/ColonelParrot/jscanify, MIT License).
+ *
+ * Nothing here imports OpenCV.js: it lives in `document-scan-runtime.ts`,
+ * loaded on demand by `loadScanner()`, so the ~13MB only arrives once a
+ * photo actually needs processing. That indirection is load-bearing —
+ * `import()`ing OpenCV.js itself throws. See .ai/rules/lib.md.
+ */
+export type Point = { x: number; y: number };
+
+export type DocumentCorners = {
+    topLeft: Point;
+    topRight: Point;
+    bottomLeft: Point;
+    bottomRight: Point;
+};
+
+/** The operations that need an initialized OpenCV.js behind them. */
+export type Scanner = {
+    /**
+     * @param image The photo to search.
+     *
+     * @returns The document's four corners in `image`'s own pixel
+     * coordinates, or `null` if nothing convincing was found.
+     */
+    detectCorners(image: HTMLImageElement): DocumentCorners | null;
+
+    /**
+     * @param image The photo to straighten.
+     * @param corners The document's corners within `image`, in its own pixel coordinates.
+     * @param outputWidth Desired output width, in pixels.
+     * @param outputHeight Desired output height, in pixels.
+     *
+     * @returns A canvas containing the straightened image.
+     */
+    warp(
+        image: HTMLImageElement,
+        corners: DocumentCorners,
+        outputWidth: number,
+        outputHeight: number,
+    ): HTMLCanvasElement;
+};
+
+let scannerPromise: Promise<Scanner> | null = null;
+
+/**
+ * Load OpenCV.js and jscanify, once, and return the operations that need
+ * them. Failures aren't cached, so a later photo can try again.
+ *
+ * @returns A scanner ready to detect and straighten.
+ */
+export function loadScanner(): Promise<Scanner> {
+    scannerPromise ??= import('@/lib/document-scan-runtime')
+        .then((runtime) => runtime.createScanner())
+        .catch((error: unknown) => {
+            scannerPromise = null;
+
+            throw error;
+        });
+
+    return scannerPromise;
+}
+
+/**
+ * The fallback quad when detection finds nothing, inset so the drag handles
+ * start visibly inside the photo.
+ *
+ * @param width Image width in pixels.
+ * @param height Image height in pixels.
+ *
+ * @returns The four corners of an inset rectangle.
+ */
+export function defaultCorners(width: number, height: number): DocumentCorners {
+    const insetX = width * 0.08;
+    const insetY = height * 0.08;
+
+    return {
+        topLeft: { x: insetX, y: insetY },
+        topRight: { x: width - insetX, y: insetY },
+        bottomLeft: { x: insetX, y: height - insetY },
+        bottomRight: { x: width - insetX, y: height - insetY },
+    };
+}
+
+/** Above this share of the frame, jscanify found the photo's edge, not a document. */
+const SUSPICIOUS_FULL_FRAME_AREA_RATIO = 0.92;
+
+/** @returns The area of the quadrilateral `corners`, via the shoelace formula. */
+function quadArea(corners: DocumentCorners): number {
+    const points = [
+        corners.topLeft,
+        corners.topRight,
+        corners.bottomRight,
+        corners.bottomLeft,
+    ];
+    let sum = 0;
+
+    for (let i = 0; i < points.length; i++) {
+        const { x: x1, y: y1 } = points[i];
+        const { x: x2, y: y2 } = points[(i + 1) % points.length];
+        sum += x1 * y2 - x2 * y1;
+    }
+
+    return Math.abs(sum) / 2;
+}
+
+/**
+ * @param corners A detected quad, in the image's own pixel coordinates.
+ * @param imageWidth The image's width, in pixels.
+ * @param imageHeight The image's height, in pixels.
+ *
+ * @returns Whether `corners` cover so much of the image that they are more
+ * likely the frame than a document within it.
+ */
+export function isSuspiciouslyFullFrame(
+    corners: DocumentCorners,
+    imageWidth: number,
+    imageHeight: number,
+): boolean {
+    return (
+        quadArea(corners) / (imageWidth * imageHeight) >
+        SUSPICIOUS_FULL_FRAME_AREA_RATIO
+    );
+}
+
+/**
+ * Encode a canvas as a `File`, so a warped scan uploads through the same
+ * path a raw camera photo does.
+ *
+ * @param canvas The canvas to encode.
+ * @param filename The filename to give the resulting file.
+ *
+ * @returns The encoded file, or `null` if the canvas failed to encode.
+ */
+export function canvasToFile(
+    canvas: HTMLCanvasElement,
+    filename: string,
+): Promise<File | null> {
+    return new Promise((resolve) => {
+        canvas.toBlob(
+            (blob) =>
+                resolve(
+                    blob
+                        ? new File([blob], filename, { type: 'image/jpeg' })
+                        : null,
+                ),
+            'image/jpeg',
+            0.92,
+        );
+    });
+}

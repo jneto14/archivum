@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Concerns\LogsWorkspaceActivity;
+use App\Enums\CaptureSessionStatus;
 use Database\Factories\DocumentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -177,5 +178,27 @@ class Document extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(DocumentAttachment::class);
+    }
+
+    /**
+     * @return HasMany<DocumentCaptureSession, $this>
+     */
+    public function captureSessions(): HasMany
+    {
+        return $this->hasMany(DocumentCaptureSession::class);
+    }
+
+    /**
+     * The mobile pairing session currently open for this document, if any.
+     * At most one is ever `Active` at a time — starting a new one supersedes
+     * whichever was still open (see `CreateCaptureSession`).
+     *
+     * @return HasOne<DocumentCaptureSession, $this>
+     */
+    public function activeCaptureSession(): HasOne
+    {
+        return $this->hasOne(DocumentCaptureSession::class)
+            ->where('status', CaptureSessionStatus::Active)
+            ->latestOfMany();
     }
 }

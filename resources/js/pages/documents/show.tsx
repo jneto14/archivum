@@ -2,6 +2,7 @@ import { Head, router, setLayoutProps, usePage } from '@inertiajs/react';
 import { DownloadIcon, EyeIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
+import { DocumentCaptureDialog } from '@/components/document-capture-dialog';
 import { DocumentPreviewDialog } from '@/components/document-preview-dialog';
 import InputError from '@/components/input-error';
 import { PageContainer } from '@/components/page-container';
@@ -91,18 +92,27 @@ type Props = {
     };
     canFile: boolean;
     locationSuggestions: LocationSuggestion[];
+    active_capture_session: { id: string; photos_count: number } | null;
 };
 
 export default function DocumentShow({
     document,
     canFile,
     locationSuggestions,
+    active_capture_session: activeCaptureSession,
 }: Props) {
     const t = useTranslation();
     const { formatDate, formatDateTime } = useDateFormatter();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { workspace } = usePage().props;
     const [moveOpen, setMoveOpen] = useState(false);
+    // Always starts closed, even if the page loads with a session already
+    // active (a reload mid-pairing, or one left open from an earlier visit)
+    // — popping the dialog open on its own, unasked, was more surprising
+    // than useful. The button still finds that same session rather than
+    // starting a redundant one, since DocumentCaptureDialog only creates a
+    // new session when it opens with none active.
+    const [captureOpen, setCaptureOpen] = useState(false);
     // Each queued file carries an id rather than being identified by its
     // position. Rows are removed one at a time, and keying them by index made
     // React reuse a removed row's DOM for the row that moved up into its
@@ -274,7 +284,7 @@ export default function DocumentShow({
                                 <CardTitle>
                                     {t('documents.show.attachments_title')}
                                 </CardTitle>
-                                <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-1 sm:justify-end">
+                                <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-1">
                                     <input
                                         ref={fileInputRef}
                                         type="file"
@@ -282,6 +292,16 @@ export default function DocumentShow({
                                         className="sr-only"
                                         onChange={queueFiles}
                                     />
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="shrink-0"
+                                        onClick={() => setCaptureOpen(true)}
+                                    >
+                                        {t(
+                                            'documents.show.scan_with_phone_button',
+                                        )}
+                                    </Button>
                                     <Button
                                         variant="outline"
                                         size="sm"
@@ -600,6 +620,13 @@ export default function DocumentShow({
                 attachment={previewAttachment}
                 open={previewAttachment !== null}
                 onOpenChange={(open) => !open && setPreviewAttachment(null)}
+            />
+
+            <DocumentCaptureDialog
+                documentId={document.id}
+                activeSession={activeCaptureSession}
+                open={captureOpen}
+                onOpenChange={setCaptureOpen}
             />
         </>
     );
