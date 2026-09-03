@@ -105,6 +105,15 @@ export default {
     'documents.form.new_tag_placeholder': 'New tag name',
     'documents.form.new_tag_button': 'New tag',
     'documents.form.metadata_section_title': 'Metadata',
+    'documents.form.suggestions_title': 'Suggested from the scan',
+    'documents.form.suggestions_description':
+        'Read from this document’s attachments. Nothing is saved until you save the form.',
+    'documents.form.suggestion_document_date_label': 'Document date',
+    'documents.form.suggestion_use_button': 'Use',
+    'documents.form.suggestion_use_label': 'Use :value for :field',
+    'documents.form.suggestion_ignore_button': 'Ignore',
+    'documents.form.suggestion_ignore_label':
+        'Ignore the suggestion for :field',
     'documents.form.metadata_key_placeholder': 'Key',
     'documents.form.metadata_value_placeholder': 'Value',
     'documents.form.add_field_button': 'Add field',
@@ -128,6 +137,15 @@ export default {
     'documents.show.filing_admin_only': 'Filing is admin-only',
     'documents.show.metadata_title': 'Metadata',
     'documents.show.document_date_label': 'Document date',
+    'documents.show.metadata_suggestions_one':
+        ':count detail suggested from the scan',
+    'documents.show.metadata_suggestions_other':
+        ':count details suggested from the scan',
+    'documents.show.metadata_suggestions_review': 'Review',
+    'documents.show.duplicate_warning':
+        'Looks like a document you already have:',
+    'documents.show.duplicate_open': 'Open it',
+    'documents.show.duplicate_dismiss': 'Keep both',
     'documents.show.attachments_title': 'Attachments',
     'documents.show.choose_files_button': 'Choose files',
     'documents.show.upload_button': 'Upload',

@@ -70,6 +70,15 @@ class DocumentResource extends JsonResource
                     'id' => $attachment->uploader->id,
                     'name' => $attachment->uploader->name,
                 ] : null,
+                // The earlier copy this file appears to be of, until someone
+                // dismisses the warning. Carries the other document's title
+                // because the warning is only actionable if it names what it
+                // found.
+                'duplicate_of' => $attachment->relationLoaded('duplicateOf') && $attachment->duplicateOf !== null ? [
+                    'document_id' => $attachment->duplicateOf->document_id,
+                    'document_title' => $attachment->duplicateOf->document?->title,
+                    'filename' => $attachment->duplicateOf->filename,
+                ] : null,
             ])->values()->all()),
             'location_history' => $this->whenLoaded('locations', fn () => $this->locations->map(fn ($location) => [
                 'id' => $location->id,
