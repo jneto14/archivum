@@ -1,6 +1,7 @@
 ---
 paths:
   - vite.config.ts
+  - package.json
 ---
 
 # General
@@ -18,3 +19,8 @@ Note that plain `wayfinder:generate` without `--with-form` also breaks the build
 The Vite build triggers `wayfinder:generate`, and Wayfinder reads route parameter types from the live database. Built from the host, where MySQL is unreachable, it falls back to `number` for keys that are really UUID strings — `resources/js/routes` and `resources/js/actions` are gitignored, so this shows up only as a phantom `tsc` error in an untouched file (it was `passkey: number` in manage-passkeys.tsx).
 
 Use `sail npm run build` / `sail npm run dev`. If `types:check` fails in a file you did not touch, regenerate with `sail artisan wayfinder:generate` before believing the error.
+
+## Run npm run build through Sail, never on the host
+`npm run build` runs `wayfinder:generate`, which types every route parameter from the database. On the host `DB_HOST=mysql` does not resolve, so generation falls back to `number` for every bound model and `npm run types:check` then fails on files that pass a UUID string — e.g. `manage-passkeys.tsx`. `resources/js/routes` and `resources/js/actions` are gitignored, so nothing in `git status` shows what happened.
+
+Build with `sail npm run build`. If a host build already poisoned the types, `sail php artisan wayfinder:generate --with-form` repairs them without a rebuild.
