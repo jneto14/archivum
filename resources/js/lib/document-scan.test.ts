@@ -1,11 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { defaultCorners, isSuspiciouslyFullFrame } from '@/lib/document-scan';
 import type { DocumentCorners } from '@/lib/document-scan';
-
-// OpenCV.js's namespace is a thenable, and Vitest loads modules through
-// dynamic import — which tries to adopt it as a promise and throws. Same
-// trap as the static import in document-scan.ts; see .ai/rules/lib.md.
-vi.mock('@techstark/opencv-js', () => ({ default: {} }));
 
 describe('defaultCorners', () => {
     it('insets each corner from the image edge rather than sitting flush on it', () => {

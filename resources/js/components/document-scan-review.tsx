@@ -4,13 +4,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useTranslation } from '@/hooks/use-translation';
-import {
-    canvasToFile,
-    defaultCorners,
-    detectDocumentCorners,
-    loadOpenCv,
-    warpToCorners,
-} from '@/lib/document-scan';
+import { canvasToFile, defaultCorners, loadScanner } from '@/lib/document-scan';
 import type { DocumentCorners, Point } from '@/lib/document-scan';
 
 type CornerKey = keyof DocumentCorners;
@@ -103,8 +97,8 @@ export function DocumentScanReview({
         startedProcessingRef.current = true;
 
         try {
-            const cv = await loadOpenCv();
-            const detected = detectDocumentCorners(cv, img);
+            const scanner = await loadScanner();
+            const detected = scanner.detectCorners(img);
 
             setCorners(
                 toFractions(
@@ -200,10 +194,10 @@ export function DocumentScanReview({
         setStage('processing');
 
         try {
-            await loadOpenCv();
+            const scanner = await loadScanner();
             const naturalCorners = toNatural(corners, img);
             const { width, height } = outputSize(naturalCorners);
-            const canvas = warpToCorners(img, naturalCorners, width, height);
+            const canvas = scanner.warp(img, naturalCorners, width, height);
             const scanned = await canvasToFile(
                 canvas,
                 scannedFilename(file.name),

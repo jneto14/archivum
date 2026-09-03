@@ -9,11 +9,13 @@ vi.mock('@inertiajs/react', () => ({ usePage: () => page }));
 
 // Neither jscanify nor OpenCV.js run meaningfully under jsdom, so the whole
 // module is mocked; what matters here is which file `onConfirm` receives.
+const scanner = vi.hoisted(() => ({
+    detectCorners: vi.fn(),
+    warp: vi.fn(),
+}));
 const documentScan = vi.hoisted(() => ({
-    loadOpenCv: vi.fn(),
-    detectDocumentCorners: vi.fn(),
+    loadScanner: vi.fn(),
     defaultCorners: vi.fn(),
-    warpToCorners: vi.fn(),
     canvasToFile: vi.fn(),
 }));
 vi.mock('@/lib/document-scan', () => documentScan);
@@ -63,15 +65,15 @@ async function renderAdjusting(file = makeFile()) {
 
 beforeEach(() => {
     vi.clearAllMocks();
-    documentScan.loadOpenCv.mockResolvedValue({});
-    documentScan.detectDocumentCorners.mockReturnValue(detectedCorners);
+    documentScan.loadScanner.mockResolvedValue(scanner);
+    scanner.detectCorners.mockReturnValue(detectedCorners);
 });
 
 it('uploads the straightened scan, not the original photo, when confirmed', async () => {
     const { onConfirm } = await renderAdjusting();
     const scanned = makeFile('photo-scan.jpg');
     const canvas = document.createElement('canvas');
-    documentScan.warpToCorners.mockReturnValue(canvas);
+    scanner.warp.mockReturnValue(canvas);
     documentScan.canvasToFile.mockResolvedValue(scanned);
 
     await userEvent.click(
@@ -88,7 +90,7 @@ it('uploads the straightened scan, not the original photo, when confirmed', asyn
 
 it('falls back to the original photo if straightening throws, rather than uploading nothing', async () => {
     const { file, onConfirm, onStraightenFailed } = await renderAdjusting();
-    documentScan.warpToCorners.mockImplementation(() => {
+    scanner.warp.mockImplementation(() => {
         throw new Error('warp failed');
     });
 
@@ -113,5 +115,5 @@ it('lets "Use original" skip straightening entirely', async () => {
     );
 
     expect(onConfirm).toHaveBeenCalledWith(file);
-    expect(documentScan.warpToCorners).not.toHaveBeenCalled();
+    expect(scanner.warp).not.toHaveBeenCalled();
 });

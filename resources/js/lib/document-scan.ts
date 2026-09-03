@@ -1,15 +1,13 @@
 /**
  * Detect a document in a photo and straighten it, for the phone capture page
  * (ARC-105). Detection and warping are jscanify's
- * (https://github.com/ColonelParrot/jscanify, MIT License) — `jscanify/client`
- * rather than the package default, which is a Node build.
+ * (https://github.com/ColonelParrot/jscanify, MIT License).
  *
- * Read .ai/rules/lib.md before touching how OpenCV.js is imported or fed:
- * both the static import and `toFullSizeCanvas()` look redundant and are not.
+ * Nothing here imports OpenCV.js: it lives in `document-scan-runtime.ts`,
+ * loaded on demand by `loadScanner()`, so the ~13MB only arrives once a
+ * photo actually needs processing. That indirection is load-bearing —
+ * `import()`ing OpenCV.js itself throws. See .ai/rules/lib.md.
  */
-import * as openCvNamespace from '@techstark/opencv-js';
-import JScanify from 'jscanify/client';
-
 export type Point = { x: number; y: number };
 
 export type DocumentCorners = {
@@ -19,91 +17,50 @@ export type DocumentCorners = {
     bottomRight: Point;
 };
 
-type Mat = { delete(): void };
+/** The operations that need an initialized OpenCV.js behind them. */
+export type Scanner = {
+    /**
+     * @param image The photo to search.
+     *
+     * @returns The document's four corners in `image`'s own pixel
+     * coordinates, or `null` if nothing convincing was found.
+     */
+    detectCorners(image: HTMLImageElement): DocumentCorners | null;
 
-/** The slice of OpenCV.js this module calls; jscanify calls the rest itself. */
-type OpenCv = {
-    Mat: new () => Mat;
-    imread(source: HTMLCanvasElement | HTMLImageElement): Mat;
+    /**
+     * @param image The photo to straighten.
+     * @param corners The document's corners within `image`, in its own pixel coordinates.
+     * @param outputWidth Desired output width, in pixels.
+     * @param outputHeight Desired output height, in pixels.
+     *
+     * @returns A canvas containing the straightened image.
+     */
+    warp(
+        image: HTMLImageElement,
+        corners: DocumentCorners,
+        outputWidth: number,
+        outputHeight: number,
+    ): HTMLCanvasElement;
 };
 
-/** OpenCV.js before initialization finishes: a promise of itself. */
-type OpenCvExport = Partial<OpenCv> & {
-    then?: (
-        onFulfilled: (value: OpenCv) => void,
-        onRejected: (reason: unknown) => void,
-    ) => void;
-};
-
-let openCvPromise: Promise<OpenCv> | null = null;
+let scannerPromise: Promise<Scanner> | null = null;
 
 /**
- * Wait for OpenCV.js's WASM runtime, once, and publish it as the global `cv`
- * jscanify reads. Failures aren't cached, so a later photo can try again.
+ * Load OpenCV.js and jscanify, once, and return the operations that need
+ * them. Failures aren't cached, so a later photo can try again.
  *
- * @returns The ready-to-use OpenCV.js module.
- *
- * @throws If the module never resolves to something with OpenCV's API on it.
+ * @returns A scanner ready to detect and straighten.
  */
-export function loadOpenCv(): Promise<OpenCv> {
-    openCvPromise ??= initializeOpenCv()
-        .then((cv) => {
-            globalThis.cv = cv as unknown as typeof globalThis.cv;
-
-            return cv;
-        })
+export function loadScanner(): Promise<Scanner> {
+    scannerPromise ??= import('@/lib/document-scan-runtime')
+        .then((runtime) => runtime.createScanner())
         .catch((error: unknown) => {
-            openCvPromise = null;
+            scannerPromise = null;
 
             throw error;
         });
 
-    return openCvPromise;
-}
-
-/** @returns OpenCV.js once its runtime is ready to be called. */
-function initializeOpenCv(): Promise<OpenCv> {
-    const exported = ((openCvNamespace as { default?: unknown }).default ??
-        openCvNamespace) as OpenCvExport;
-
-    // `imread`, not `Mat`: `Mat` is a stub present before the runtime is.
-    if (typeof exported.imread === 'function') {
-        return Promise.resolve(exported as OpenCv);
-    }
-
-    if (typeof exported.then === 'function') {
-        return new Promise<OpenCv>((resolve, reject) =>
-            exported.then!(resolve, reject),
-        );
-    }
-
-    return Promise.reject(new Error('OpenCV.js exported no usable module'));
-}
-
-let scanner: JScanify | null = null;
-
-/** @returns A shared jscanify instance — it holds no state beyond the global `cv`, so one is enough for the page's lifetime. */
-function getScanner(): JScanify {
-    scanner ??= new JScanify();
-
-    return scanner;
-}
-
-/**
- * OpenCV.js reads an `<img>` at its layout size, so it must be handed a
- * canvas instead to get coordinates in the photo's real pixels.
- *
- * @param image The photo to copy.
- *
- * @returns A canvas holding `image` at full resolution.
- */
-function toFullSizeCanvas(image: HTMLImageElement): HTMLCanvasElement {
-    const canvas = document.createElement('canvas');
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
-    canvas.getContext('2d')?.drawImage(image, 0, 0);
-
-    return canvas;
+    return scannerPromise;
 }
 
 /**
@@ -166,105 +123,6 @@ export function isSuspiciouslyFullFrame(
         quadArea(corners) / (imageWidth * imageHeight) >
         SUSPICIOUS_FULL_FRAME_AREA_RATIO
     );
-}
-
-/**
- * Find the document in a photo.
- *
- * @param cv The initialized OpenCV.js module, from `loadOpenCv()`.
- * @param image The photo to search.
- *
- * @returns The document's four corners in `image`'s own pixel coordinates,
- * or `null` if nothing convincing was found — including a "detection" that
- * covers the frame (see `isSuspiciouslyFullFrame()`).
- */
-export function detectDocumentCorners(
-    cv: OpenCv,
-    image: HTMLImageElement,
-): DocumentCorners | null {
-    const img = cv.imread(toFullSizeCanvas(image));
-
-    try {
-        const contour = getScanner().findPaperContour(img);
-
-        if (!contour) {
-            return null;
-        }
-
-        const corners = getScanner().getCornerPoints(contour);
-        contour.delete();
-
-        const {
-            topLeftCorner,
-            topRightCorner,
-            bottomLeftCorner,
-            bottomRightCorner,
-        } = corners;
-
-        if (
-            !topLeftCorner ||
-            !topRightCorner ||
-            !bottomLeftCorner ||
-            !bottomRightCorner
-        ) {
-            return null;
-        }
-
-        const detected = {
-            topLeft: topLeftCorner,
-            topRight: topRightCorner,
-            bottomLeft: bottomLeftCorner,
-            bottomRight: bottomRightCorner,
-        };
-
-        return isSuspiciouslyFullFrame(
-            detected,
-            image.naturalWidth,
-            image.naturalHeight,
-        )
-            ? null
-            : detected;
-    } finally {
-        img.delete();
-    }
-}
-
-/**
- * Straighten an image, mapping `corners` onto the output's own four corners.
- * `loadOpenCv()` must already have resolved.
- *
- * @param image The photo to straighten.
- * @param corners The document's corners within `image`, in its own pixel coordinates.
- * @param outputWidth Desired output width, in pixels.
- * @param outputHeight Desired output height, in pixels.
- *
- * @returns A canvas containing the straightened image.
- *
- * @throws If jscanify could not produce a result.
- */
-export function warpToCorners(
-    image: HTMLImageElement,
-    corners: DocumentCorners,
-    outputWidth: number,
-    outputHeight: number,
-): HTMLCanvasElement {
-    const canvas = getScanner().extractPaper(
-        toFullSizeCanvas(image),
-        outputWidth,
-        outputHeight,
-        {
-            topLeftCorner: corners.topLeft,
-            topRightCorner: corners.topRight,
-            bottomLeftCorner: corners.bottomLeft,
-            bottomRightCorner: corners.bottomRight,
-        },
-    );
-
-    if (!canvas) {
-        throw new Error('jscanify failed to extract the paper from the image');
-    }
-
-    return canvas;
 }
 
 /**
