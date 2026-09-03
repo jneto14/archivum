@@ -164,6 +164,41 @@ export default {
     'documents.show.preview_zoom_out': 'Reduzir',
     'documents.show.preview_fit_width': 'Ajustar à largura',
     'documents.show.preview_page_of': 'Página :current de :total',
+    'documents.show.scan_with_phone_button': 'Digitalizar com o telemóvel',
+    'documents.show.capture_dialog_title': 'Digitalizar com o telemóvel',
+    'documents.show.capture_dialog_description':
+        'Digitaliza este código com a câmara do telemóvel. As fotos tiradas lá são adicionadas a este documento à medida que chegam.',
+    'documents.show.capture_qr_alt':
+        'Código QR que liga à página de digitalização no telemóvel',
+    'documents.show.capture_photos_count_zero': 'A aguardar a primeira foto…',
+    'documents.show.capture_photos_count_one': ':count foto recebida',
+    'documents.show.capture_photos_count_other': ':count fotos recebidas',
+    'documents.show.capture_status_completed':
+        'Concluído — terminado a partir do telemóvel.',
+    'documents.show.capture_status_cancelled': 'Sessão terminada.',
+    'documents.show.capture_status_expired': 'Esta sessão expirou.',
+    'documents.show.capture_end_button': 'Terminar sessão',
+    'documents.show.capture_close_button': 'Fechar',
+
+    'capture.head_title': 'Digitalizar',
+    'capture.title': 'Adicionar uma foto',
+    'capture.description':
+        'As fotos tiradas aqui são adicionadas diretamente a “:document”.',
+    'capture.take_photo_button': 'Tirar uma foto',
+    'capture.add_another_button': 'Tirar outra',
+    'capture.queued_title': 'Prontas a enviar (:count)',
+    'capture.send_button': 'Enviar',
+    'capture.sending': 'A enviar…',
+    'capture.sent_count_one': ':count foto enviada',
+    'capture.sent_count_other': ':count fotos enviadas',
+    'capture.done_button': 'Concluído, fechar esta página',
+    'capture.upload_error':
+        'Não foi possível enviar essa foto. Tenta outra vez.',
+    'capture.ended_title': 'Esta sessão terminou',
+    'capture.ended_completed': 'Já podes fechar esta página.',
+    'capture.ended_cancelled': 'Foi terminada a partir do computador.',
+    'capture.ended_expired':
+        'Expirou. Inicia uma nova digitalização a partir do computador.',
 
     'document_types.index.breadcrumb': 'Tipos de documento',
     'document_types.index.head_title': 'Tipos de documento',
