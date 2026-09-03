@@ -205,6 +205,8 @@ export default {
     'capture.confirm_scan_button': 'Usar esta digitalização',
     'capture.retake_button': 'Tirar novamente',
     'capture.use_original_button': 'Usar original',
+    'capture.straighten_failed':
+        'Não foi possível endireitar essa foto (:message) — foi enviada a original.',
 
     'document_types.index.breadcrumb': 'Tipos de documento',
     'document_types.index.head_title': 'Tipos de documento',

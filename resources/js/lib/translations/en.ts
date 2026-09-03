@@ -197,6 +197,8 @@ export default {
     'capture.confirm_scan_button': 'Use this scan',
     'capture.retake_button': 'Retake',
     'capture.use_original_button': 'Use original',
+    'capture.straighten_failed':
+        'Could not straighten that photo (:message) — sent the original instead.',
 
     'document_types.index.breadcrumb': 'Document types',
     'document_types.index.head_title': 'Document types',

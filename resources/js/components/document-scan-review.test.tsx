@@ -38,11 +38,13 @@ function makeFile(name = 'photo.jpg'): File {
 async function renderAdjusting(file = makeFile()) {
     const onConfirm = vi.fn();
     const onRetake = vi.fn();
+    const onStraightenFailed = vi.fn();
     const utils = render(
         <DocumentScanReview
             file={file}
             onConfirm={onConfirm}
             onRetake={onRetake}
+            onStraightenFailed={onStraightenFailed}
         />,
     );
 
@@ -61,7 +63,7 @@ async function renderAdjusting(file = makeFile()) {
         name: en['capture.confirm_scan_button'],
     });
 
-    return { file, onConfirm, onRetake, ...utils };
+    return { file, onConfirm, onRetake, onStraightenFailed, ...utils };
 }
 
 beforeEach(() => {
@@ -90,7 +92,7 @@ it('uploads the straightened scan, not the original photo, when confirmed', asyn
 });
 
 it('falls back to the original photo if straightening throws, rather than uploading nothing', async () => {
-    const { file, onConfirm } = await renderAdjusting();
+    const { file, onConfirm, onStraightenFailed } = await renderAdjusting();
     documentScan.warpToCorners.mockImplementation(() => {
         throw new Error('warp failed');
     });
@@ -102,6 +104,10 @@ it('falls back to the original photo if straightening throws, rather than upload
     );
 
     await waitFor(() => expect(onConfirm).toHaveBeenCalledWith(file));
+    // The fallback is silent from the user's point of view otherwise — this
+    // is what lets a real failure surface somewhere other than a phone
+    // browser's console that nobody's going to open.
+    expect(onStraightenFailed).toHaveBeenCalledWith('warp failed');
 });
 
 it('lets "Use original" skip straightening entirely', async () => {

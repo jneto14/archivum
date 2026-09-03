@@ -51,39 +51,56 @@ let openCvPromise: Promise<OpenCv> | null = null;
  * bearing object, a `Promise` of one, or an object that fires
  * `onRuntimeInitialized` once its WASM has finished loading.
  *
+ * A failed load is *not* cached: this is a ~13MB WASM download over
+ * whatever connection the phone has, and caching a rejected promise would
+ * mean one dropped request permanently breaks every photo taken for the
+ * rest of that page's lifetime — always falling back to the unprocessed
+ * original, with the only sign being a console error nobody's looking at.
+ * Each call after a failure gets a fresh attempt instead.
+ *
  * @returns The ready-to-use OpenCV.js module.
  */
 export function loadOpenCv(): Promise<OpenCv> {
     if (openCvPromise === null) {
-        openCvPromise = import('@techstark/opencv-js').then(
-            (imported) =>
-                new Promise<OpenCv>((resolve) => {
-                    const cvModule = (imported.default ??
-                        imported) as OpenCv & {
-                        then?: (onFulfilled: (cv: OpenCv) => void) => void;
-                        onRuntimeInitialized?: () => void;
-                    };
+        openCvPromise = import('@techstark/opencv-js')
+            .then(
+                (imported) =>
+                    new Promise<OpenCv>((resolve) => {
+                        const cvModule = (imported.default ??
+                            imported) as OpenCv & {
+                            then?: (onFulfilled: (cv: OpenCv) => void) => void;
+                            onRuntimeInitialized?: () => void;
+                        };
 
-                    const ready = (cv: OpenCv) => {
-                        // `@techstark/opencv-js` already declares `cv` as a
-                        // global itself (see its `_cv.d.ts`) — this is that
-                        // same global, assigned so jscanify's browser build
-                        // (written for a `<script>`-tag OpenCV.js) can find
-                        // it. The double cast is because our own narrower
-                        // `OpenCv` type has far fewer members than theirs.
-                        globalThis.cv = cv as unknown as typeof globalThis.cv;
-                        resolve(cv);
-                    };
+                        const ready = (cv: OpenCv) => {
+                            // `@techstark/opencv-js` already declares `cv`
+                            // as a global itself (see its `_cv.d.ts`) —
+                            // this is that same global, assigned so
+                            // jscanify's browser build (written for a
+                            // `<script>`-tag OpenCV.js) can find it. The
+                            // double cast is because our own narrower
+                            // `OpenCv` type has far fewer members than
+                            // theirs.
+                            globalThis.cv =
+                                cv as unknown as typeof globalThis.cv;
+                            resolve(cv);
+                        };
 
-                    if (typeof cvModule.then === 'function') {
-                        cvModule.then(ready);
-                    } else if (cvModule.Mat) {
-                        ready(cvModule);
-                    } else {
-                        cvModule.onRuntimeInitialized = () => ready(cvModule);
-                    }
-                }),
-        );
+                        if (typeof cvModule.then === 'function') {
+                            cvModule.then(ready);
+                        } else if (cvModule.Mat) {
+                            ready(cvModule);
+                        } else {
+                            cvModule.onRuntimeInitialized = () =>
+                                ready(cvModule);
+                        }
+                    }),
+            )
+            .catch((error: unknown) => {
+                openCvPromise = null;
+
+                throw error;
+            });
     }
 
     return openCvPromise;

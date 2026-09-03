@@ -44,6 +44,14 @@ type Props = {
     file: File;
     onConfirm: (file: File) => void;
     onRetake: () => void;
+    /**
+     * Called when straightening throws, right before falling back to
+     * uploading the original photo. Confirming still succeeds either way —
+     * this is only so the failure is visible somewhere that outlives this
+     * component (it unmounts the moment `onConfirm` runs), instead of only
+     * in a phone browser's console that nobody's going to open.
+     */
+    onStraightenFailed?: (message: string) => void;
 };
 
 /**
@@ -58,7 +66,12 @@ type Props = {
  * converted to the image's natural pixel coordinates at the point OpenCV
  * actually needs them, in `confirm()`.
  */
-export function DocumentScanReview({ file, onConfirm, onRetake }: Props) {
+export function DocumentScanReview({
+    file,
+    onConfirm,
+    onRetake,
+    onStraightenFailed,
+}: Props) {
     const t = useTranslation();
     const imgRef = useRef<HTMLImageElement>(null);
     const [imageUrl] = useState(() => URL.createObjectURL(file));
@@ -174,11 +187,14 @@ export function DocumentScanReview({ file, onConfirm, onRetake }: Props) {
             onConfirm(scanned ?? file);
         } catch (error) {
             // Straightening failed — the original photo is still a
-            // perfectly usable attachment, just not a cropped one. Logged
-            // rather than swallowed outright, so a real failure here is
-            // still visible in the phone browser's console instead of
-            // silently looking identical to a successful scan.
+            // perfectly usable attachment, just not a cropped one. Reported
+            // upward rather than swallowed outright, so a real failure here
+            // is visible somewhere other than a phone browser's console
+            // that nobody's going to open.
             console.error('Failed to straighten the scan:', error);
+            onStraightenFailed?.(
+                error instanceof Error ? error.message : String(error),
+            );
             onConfirm(file);
         }
     };

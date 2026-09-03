@@ -112,6 +112,11 @@ export default function CaptureShow({
                         file={pendingPhoto}
                         onConfirm={uploadPhoto}
                         onRetake={() => setPendingPhoto(null)}
+                        onStraightenFailed={(message) =>
+                            setError(
+                                t('capture.straighten_failed', { message }),
+                            )
+                        }
                     />
                 ) : active ? (
                     <>
