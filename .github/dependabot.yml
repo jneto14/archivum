@@ -34,6 +34,16 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 5
+    # On @babel/core 8 the React Compiler silently stops compiling part of the
+    # tree: babel-plugin-react-compiler builds against @babel/types 7, and when
+    # the core running it is 8 it bails per function instead of failing. 28
+    # components lost their memo cache and nothing reported it -- the install is
+    # clean, the build succeeds and CI passes. Lifted by ARC-104 once the
+    # compiler plugin moves to @babel/types 8. See PR #76.
+    ignore:
+      - dependency-name: "@babel/core"
+        update-types:
+          - "version-update:semver-major"
     groups:
       npm-minor:
         patterns:
