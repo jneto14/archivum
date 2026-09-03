@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Documents;
 
+use App\Actions\Documents\CreateCaptureSession;
 use App\Actions\Documents\CreateDocument;
 use App\Actions\Documents\UploadAttachment;
 use App\Actions\Organization\CreateScheme;
@@ -36,7 +37,8 @@ class DocumentShowTest extends TestCase
                 ->component('documents/show')
                 ->where('document.id', $document->id)
                 ->where('canFile', false)
-                ->where('locationSuggestions', []),
+                ->where('locationSuggestions', [])
+                ->where('active_capture_session', null),
             );
     }
 
@@ -112,6 +114,22 @@ class DocumentShowTest extends TestCase
                 ->where('document.attachments.0.filename', 'scan.pdf')
                 ->where('document.attachments.0.uploader.id', $member->user_id)
                 ->where('document.attachments.0.uploader.name', $member->user->name),
+            );
+    }
+
+    public function test_an_active_capture_session_is_reported_to_the_desktop_page()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $type = DocumentType::factory()->for($workspace)->create();
+        $document = app(CreateDocument::class)->handle($workspace, $member->user, $type, 'Original', null, null);
+        $session = app(CreateCaptureSession::class)->handle($document, $member->user);
+
+        $this->actingAs($member->user)
+            ->get(route('documents.show', $document))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('active_capture_session.id', $session->id)
+                ->where('active_capture_session.photos_count', 0),
             );
     }
 }

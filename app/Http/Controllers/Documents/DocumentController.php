@@ -107,6 +107,7 @@ class DocumentController extends Controller
             'attachments.uploader',
             'locations.node',
             'creator',
+            'activeCaptureSession',
         ]);
 
         $canFile = $document->workspace->isManageableBy($request->user());
@@ -119,6 +120,16 @@ class DocumentController extends Controller
             'locationSuggestions' => ($canFile && $scheme !== null)
                 ? app(SuggestDocumentLocations::class)->handle($document, $scheme)
                 : [],
+            // Polled by the "scan with your phone" dialog while it's open
+            // (see resources/js/components/document-capture-dialog.tsx),
+            // reusing Inertia's own partial-reload polling rather than a
+            // bespoke status endpoint. Null once the session ends, however it
+            // ended — the dialog only needs to know it's gone, not why.
+            'active_capture_session' => $document->activeCaptureSession ? [
+                'id' => $document->activeCaptureSession->id,
+                'photos_count' => $document->activeCaptureSession->photos_count,
+                'expires_at' => $document->activeCaptureSession->expires_at->toIso8601String(),
+            ] : null,
         ]);
     }
 
