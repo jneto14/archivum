@@ -1,3 +1,4 @@
+import { TriangleAlertIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { Button } from '@/components/ui/button';
@@ -240,11 +241,16 @@ export function DocumentScanReview({ file, onConfirm, onRetake }: Props) {
 
             {stage !== 'detecting' && (
                 <>
-                    <p className="text-center text-xs text-muted-foreground">
-                        {detectionFailed
-                            ? t('capture.detection_failed')
-                            : t('capture.adjust_corners_hint')}
-                    </p>
+                    {detectionFailed ? (
+                        <p className="flex items-center gap-1.5 text-center text-sm font-medium text-amber-600 dark:text-amber-500">
+                            <TriangleAlertIcon className="size-4 shrink-0" />
+                            {t('capture.detection_failed')}
+                        </p>
+                    ) : (
+                        <p className="text-center text-xs text-muted-foreground">
+                            {t('capture.adjust_corners_hint')}
+                        </p>
+                    )}
 
                     <div className="flex w-full flex-col gap-2">
                         <Button

@@ -123,8 +123,65 @@ export function defaultCorners(width: number, height: number): DocumentCorners {
 }
 
 /**
+ * jscanify's detection is just "the largest contour in the image" — on a
+ * clean, high-contrast photo that's the document, but on a busy background
+ * (or a photo with no visible border around the page) it can just as easily
+ * be the outer edge of the picture itself. That failure mode is dangerous
+ * precisely because it *looks* like a confident detection — four plausible
+ * corners, near the image's own edges — while actually cropping nothing at
+ * all, which reads as "the scan feature doesn't do anything."
+ *
+ * A quad covering almost the entire frame is far more likely to be that
+ * misdetection than an intentional edge-to-edge photo of a page, so it's
+ * treated as a failed detection instead: the caller falls back to
+ * `defaultCorners()`, and the UI tells the user to drag the corners
+ * themselves rather than silently "succeeding" with a no-op crop.
+ */
+const SUSPICIOUS_FULL_FRAME_AREA_RATIO = 0.92;
+
+/** @returns The area of the quadrilateral `corners`, via the shoelace formula. */
+function quadArea(corners: DocumentCorners): number {
+    const points = [
+        corners.topLeft,
+        corners.topRight,
+        corners.bottomRight,
+        corners.bottomLeft,
+    ];
+    let sum = 0;
+
+    for (let i = 0; i < points.length; i++) {
+        const { x: x1, y: y1 } = points[i];
+        const { x: x2, y: y2 } = points[(i + 1) % points.length];
+        sum += x1 * y2 - x2 * y1;
+    }
+
+    return Math.abs(sum) / 2;
+}
+
+/**
+ * @param corners A detected quad, in an image's own pixel coordinates.
+ * @param imageWidth The image's width, in pixels.
+ * @param imageHeight The image's height, in pixels.
+ *
+ * @returns Whether `corners` cover so much of the image that it was more
+ * likely a misdetection of the frame itself than a real document.
+ */
+export function isSuspiciouslyFullFrame(
+    corners: DocumentCorners,
+    imageWidth: number,
+    imageHeight: number,
+): boolean {
+    return (
+        quadArea(corners) / (imageWidth * imageHeight) >
+        SUSPICIOUS_FULL_FRAME_AREA_RATIO
+    );
+}
+
+/**
  * Find the largest rectangular contour in an image and return its four
- * corners, or `null` if nothing looked like a document.
+ * corners, or `null` if nothing looked like a document (including a
+ * "detection" implausible enough to be the image's own frame — see
+ * `isSuspiciouslyFullFrame()`).
  *
  * @param cv The loaded OpenCV.js module (from `loadOpenCv()`).
  * @param image The photo to search.
@@ -163,12 +220,24 @@ export function detectDocumentCorners(
             return null;
         }
 
-        return {
+        const detected = {
             topLeft: topLeftCorner,
             topRight: topRightCorner,
             bottomLeft: bottomLeftCorner,
             bottomRight: bottomRightCorner,
         };
+
+        if (
+            isSuspiciouslyFullFrame(
+                detected,
+                image.naturalWidth,
+                image.naturalHeight,
+            )
+        ) {
+            return null;
+        }
+
+        return detected;
     } finally {
         img.delete();
     }
