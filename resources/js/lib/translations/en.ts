@@ -364,7 +364,9 @@ export default {
     'organization.storage.add_level_first_hint': '(add :level first)',
     'organization.storage.parent_location_label': 'Parent location',
     'organization.storage.select_parent_placeholder': 'Select a parent',
-    'organization.storage.value_label': 'Value (leave blank to auto-generate)',
+    'organization.storage.value_label': 'Value',
+    'organization.storage.value_label_optional':
+        'Value (leave blank to auto-generate)',
     'organization.storage.cancel_button': 'Cancel',
     'organization.storage.add_button': 'Add',
     'organization.storage.move_dialog_title': 'Move documents from :path',

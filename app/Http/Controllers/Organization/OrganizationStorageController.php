@@ -40,6 +40,7 @@ class OrganizationStorageController extends Controller
                 'name' => $level->name,
                 'position' => $level->position,
                 'capacity' => $level->capacity,
+                'value_strategy' => $level->value_strategy->value,
                 'is_leaf' => $level->isLeaf(),
             ])->values()->all(),
             'tree' => $this->buildTree($scheme->levels),

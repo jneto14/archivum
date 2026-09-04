@@ -42,6 +42,17 @@ import nodes from '@/routes/organization/schemes/nodes';
 
 type StorageView = 'tree' | 'columns';
 
+/**
+ * What a value looks like at each strategy. A Manual level has nothing to
+ * suggest — the user names the node — so it shows no example rather than one
+ * borrowed from a strategy it does not use.
+ */
+const valuePlaceholders = {
+    manual: '',
+    sequential: '001',
+    alphabetical: 'A',
+} as const;
+
 type StorageNode = {
     id: string;
     value: string;
@@ -55,6 +66,7 @@ type Level = {
     name: string;
     position: number;
     capacity: number | null;
+    value_strategy: 'manual' | 'sequential' | 'alphabetical';
     is_leaf: boolean;
 };
 
@@ -397,7 +409,11 @@ export default function OrganizationStorage({
                         )}
                         <div className="grid gap-2">
                             <Label htmlFor="node_value">
-                                {t('organization.storage.value_label')}
+                                {addLevel?.value_strategy === 'manual'
+                                    ? t('organization.storage.value_label')
+                                    : t(
+                                          'organization.storage.value_label_optional',
+                                      )}
                             </Label>
                             <Input
                                 id="node_value"
@@ -405,7 +421,11 @@ export default function OrganizationStorage({
                                 onChange={(event) =>
                                     setAddValue(event.target.value)
                                 }
-                                placeholder="A"
+                                placeholder={
+                                    valuePlaceholders[
+                                        addLevel?.value_strategy ?? 'manual'
+                                    ]
+                                }
                             />
                             <InputError message={errors.value} />
                             <InputError message={errors.capacity} />

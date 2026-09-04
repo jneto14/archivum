@@ -27,10 +27,10 @@ class OrganizationStorageTest extends TestCase
         $workspace = Workspace::factory()->create();
         $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
         $scheme = app(CreateScheme::class)->handle($workspace, 'Traditional Archive', [
-            ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
+            ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Manual],
             ['name' => 'Position', 'key' => 'position', 'value_strategy' => NodeValueStrategy::Sequential],
         ]);
-        $cover = app(CreateOrganizationNode::class)->handle($scheme->levels->first(), null);
+        $cover = app(CreateOrganizationNode::class)->handle($scheme->levels->first(), null, '001');
         app(CreateOrganizationNode::class)->handle($scheme->levels->last(), $cover);
 
         $this->actingAs($member->user)
@@ -40,6 +40,10 @@ class OrganizationStorageTest extends TestCase
                 ->component('organization/storage')
                 ->where('scheme.name', 'Traditional Archive')
                 ->has('levels', 2)
+                // The add-node dialog asks for a value outright at a Manual
+                // level, and offers to generate one everywhere else.
+                ->where('levels.0.value_strategy', 'manual')
+                ->where('levels.1.value_strategy', 'sequential')
                 ->has('tree', 1)
                 ->where('tree.0.value', $cover->value)
                 ->has('tree.0.children', 1)

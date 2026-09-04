@@ -374,7 +374,8 @@ export default {
     'organization.storage.parent_location_label': 'Local principal',
     'organization.storage.select_parent_placeholder':
         'Seleciona um local principal',
-    'organization.storage.value_label':
+    'organization.storage.value_label': 'Valor',
+    'organization.storage.value_label_optional':
         'Valor (deixa em branco para gerar automaticamente)',
     'organization.storage.cancel_button': 'Cancelar',
     'organization.storage.add_button': 'Adicionar',
