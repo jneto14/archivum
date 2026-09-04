@@ -8,6 +8,7 @@ use App\Actions\Organization\CountFiledDocuments;
 use App\Models\Document;
 use App\Models\DocumentLocation;
 use App\Models\OrganizationNode;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class MoveDocument
@@ -27,12 +28,22 @@ class MoveDocument
     public function handle(Document $document, OrganizationNode $node): DocumentLocation
     {
         $this->assertNodeBelongsToWorkspace($document, $node);
-        $this->assertNodeHasRoom($document, $node);
 
-        return DocumentLocation::query()->create([
-            'document_id' => $document->id,
-            'organization_node_id' => $node->id,
-        ]);
+        // Counting the documents at a node and then filing one more is a
+        // read followed by a write: two documents filed at the same instant
+        // would both see the last free place and both take it. Locking the
+        // destination row makes everyone filing into it queue up behind each
+        // other, so the count is still true when the write lands.
+        return DB::transaction(function () use ($document, $node) {
+            OrganizationNode::query()->whereKey($node->id)->lockForUpdate()->first();
+
+            $this->assertNodeHasRoom($document, $node);
+
+            return DocumentLocation::query()->create([
+                'document_id' => $document->id,
+                'organization_node_id' => $node->id,
+            ]);
+        });
     }
 
     /**
