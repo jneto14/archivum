@@ -218,6 +218,10 @@ export default {
     'documents.show.camera_capture_button': 'Capturar',
     'documents.show.camera_close_button': 'Concluir',
     'documents.show.camera_use_another_device': 'Usar outro dispositivo',
+    'documents.show.camera_needs_secure_connection':
+        'A câmara deste dispositivo só está disponível numa ligação segura (HTTPS), por isso digitalizar aqui implica usar outro dispositivo.',
+    'documents.show.camera_none_on_this_device':
+        'Este dispositivo não disponibilizou nenhuma câmara, por isso digitalizar aqui implica usar outro dispositivo.',
     'documents.show.camera_captured_one': ':count página pronta',
     'documents.show.camera_captured_other': ':count páginas prontas',
     'documents.show.capture_dialog_title': 'Digitalizar com o telemóvel',

@@ -8,6 +8,7 @@ import {
     DialogFooter,
     DialogTitle,
 } from '@/components/ui/dialog';
+import type { CameraAccess } from '@/hooks/use-camera-access';
 import { useTranslation } from '@/hooks/use-translation';
 import {
     cancel as cancelCaptureSession,
@@ -23,6 +24,8 @@ type ActiveCaptureSession = {
 type Props = {
     documentId: string;
     activeSession: ActiveCaptureSession;
+    /** Why the scan button sent the user here instead of opening a viewfinder. */
+    cameraAccess: CameraAccess;
     open: boolean;
     onOpenChange: (open: boolean) => void;
 };
@@ -36,6 +39,7 @@ type Props = {
 export function DocumentCaptureDialog({
     documentId,
     activeSession,
+    cameraAccess,
     open,
     onOpenChange,
 }: Props) {
@@ -120,6 +124,18 @@ export function DocumentCaptureDialog({
                 <DialogDescription>
                     {t('documents.show.capture_dialog_description')}
                 </DialogDescription>
+
+                {/* Landing here on a device that looks like it has a camera is
+                    the confusing case: the scanner simply never appears, and
+                    nothing says the browser refused rather than the feature
+                    being missing. */}
+                {cameraAccess !== 'available' && (
+                    <p className="text-sm text-muted-foreground">
+                        {cameraAccess === 'insecure'
+                            ? t('documents.show.camera_needs_secure_connection')
+                            : t('documents.show.camera_none_on_this_device')}
+                    </p>
+                )}
 
                 {activeSession ? (
                     <div className="flex flex-col items-center gap-3 py-2">

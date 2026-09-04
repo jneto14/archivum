@@ -22,7 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useCameraAvailable } from '@/hooks/use-camera-available';
+import { useCameraAccess } from '@/hooks/use-camera-access';
 import { useDateFormatter } from '@/hooks/use-date-formatter';
 import { useTranslation } from '@/hooks/use-translation';
 import { formatBytes, randomId } from '@/lib/utils';
@@ -154,8 +154,11 @@ export default function DocumentShow({
     const [captureOpen, setCaptureOpen] = useState(false);
     const [cameraOpen, setCameraOpen] = useState(false);
     // Decides which scan this button offers: the camera in your hand, or a QR
-    // code to bring another device to it.
-    const cameraAvailable = useCameraAvailable();
+    // code to bring another device to it. When it is the QR because there was
+    // no camera to open, that dialog says so rather than leaving the user to
+    // wonder why the scanner never appeared.
+    const cameraAccess = useCameraAccess();
+    const cameraAvailable = cameraAccess === 'available';
     // Each queued file carries an id rather than being identified by its
     // position. Rows are removed one at a time, and keying them by index made
     // React reuse a removed row's DOM for the row that moved up into its
@@ -825,6 +828,7 @@ export default function DocumentShow({
             <DocumentCaptureDialog
                 documentId={document.id}
                 activeSession={activeCaptureSession}
+                cameraAccess={cameraAccess}
                 open={captureOpen}
                 onOpenChange={setCaptureOpen}
             />
