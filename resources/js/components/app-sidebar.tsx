@@ -2,6 +2,7 @@ import { router, usePage } from '@inertiajs/react';
 import {
     Activity,
     Archive,
+    ClipboardCheck,
     FileStack,
     FileText,
     FolderTree,
@@ -28,7 +29,10 @@ import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import { useTranslation } from '@/hooks/use-translation';
 import { dashboard } from '@/routes';
 import { index as documentTypesIndex } from '@/routes/document-types';
-import { index as documentsIndex } from '@/routes/documents';
+import {
+    index as documentsIndex,
+    review as documentsReview,
+} from '@/routes/documents';
 import {
     create as schemeCreate,
     show as schemeShow,
@@ -54,6 +58,7 @@ export function AppSidebar() {
         isWorkspaceAdmin,
         canSwitchWorkspace,
         documentsCount,
+        intakeReviewCount,
         workspace,
         organizationSchemeId,
     } = usePage().props;
@@ -82,6 +87,18 @@ export function AppSidebar() {
             disabled: !workspace,
             badge: documentsCount,
         },
+        // Hidden when there is nothing waiting: this is a queue, and an
+        // always-present entry that is empty most of the time stops being read.
+        ...(workspace && intakeReviewCount
+            ? ([
+                  {
+                      title: t('nav.review'),
+                      href: documentsReview.url(workspace.id),
+                      icon: ClipboardCheck,
+                      badge: intakeReviewCount,
+                  },
+              ] as NavItem[])
+            : []),
         {
             title: t('nav.physical_storage'),
             href: organizationSchemeId

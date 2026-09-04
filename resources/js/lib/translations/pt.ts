@@ -35,6 +35,7 @@ export default {
     'nav.group_configuration': 'Configuração',
     'nav.dashboard': 'Dashboard',
     'nav.documents': 'Documentos',
+    'nav.review': 'Por rever',
     'nav.physical_storage': 'Armazenamento físico',
     'nav.activity': 'Atividade',
     'nav.tasks': 'Tarefas',
@@ -131,6 +132,24 @@ export default {
         'Esta ação não pode ser desfeita. O documento, os seus anexos e o seu histórico de localização serão removidos permanentemente.',
     'documents.form.delete_dialog_cancel': 'Cancelar',
     'documents.form.delete_confirm_button': 'Eliminar documento',
+
+    'documents.review.breadcrumb_documents': 'Documentos',
+    'documents.review.page_title': 'Por rever',
+    'documents.review.description':
+        'O que foi lido das digitalizações recentes, à espera que confirmes.',
+    'documents.review.empty_title': 'Nada por rever',
+    'documents.review.empty_description':
+        'Os detalhes lidos de uma digitalização aparecem aqui assim que o texto for extraído.',
+    'documents.review.suggestions_title': 'Detalhes sugeridos',
+    'documents.review.document_date_label': 'Data do documento',
+    'documents.review.apply_button': 'Aplicar (:count)',
+    'documents.review.skip_button': 'Não é nada disto',
+    'documents.review.duplicates_title': 'Possíveis duplicados',
+    'documents.review.duplicates_description':
+        'Estas digitalizações leem-se quase como uma que já está arquivada.',
+    'documents.review.duplicate_of': ':filename parece “:document”',
+    'documents.review.open_original': 'Abrir o original',
+    'documents.review.keep_both': 'Manter os dois',
 
     'documents.show.breadcrumb_documents': 'Documentos',
     'documents.show.edit_button': 'Editar',

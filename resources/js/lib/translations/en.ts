@@ -34,6 +34,7 @@ export default {
     'nav.group_configuration': 'Configuration',
     'nav.dashboard': 'Dashboard',
     'nav.documents': 'Documents',
+    'nav.review': 'To review',
     'nav.physical_storage': 'Physical storage',
     'nav.activity': 'Activity',
     'nav.tasks': 'Tasks',
@@ -129,6 +130,24 @@ export default {
         'This cannot be undone. The document, its attachments and its location history will be permanently removed.',
     'documents.form.delete_dialog_cancel': 'Cancel',
     'documents.form.delete_confirm_button': 'Delete document',
+
+    'documents.review.breadcrumb_documents': 'Documents',
+    'documents.review.page_title': 'To review',
+    'documents.review.description':
+        'What was read from recently filed scans, waiting on you to confirm it.',
+    'documents.review.empty_title': 'Nothing to review',
+    'documents.review.empty_description':
+        'Details read from a scan show up here once its text has been extracted.',
+    'documents.review.suggestions_title': 'Suggested details',
+    'documents.review.document_date_label': 'Document date',
+    'documents.review.apply_button': 'Apply (:count)',
+    'documents.review.skip_button': 'Nothing here',
+    'documents.review.duplicates_title': 'Possible duplicates',
+    'documents.review.duplicates_description':
+        'These scans read almost the same as one already filed.',
+    'documents.review.duplicate_of': ':filename looks like “:document”',
+    'documents.review.open_original': 'Open the original',
+    'documents.review.keep_both': 'Keep both',
 
     'documents.show.breadcrumb_documents': 'Documents',
     'documents.show.edit_button': 'Edit',
