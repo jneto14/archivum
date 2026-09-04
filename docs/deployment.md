@@ -392,6 +392,27 @@ Icons live in `public/` (`icon-192.png`, `icon-512.png` and a maskable
 crops to). iOS reads none of the manifest's display settings and is still
 configured through the `apple-*` meta tags and `apple-touch-icon.png`.
 
+### Screenshots
+
+`public/screenshot-*.webp` is what Chrome shows in its install dialog: the
+document list, the physical storage tree and a document, each captured twice —
+once on a desktop (`form_factor: wide`) and once on a phone. Without one for the
+form factor doing the installing, that dialog falls back to a one-line prompt,
+and Chrome says so in the console.
+
+Their dimensions and media type are read from the files, so a replacement can be
+captured at whatever size and in whatever format is convenient. Chrome's own
+limits still apply, and a file that breaks one is dropped as if it were not
+there:
+
+- between 320px and 3840px on each side;
+- the longer side no more than 2.3x the shorter;
+- screenshots sharing a form factor share an aspect ratio — a mismatch drops
+  every screenshot of that form factor, not just the odd one.
+
+`PwaTest` holds all three, so a replacement that would have been silently
+ignored fails the suite instead.
+
 ## Demo mode
 
 An opt-in mode for a public demo: every night a scheduled task drops the

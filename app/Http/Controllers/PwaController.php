@@ -36,6 +36,28 @@ class PwaController extends Controller
     private const string BACKGROUND_COLOR = '#ffffff';
 
     /**
+     * Pictures of the running app, and which shape of screen each one was taken
+     * on. Chrome shows them in the install dialog — but only when it has one for
+     * the form factor doing the installing, so a desktop with nothing marked
+     * `wide` and a phone with nothing marked `narrow` both quietly fall back to
+     * the plain one-line prompt.
+     *
+     * Every screenshot sharing a form factor must also share an aspect ratio,
+     * or Chrome drops the lot — which is why these come in matched pairs of the
+     * same three screens rather than whatever was lying around.
+     *
+     * @var list<array{file: string, form_factor: string, label: string}>
+     */
+    private const array SCREENSHOTS = [
+        ['file' => 'screenshot-wide-documents.webp', 'form_factor' => 'wide', 'label' => 'documents'],
+        ['file' => 'screenshot-wide-storage.webp', 'form_factor' => 'wide', 'label' => 'storage'],
+        ['file' => 'screenshot-wide-document.webp', 'form_factor' => 'wide', 'label' => 'document'],
+        ['file' => 'screenshot-narrow-documents.webp', 'form_factor' => 'narrow', 'label' => 'documents'],
+        ['file' => 'screenshot-narrow-storage.webp', 'form_factor' => 'narrow', 'label' => 'storage'],
+        ['file' => 'screenshot-narrow-document.webp', 'form_factor' => 'narrow', 'label' => 'document'],
+    ];
+
+    /**
      * The web app manifest, which is what a browser reads to decide the app can
      * be installed and what to call it once it is.
      *
@@ -87,8 +109,51 @@ class PwaController extends Controller
                     'purpose' => 'maskable',
                 ],
             ],
+            'screenshots' => $this->screenshots(),
         ], options: JSON_UNESCAPED_SLASHES)
             ->header('Content-Type', 'application/manifest+json');
+    }
+
+    /**
+     * The screenshot entries for the manifest, one per file that is actually
+     * there.
+     *
+     * The dimensions and the media type are read from the image rather than
+     * written down beside it. A `sizes` that disagrees with the file is rejected
+     * by Chrome the same way a missing screenshot is — silently — and keeping
+     * the number in two places is what makes them disagree. It also means a
+     * fork can drop in screenshots of its own, at whatever size and in whatever
+     * format it captured them, without touching this.
+     *
+     * Chrome is particular about the rest: between 320px and 3840px on each
+     * side, the longer side no more than 2.3x the shorter, and every screenshot
+     * sharing a form factor sharing an aspect ratio. A file that breaks one of
+     * those is dropped by the browser, not by this method.
+     *
+     * @return list<array<string, string>> The `screenshots` member, empty when this installation ships none.
+     */
+    private function screenshots(): array
+    {
+        $screenshots = [];
+
+        foreach (self::SCREENSHOTS as $screenshot) {
+            $path = public_path($screenshot['file']);
+            $image = is_file($path) ? getimagesize($path) : false;
+
+            if ($image === false) {
+                continue;
+            }
+
+            $screenshots[] = [
+                'src' => asset($screenshot['file']),
+                'sizes' => $image[0] . 'x' . $image[1],
+                'type' => $image['mime'],
+                'form_factor' => $screenshot['form_factor'],
+                'label' => __('pwa.screenshot_' . $screenshot['label']),
+            ];
+        }
+
+        return $screenshots;
     }
 
     /**

@@ -59,6 +59,76 @@ class PwaTest extends TestCase
     }
 
     /**
+     * The two things Chrome complains about when it cannot offer its richer
+     * install dialog: one screenshot marked `wide`, or a desktop falls back to
+     * a one-line prompt, and one that is not, or a phone does.
+     *
+     * The bounds asserted here are Chrome's own. A file outside them is dropped
+     * by the browser with the same warning as one that was never there, so
+     * meeting them is not optional and getting it wrong is not visible.
+     */
+    public function test_the_manifest_carries_a_screenshot_for_a_desktop_and_for_a_phone()
+    {
+        $screenshots = collect($this->get(route('pwa.manifest'))->json('screenshots'));
+
+        $byFormFactor = $screenshots->groupBy('form_factor');
+
+        $this->assertEqualsCanonicalizing(['wide', 'narrow'], $byFormFactor->keys()->all());
+
+        foreach ($screenshots as $screenshot) {
+            $path = public_path(basename((string) $screenshot['src']));
+            $this->assertFileExists($path);
+
+            $image = getimagesize($path);
+            $this->assertNotFalse($image);
+            [$width, $height] = $image;
+
+            // A `sizes` or a `type` that disagrees with the file is ignored,
+            // silently, which is why both are read from the image rather than
+            // written down beside it.
+            $this->assertSame($width . 'x' . $height, $screenshot['sizes']);
+            $this->assertSame($image['mime'], $screenshot['type']);
+
+            $this->assertGreaterThanOrEqual(320, min($width, $height));
+            $this->assertLessThanOrEqual(3840, max($width, $height));
+            $this->assertLessThanOrEqual(2.3, max($width, $height) / min($width, $height));
+            $this->assertNotEmpty($screenshot['label']);
+        }
+
+        // Chrome drops every screenshot of a form factor if they disagree on
+        // shape, so a replacement captured on a different screen takes the rest
+        // down with it rather than just looking odd.
+        foreach ($byFormFactor as $formFactor => $shots) {
+            $this->assertCount(
+                1,
+                array_unique(array_map($this->aspectRatio(...), $shots->pluck('sizes')->all())),
+                "The {$formFactor} screenshots must all share one aspect ratio.",
+            );
+        }
+
+        $this->assertTrue(
+            $this->aspectRatio((string) $byFormFactor['wide']->first()['sizes']) > 1,
+            'The screenshots offered to a desktop should be desktop-shaped.',
+        );
+        $this->assertTrue(
+            $this->aspectRatio((string) $byFormFactor['narrow']->first()['sizes']) < 1,
+            'The screenshots offered to a phone should be phone-shaped.',
+        );
+    }
+
+    /**
+     * @param string $sizes A manifest `sizes` value, `WIDTHxHEIGHT`.
+     *
+     * @return float Its width divided by its height, rounded so two captures of the same screen agree.
+     */
+    private function aspectRatio(string $sizes): float
+    {
+        [$width, $height] = array_map(intval(...), explode('x', $sizes));
+
+        return round($width / $height, 2);
+    }
+
+    /**
      * A worker may only claim the directory it was served from, so this one has
      * to come from the root of the installation. Registering it from anywhere
      * deeper would leave most of the app uncovered.
