@@ -76,7 +76,16 @@ class SuggestDocumentMetadataTest extends TestCase
     #[DataProvider('foreignDocuments')]
     public function test_it_reads_documents_from_other_countries($text, $kind, $expected)
     {
-        $this->assertSame($expected, $this->suggestionsFor($this->documentWithText($text))[$kind] ?? null);
+        $suggestions = $this->suggestionsFor($this->documentWithText($text));
+
+        // Says what was read, not just that it was wrong: "null" alone cannot
+        // tell a label that failed to match from a value that came out
+        // differently, and this line is read on a machine nobody can attach to.
+        $this->assertSame(
+            $expected,
+            $suggestions[$kind] ?? null,
+            "Read from \"{$text}\": " . json_encode($suggestions),
+        );
     }
 
     /**
