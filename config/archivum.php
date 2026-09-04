@@ -244,6 +244,16 @@ return [
         | every near-empty scan as a duplicate of every other.
         */
         'duplicate_min_shingles' => (int) env('INTAKE_DUPLICATE_MIN_SHINGLES', 20),
+
+        /*
+        | Which number comes first in a date written `03/04/2026`: 'day' or
+        | 'month'. Genuinely ambiguous, and the one thing about reading a
+        | document that a country still decides — everything else is recognised
+        | by the words around it, in whichever languages are configured (see
+        | lang/{locale}/intake.php). Dates written out, and dates whose first
+        | number is over twelve, ignore this and read correctly either way.
+        */
+        'date_order' => env('INTAKE_DATE_ORDER', 'day'),
     ],
 
     /*

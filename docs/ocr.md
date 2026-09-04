@@ -127,11 +127,30 @@ a different number, a different date and a different total, and measured plain
 they sit as close as a rescan does.
 
 **Suggested values, to save typing them.** `SuggestDocumentMetadata` reads dates,
-currency amounts, tax numbers and vehicle registrations out of the text. Nothing
-is written without being accepted, and the heuristics are precision-first: an
-amount needs a currency marker beside it, a tax number needs its check digit to
-agree. See [documents.md](documents.md) for how a suggestion decides which key it
-belongs in.
+amounts, tax numbers and vehicle registrations out of the text. Nothing is
+written without being accepted. See [documents.md](documents.md) for how a
+suggestion decides which key it belongs in.
+
+A value is recognised by the **words in front of it**, not by its format:
+"VAT registration 501 234 567" is a tax number because of what introduces it,
+which needs to know nothing about the country that issued it. That vocabulary
+lives in `lang/{locale}/intake.php`, so adding a language to `archivum.locales`
+and translating that file is the whole of teaching this a new country — there is
+no list of countries in the code. Every configured language is searched at once,
+because an archive holds an English invoice and a Portuguese receipt side by
+side, and month names come from `intl` for the same reason.
+
+Two kinds need no vocabulary, because their formats are not national: a date,
+and a number written to exactly two decimals (largest wins — an invoice's total
+is no smaller than the lines above it). The one thing left that a country
+decides is whether `03/04/2026` is March or April, which is
+`INTAKE_DATE_ORDER`.
+
+The cost of reading by label is a value printed with no label at all, which is
+rare — and it fails by saying nothing rather than by suggesting something wrong.
+
+`archivum:backfill-suggestions` reads documents extracted before any of this
+existed; `--all` re-reads everything, for when these heuristics improve.
 
 ## The review queue
 

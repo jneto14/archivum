@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Actions\Documents;
 
 use App\Models\Document;
+use DateTimeImmutable;
 use Illuminate\Support\Str;
+use IntlDateFormatter;
 
 /**
  * Reads a document's extracted text and proposes values for the fields it is
@@ -15,11 +17,27 @@ use Illuminate\Support\Str;
  * the user to accept or ignore, which is the whole point — a wrong value
  * filed silently is worse than an empty field.
  *
- * The heuristics are deliberately precision-first. An amount is only an amount
- * if a currency marker sits next to it; a tax id only if its check digit
- * agrees. A suggestion that is usually right and occasionally absent is useful;
- * one that fires on every nine-digit number teaches people to ignore the
- * feature.
+ * ## What is recognised, and how it stays portable
+ *
+ * A label, not a format. "VAT registration 501 234 567" is a tax number
+ * because of the words in front of it, and reading it that way needs to know
+ * nothing about which country issued it — where a rule written around the
+ * Portuguese check digit rejects it outright, and a rule written around
+ * Portuguese plate shapes reads no plate anywhere else on earth.
+ *
+ * So the country-specific formats are gone and the vocabulary lives in
+ * `lang/{locale}/intake.php`. Adding a language to `archivum.locales` and
+ * translating that file is the whole of adding a country; every configured
+ * language is searched at once, because an archive holds an English invoice
+ * and a Portuguese receipt side by side. Month names come from `intl` for the
+ * same reason.
+ *
+ * The two kinds that need no vocabulary stay format-driven, because their
+ * formats are not national: a date, and a number written to exactly two
+ * decimals.
+ *
+ * The cost is recall on a value printed with no label at all, which is rare —
+ * and the failure it causes is silence, not a wrong suggestion.
  *
  * ## Why the keys are resolved rather than fixed
  *
@@ -32,64 +50,20 @@ use Illuminate\Support\Str;
  */
 class SuggestDocumentMetadata
 {
-    /**
-     * The kinds of value this can recognise, each with the metadata key it
-     * falls back to and the key names it will adopt instead.
-     *
-     * `document_date` is the exception: it targets the document's own date
-     * field rather than a metadata key, which is where a reader would look for
-     * it, so it has no aliases to match.
-     *
-     * @var array<string, array{key: string, aliases: list<string>}>
-     */
-    private const KINDS = [
-        'document_date' => [
-            'key' => 'document_date',
-            'aliases' => [],
-        ],
-        'amount' => [
-            'key' => 'amount',
-            'aliases' => ['amount', 'total', 'valor', 'montante', 'preco', 'price', 'value'],
-        ],
-        'tax_id' => [
-            'key' => 'tax_id',
-            'aliases' => ['tax_id', 'nif', 'nipc', 'vat', 'vat_number', 'contribuinte'],
-        ],
-        'vehicle_registration' => [
-            'key' => 'vehicle_registration',
-            'aliases' => ['vehicle_registration', 'matricula', 'plate', 'registration', 'vehicle'],
-        ],
-    ];
-
     /** @var int How many recent documents of the same type are read to learn which keys that type actually uses. Enough to see the pattern, bounded so a large archive does not pay for it. */
     private const KEY_SAMPLE_SIZE = 50;
 
-    /**
-     * Month names in both of the application's languages, spelled out and
-     * abbreviated, ASCII-folded and lowercase to match the folded text.
-     *
-     * Real invoices write their date in words at least as often as in digits —
-     * "Date: 14 March 2026" — and a numbers-only pattern reads nothing from them.
-     *
-     * @var array<string, int>
-     */
-    private const MONTHS = [
-        'january' => 1, 'jan' => 1, 'janeiro' => 1,
-        'february' => 2, 'feb' => 2, 'fevereiro' => 2, 'fev' => 2,
-        'march' => 3, 'mar' => 3, 'marco' => 3,
-        'april' => 4, 'apr' => 4, 'abril' => 4, 'abr' => 4,
-        'may' => 5, 'maio' => 5, 'mai' => 5,
-        'june' => 6, 'jun' => 6, 'junho' => 6,
-        'july' => 7, 'jul' => 7, 'julho' => 7,
-        'august' => 8, 'aug' => 8, 'agosto' => 8, 'ago' => 8,
-        'september' => 9, 'sept' => 9, 'sep' => 9, 'setembro' => 9, 'set' => 9,
-        'october' => 10, 'oct' => 10, 'outubro' => 10, 'out' => 10,
-        'november' => 11, 'nov' => 11, 'novembro' => 11,
-        'december' => 12, 'dec' => 12, 'dezembro' => 12, 'dez' => 12,
-    ];
-
     /** @var array<string, list<string>> Keys in use, per "workspace:type" — see keysUsedByType(). */
     private array $keysByType = [];
+
+    /** @var array<string, int>|null Month names to month numbers, across every configured language — see months(). */
+    private ?array $months = null;
+
+    /** @var array<string, list<string>> Folded label words per kind, across every configured language — see labelsFor(). */
+    private array $labels = [];
+
+    /** @var array<string, list<string>> Normalised field-name aliases per kind, across every configured language — see aliasesFor(). */
+    private array $aliases = [];
 
     /**
      * Read every kind of value this recognises out of a text.
@@ -108,11 +82,13 @@ class SuggestDocumentMetadata
             return [];
         }
 
+        $folded = $this->fold($text);
+
         $values = [
-            'document_date' => $this->firstDate($text),
+            'document_date' => $this->firstDate($folded),
             'amount' => $this->largestAmount($text),
-            'tax_id' => $this->taxId($text),
-            'vehicle_registration' => $this->vehicleRegistration($text),
+            'tax_id' => $this->taxId($folded),
+            'vehicle_registration' => $this->vehicleRegistration($folded),
         ];
 
         $findings = [];
@@ -176,28 +152,47 @@ class SuggestDocumentMetadata
     }
 
     /**
+     * Lowercase the text and strip its accents, so that "Março", "março" and
+     * "marco" are one thing and a label written "Matrícula" matches a page that
+     * prints "MATRICULA".
+     *
+     * Line by line, because `Str::ascii()` replaces a newline with a space.
+     * Folded whole, the page becomes one long line — and every rule here that
+     * relies on a value ending where its line does stops working: a label
+     * reaches into the line below and takes the next field's value with it.
+     *
+     * @param string $text The extracted text.
+     *
+     * @return string The same text, folded, with its lines intact.
+     */
+    private function fold(string $text): string
+    {
+        /** @var list<string> $lines */
+        $lines = preg_split('/\R/', $text) ?: [];
+
+        return implode("\n", array_map(
+            static fn (string $line): string => Str::ascii(mb_strtolower($line)),
+            $lines,
+        ));
+    }
+
+    /**
      * The first date in the text, as an ISO date.
      *
      * First rather than most recent or most frequent: a document states its own
      * date at the top, and everything below it — due dates, periods covered,
      * printed footers — is something else.
      *
-     * Ambiguous `dd/mm` vs `mm/dd` is read day-first. This is a Portuguese
-     * application; a document written the other way round is the exception, and
-     * the user sees the value before accepting it.
+     * `03/04/2026` is genuinely ambiguous and no label can resolve it, so the
+     * order is configuration — `archivum.intake.date_order`, day-first by
+     * default. It is the one thing here that a country still decides.
      *
-     * @param string $text The extracted text.
+     * @param string $folded The extracted text, lowercased and ASCII-folded.
      *
      * @return string|null The date as `Y-m-d`, or null if the text holds none.
      */
-    private function firstDate(string $text): ?string
+    private function firstDate(string $folded): ?string
     {
-        // Folded to ASCII and lowercased so that "Março", "março" and "marco"
-        // are one pattern. Only a date built from the parts is ever returned,
-        // never a substring of this, so folding cannot corrupt the result — and
-        // both passes run over the same string, so their offsets are comparable.
-        $folded = Str::ascii(mb_strtolower($text));
-
         $candidates = [];
 
         // 14/03/2026, 14-03-2026, 2026-03-14.
@@ -212,11 +207,12 @@ class SuggestDocumentMetadata
             $candidates[$offset] = $this->parseNumericDate($value);
         }
 
-        $months = $this->monthPattern();
+        $months = $this->months();
+        $pattern = $this->monthPattern($months);
 
         // 14 March 2026, 14 de marco de 2026.
         preg_match_all(
-            '/(\d{1,2})\h+(?:de\h+)?(' . $months . ')\.?,?\h+(?:de\h+)?(\d{4})/',
+            '/(\d{1,2})\h+(?:de\h+)?(' . $pattern . ')\.?,?\h+(?:de\h+)?(\d{4})/',
             $folded,
             $dayFirst,
             PREG_OFFSET_CAPTURE | PREG_SET_ORDER,
@@ -225,14 +221,14 @@ class SuggestDocumentMetadata
         foreach ($dayFirst as $match) {
             $candidates[$match[0][1]] = $this->buildDate(
                 (int) $match[3][0],
-                self::MONTHS[$match[2][0]],
+                $months[$match[2][0]],
                 (int) $match[1][0],
             );
         }
 
         // March 14, 2026.
         preg_match_all(
-            '/(' . $months . ')\.?\h+(\d{1,2})(?:st|nd|rd|th)?,?\h+(\d{4})/',
+            '/(' . $pattern . ')\.?\h+(\d{1,2})(?:st|nd|rd|th)?,?\h+(\d{4})/',
             $folded,
             $monthFirst,
             PREG_OFFSET_CAPTURE | PREG_SET_ORDER,
@@ -241,7 +237,7 @@ class SuggestDocumentMetadata
         foreach ($monthFirst as $match) {
             $candidates[$match[0][1]] = $this->buildDate(
                 (int) $match[3][0],
-                self::MONTHS[$match[1][0]],
+                $months[$match[1][0]],
                 (int) $match[2][0],
             );
         }
@@ -258,18 +254,65 @@ class SuggestDocumentMetadata
     }
 
     /**
-     * The month names, longest first so that `mar` cannot match the front of
-     * `march` and leave the rest of the word behind.
+     * Month names to month numbers, in every configured language.
      *
-     * @return string An alternation for use inside a larger pattern.
+     * Read from `intl` rather than written down, so that adding a language to
+     * `archivum.locales` teaches this its months for free — and so that a list
+     * of two languages' months is not sitting in the code pretending to be
+     * everybody's.
+     *
+     * @return array<string, int> Folded name to month number, spelled out and abbreviated.
      */
-    private function monthPattern(): string
+    private function months(): array
     {
-        $names = array_keys(self::MONTHS);
+        if ($this->months !== null) {
+            return $this->months;
+        }
+
+        $months = [];
+
+        /** @var array<string, string> $locales */
+        $locales = config('archivum.locales', []);
+
+        foreach (array_keys($locales) as $locale) {
+            foreach (['MMMM', 'MMM'] as $width) {
+                $formatter = new IntlDateFormatter(
+                    (string) $locale,
+                    IntlDateFormatter::NONE,
+                    IntlDateFormatter::NONE,
+                    null,
+                    null,
+                    $width,
+                );
+
+                for ($month = 1; $month <= 12; $month++) {
+                    // Abbreviations come back with a trailing period in some
+                    // languages ("mar."), which the pattern adds back itself.
+                    $name = mb_rtrim(
+                        (string) $formatter->format(new DateTimeImmutable(sprintf('2026-%02d-01', $month))),
+                        '.',
+                    );
+
+                    $months[Str::ascii(mb_strtolower($name))] = $month;
+                }
+            }
+        }
+
+        return $this->months = $months;
+    }
+
+    /**
+     * @param array<string, int> $months The month names to match.
+     *
+     * @return string An alternation for use inside a larger pattern, longest first so that `mar` cannot match the front of `march` and leave the rest of the word behind.
+     */
+    private function monthPattern(array $months): string
+    {
+        $names = array_keys($months);
 
         usort($names, static fn (string $first, string $second): int => mb_strlen($second) <=> mb_strlen($first));
 
-        return implode('|', $names);
+        return implode('|', array_map(static fn (string $name): string => preg_quote($name, '/'), $names));
     }
 
     /**
@@ -288,9 +331,13 @@ class SuggestDocumentMetadata
         }
 
         // A four-digit first part is a year, and the date is already the way
-        // round it will be stored; anything else is day-first.
-        return mb_strlen((string) $parts[0]) === 4
-            ? $this->buildDate((int) $parts[0], (int) $parts[1], (int) $parts[2])
+        // round it will be stored.
+        if (mb_strlen((string) $parts[0]) === 4) {
+            return $this->buildDate((int) $parts[0], (int) $parts[1], (int) $parts[2]);
+        }
+
+        return config('archivum.intake.date_order') === 'month'
+            ? $this->buildDate((int) $parts[2], (int) $parts[0], (int) $parts[1])
             : $this->buildDate((int) $parts[2], (int) $parts[1], (int) $parts[0]);
     }
 
@@ -388,40 +435,31 @@ class SuggestDocumentMetadata
     /**
      * The first tax number in the text.
      *
-     * Two ways in, because there are two kinds of document. One says what the
-     * number is — "VAT registration 501 234 567", "NIF: 501442600" — and a
-     * label is proof enough on its own, whichever country's format follows it
-     * and however it is spaced. The other just prints the digits, and there the
-     * Portuguese check digit is what separates a tax number from an order
-     * number, a phone number or a customer reference.
+     * Recognised by its label and nothing else — "VAT registration 501 234 567",
+     * "NIF: 501442600", "Nº Contribuinte 501442600". A format rule cannot do
+     * this job: every country writes the number differently, half of them put
+     * letters in it, and a rule written around one country's check digit
+     * rejects every other country's number outright.
      *
-     * @param string $text The extracted text.
+     * What the label cannot supply is a reason to believe the thing after it is
+     * a number at all, so that much is checked here: enough digits, and not so
+     * many characters that a sentence would qualify.
      *
-     * @return string|null The digits, or null if the text holds no tax number.
+     * @param string $folded The extracted text, lowercased and ASCII-folded.
+     *
+     * @return string|null The number, without its spacing, or null if the text holds none.
      */
-    private function taxId(string $text): ?string
+    private function taxId(string $folded): ?string
     {
-        $folded = Str::ascii(mb_strtolower($text));
+        // Letters allowed: a Spanish, Irish or Dutch VAT number carries them.
+        foreach ($this->labelled($folded, 'tax_id') as $candidate) {
+            $value = mb_strtoupper((string) preg_replace('/[^a-z0-9]/', '', $candidate));
+            $digits = (string) preg_replace('/\D/', '', $value);
 
-        $labelled = preg_match(
-            '/\b(?:nif|nipc|vat|contribuinte|tax\h*(?:id|number))\b[^\n\d]{0,20}(\d[\d\h.]{6,14}\d)/',
-            $folded,
-            $match,
-        );
-
-        if ($labelled === 1) {
-            $digits = (string) preg_replace('/\D/', '', $match[1]);
-
-            if (mb_strlen($digits) >= 9 && mb_strlen($digits) <= 12) {
-                return $digits;
-            }
-        }
-
-        preg_match_all('/\b(?:pt\h*)?(\d{9})\b/', $folded, $matches);
-
-        foreach ($matches[1] as $candidate) {
-            if ($this->isPortugueseTaxNumber($candidate)) {
-                return $candidate;
+            // Six digits keeps "tax number not applicable" out, and every real
+            // one in: the shortest in Europe carries eight.
+            if (mb_strlen($value) >= 8 && mb_strlen($value) <= 15 && mb_strlen($digits) >= 6) {
+                return $value;
             }
         }
 
@@ -429,48 +467,116 @@ class SuggestDocumentMetadata
     }
 
     /**
-     * Whether nine digits carry a valid Portuguese check digit.
+     * The first vehicle registration in the text.
      *
-     * Roughly ten in eleven arbitrary nine-digit numbers fail this, which is
-     * what makes an unlabelled match worth offering at all.
+     * Also label-only, for the same reason: the plate shapes this used to match
+     * were the four Portugal has issued since 1992, which read nothing off a
+     * German, French or British document. What survives the loss of the shapes
+     * is that a registration mixes letters and digits in a short token, which
+     * is true of every country's and true of very little else.
      *
-     * @param string $candidate Exactly nine digits.
+     * @param string $folded The extracted text, lowercased and ASCII-folded.
      *
-     * @return bool True if the ninth digit checks out against the first eight.
+     * @return string|null The registration as written, uppercased, or null if the text holds none.
      */
-    private function isPortugueseTaxNumber(string $candidate): bool
+    private function vehicleRegistration(string $folded): ?string
     {
-        $sum = 0;
+        foreach ($this->labelled($folded, 'vehicle_registration') as $candidate) {
+            $value = (string) preg_replace('/[^a-z0-9]/', '', $candidate);
 
-        for ($position = 0; $position < 8; $position++) {
-            $sum += (int) $candidate[$position] * (9 - $position);
+            $mixed = preg_match('/\d/', $value) === 1 && preg_match('/[a-z]/', $value) === 1;
+
+            if ($mixed && mb_strlen($value) >= 5 && mb_strlen($value) <= 8) {
+                return mb_strtoupper(mb_trim($candidate));
+            }
         }
 
-        $remainder = $sum % 11;
-
-        return ($remainder < 2 ? 0 : 11 - $remainder) === (int) $candidate[8];
+        return null;
     }
 
     /**
-     * The first Portuguese vehicle registration in the text.
+     * Every value introduced by one of $kind's labels, in the order they appear.
      *
-     * All four plate shapes issued since 1992, dashes required: without them
-     * the pattern matches any six characters of the right shape, and a scanned
-     * page is full of those.
+     * Only punctuation and space may sit between the label and the value, never
+     * words: a gap that allows words allows a label to reach across a sentence
+     * and claim something else's number. A document that writes "VAT
+     * registration" is matched by having that whole phrase in the vocabulary,
+     * which is also where a new one gets added.
      *
-     * @param string $text The extracted text.
+     * The value itself is groups of letters and digits joined by single spaces,
+     * dots or dashes, which is what a number spaced "501 234 567" or a plate
+     * written "12-AB-34" looks like — and which stops at the first thing that is
+     * neither, rather than running on into the next line of prose.
      *
-     * @return string|null The registration, uppercased, or null if the text holds none.
+     * @param string $folded The extracted text, lowercased and ASCII-folded.
+     * @param string $kind The kind whose labels to look for.
+     *
+     * @return list<string> The matched values, still to be validated by the caller.
      */
-    private function vehicleRegistration(string $text): ?string
+    private function labelled(string $folded, string $kind): array
     {
-        $matched = preg_match(
-            '/\b([A-Z]{2}-\d{2}-\d{2}|\d{2}-\d{2}-[A-Z]{2}|\d{2}-[A-Z]{2}-\d{2}|[A-Z]{2}-\d{2}-[A-Z]{2})\b/i',
-            $text,
-            $match,
+        $labels = $this->labelsFor($kind);
+
+        if ($labels === []) {
+            return [];
+        }
+
+        preg_match_all(
+            '/\b(?:' . implode('|', $labels) . ')\b[\h:.\-#\n]{0,10}([a-z0-9]+(?:[\h.-][a-z0-9]+){0,4})/',
+            $folded,
+            $matches,
         );
 
-        return $matched === 1 ? mb_strtoupper($match[1]) : null;
+        return $matches[1];
+    }
+
+    /**
+     * The label words for one kind, from every configured language at once.
+     *
+     * All languages rather than the interface's: an archive holds an English
+     * invoice and a Portuguese receipt side by side, and which one somebody
+     * happens to be reading the application in says nothing about either.
+     *
+     * @param string $kind The kind whose labels are wanted.
+     *
+     * @return list<string> The labels, folded and regex-quoted, longest first.
+     */
+    private function labelsFor(string $kind): array
+    {
+        if (isset($this->labels[$kind])) {
+            return $this->labels[$kind];
+        }
+
+        $labels = [];
+
+        /** @var array<string, string> $locales */
+        $locales = config('archivum.locales', []);
+
+        foreach (array_keys($locales) as $locale) {
+            // A missing or mistranslated group comes back as the key itself
+            // rather than a list, which is a language that simply contributes
+            // no words — not a failure worth stopping for.
+            $translated = trans('intake.labels.' . $kind, [], (string) $locale);
+
+            if (!is_array($translated)) {
+                continue;
+            }
+
+            foreach ($translated as $label) {
+                $labels[] = Str::ascii(mb_strtolower((string) $label));
+            }
+        }
+
+        $labels = array_values(array_unique($labels));
+
+        // Longest first, so "vat registration" is tried before "vat" and the
+        // gap after the label is measured from the end of the longer phrase.
+        usort($labels, static fn (string $first, string $second): int => mb_strlen($second) <=> mb_strlen($first));
+
+        return $this->labels[$kind] = array_map(
+            static fn (string $label): string => preg_quote($label, '/'),
+            $labels,
+        );
     }
 
     /**
@@ -486,7 +592,7 @@ class SuggestDocumentMetadata
      */
     private function resolveKey(string $kind, array $existingKeys): string
     {
-        $aliases = self::KINDS[$kind]['aliases'] ?? [];
+        $aliases = $this->aliasesFor($kind);
 
         foreach ($existingKeys as $key) {
             if (in_array($this->normalizeKey($key), $aliases, true)) {
@@ -494,7 +600,42 @@ class SuggestDocumentMetadata
             }
         }
 
-        return self::KINDS[$kind]['key'] ?? $kind;
+        return $kind;
+    }
+
+    /**
+     * The names a field of this kind might already be going by, from every
+     * configured language at once — a workspace filing in Portuguese calls it
+     * "valor" whatever the interface is set to.
+     *
+     * @param string $kind The kind whose aliases are wanted.
+     *
+     * @return list<string> The aliases, normalised the same way an existing key is.
+     */
+    private function aliasesFor(string $kind): array
+    {
+        if (isset($this->aliases[$kind])) {
+            return $this->aliases[$kind];
+        }
+
+        $aliases = [$kind];
+
+        /** @var array<string, string> $locales */
+        $locales = config('archivum.locales', []);
+
+        foreach (array_keys($locales) as $locale) {
+            $translated = trans('intake.aliases.' . $kind, [], (string) $locale);
+
+            if (!is_array($translated)) {
+                continue;
+            }
+
+            foreach ($translated as $alias) {
+                $aliases[] = $this->normalizeKey((string) $alias);
+            }
+        }
+
+        return $this->aliases[$kind] = array_values(array_unique($aliases));
     }
 
     /**

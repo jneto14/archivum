@@ -12,6 +12,7 @@ use App\Models\DocumentType;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -51,16 +52,81 @@ class SuggestDocumentMetadataTest extends TestCase
         $this->assertSame('1250.50', $suggestions['amount']);
     }
 
-    public function test_a_number_that_is_not_a_tax_id_is_not_offered_as_one()
+    public function test_a_number_with_no_label_in_front_of_it_is_not_a_tax_id()
     {
         $suggestions = $this->suggestionsFor(
-            $this->documentWithText('Encomenda 501442601 registada no sistema em 20/08/2026.'),
+            $this->documentWithText('Encomenda 501442600 registada no sistema em 20/08/2026.'),
         );
 
         $this->assertArrayNotHasKey(
             'tax_id',
             $suggestions,
-            'Nine digits are also order numbers and customer references; only the check digit tells them apart.',
+            'Nine digits are also order numbers, phone numbers and customer references. The label is the only thing that tells them apart without knowing the country.',
+        );
+    }
+
+    /**
+     * The point of reading by label: none of these are Portuguese, and none of
+     * them needed the reader to be told anything about their country.
+     *
+     * @param string $text A line as a document from that country prints it.
+     * @param string $kind The kind it should be read as.
+     * @param string $expected The value that should come out.
+     */
+    #[DataProvider('foreignDocuments')]
+    public function test_it_reads_documents_from_other_countries($text, $kind, $expected)
+    {
+        $this->assertSame($expected, $this->suggestionsFor($this->documentWithText($text))[$kind] ?? null);
+    }
+
+    /**
+     * @return array<string, array{string, string, string}>
+     */
+    public static function foreignDocuments(): array
+    {
+        return [
+            'a spaced British VAT number' => ['VAT registration 501 234 567', 'tax_id', '501234567'],
+            'a Spanish VAT number with a letter in it' => ['VAT number ESB12345678', 'tax_id', 'ESB12345678'],
+            'an Irish VAT number ending in a letter' => ['VAT no. IE1234567T', 'tax_id', 'IE1234567T'],
+            'a British plate' => ['Registration number AB12 CDE', 'vehicle_registration', 'AB12 CDE'],
+            'a French plate' => ['Plate AA-123-AA', 'vehicle_registration', 'AA-123-AA'],
+            'a German plate' => ['Registration M-AB 1234', 'vehicle_registration', 'M-AB 1234'],
+        ];
+    }
+
+    public function test_a_label_cannot_reach_across_a_line_break_to_claim_a_value()
+    {
+        // Folding the page with Str::ascii() in one go replaces every newline
+        // with a space, and the whole document becomes a single line — where
+        // this label swallowed the invoice number on the line below it and the
+        // value came out as "501 234 567 invoice no".
+        $suggestions = $this->suggestionsFor($this->documentWithText(<<<'TEXT'
+            VAT registration 501 234 567
+            INVOICE No. 2026/0184
+            TEXT));
+
+        $this->assertSame('501234567', $suggestions['tax_id']);
+    }
+
+    public function test_a_label_cannot_reach_across_words_to_claim_a_number()
+    {
+        $suggestions = $this->suggestionsFor(
+            $this->documentWithText('Tax number not applicable. Encomenda 998877665.'),
+        );
+
+        $this->assertArrayNotHasKey('tax_id', $suggestions);
+    }
+
+    public function test_the_ambiguous_date_order_follows_the_configured_one()
+    {
+        config()->set('archivum.intake.date_order', 'month');
+
+        $suggestions = $this->suggestionsFor($this->documentWithText('Invoice dated 03/04/2026.'));
+
+        $this->assertSame(
+            '2026-03-04',
+            $suggestions['document_date'],
+            'Read month-first, 03/04 is the 4th of March — the one thing about a document that a country still decides.',
         );
     }
 
