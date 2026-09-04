@@ -13,7 +13,6 @@ use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
-use ReflectionMethod;
 use Tests\TestCase;
 
 /**
@@ -85,9 +84,7 @@ class SuggestDocumentMetadataTest extends TestCase
         $this->assertSame(
             $expected,
             $suggestions[$kind] ?? null,
-            "Read from \"{$text}\": " . json_encode($suggestions)
-                . ' | folded: ' . json_encode($this->invoke('fold', $text))
-                . ' | captured: ' . json_encode($this->invoke('labelled', $this->invoke('fold', $text), $kind)),
+            "Read from \"{$text}\": " . json_encode($suggestions),
         );
     }
 
@@ -277,20 +274,6 @@ class SuggestDocumentMetadataTest extends TestCase
     public function test_a_document_with_nothing_extracted_suggests_nothing()
     {
         $this->assertSame([], app(SuggestDocumentMetadata::class)->handle($this->documentWithText('')));
-    }
-
-    /**
-     * Reach into one of the reader's steps, to say where a parse fell over.
-     *
-     * @param string $method The private method to call.
-     * @param mixed ...$arguments Its arguments.
-     *
-     * @return mixed Whatever that step returned.
-     */
-    private function invoke(string $method, mixed ...$arguments): mixed
-    {
-        return (new ReflectionMethod(SuggestDocumentMetadata::class, $method))
-            ->invoke(app(SuggestDocumentMetadata::class), ...$arguments);
     }
 
     /**

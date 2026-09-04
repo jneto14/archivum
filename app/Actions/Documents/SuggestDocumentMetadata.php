@@ -66,6 +66,22 @@ class SuggestDocumentMetadata
     private array $aliases = [];
 
     /**
+     * What may follow a label: separators, then groups of letters and digits
+     * joined by single spaces, dots or dashes.
+     *
+     * Anchored, and applied to the text after a label rather than as part of one
+     * big pattern with the labels alternated into it. That earlier construction
+     * — an alternation, two word boundaries, a bounded gap and a nested
+     * quantifier in a single expression — matched on PCRE 10.42 and did not on
+     * the newer build CI runs, for one input out of six, with no error raised.
+     * Simple pieces behave the same everywhere.
+     *
+     * `[ \t]` rather than `\h` for the same reason: the folded text is ASCII,
+     * so the wider class buys nothing.
+     */
+    private const VALUE_PATTERN = '/^[ \t:.#\n-]{0,10}([a-z0-9]+(?:[ .-][a-z0-9]+){0,4})/';
+
+    /**
      * Read every kind of value this recognises out of a text.
      *
      * The objective half of the job, and the half worth storing: what the page
@@ -559,19 +575,30 @@ class SuggestDocumentMetadata
      */
     private function labelled(string $folded, string $kind): array
     {
-        $labels = $this->labelsFor($kind);
+        $values = [];
 
-        if ($labels === []) {
-            return [];
+        foreach ($this->labelsFor($kind) as $label) {
+            preg_match_all('/\b' . $label . '\b/', $folded, $found, PREG_OFFSET_CAPTURE);
+
+            foreach ($found[0] as [$matched, $offset]) {
+                // Byte offsets are safe to slice on: fold() has already reduced
+                // the text to ASCII.
+                $after = mb_substr($folded, $offset + mb_strlen($matched));
+
+                // `??=`, because "VAT" and "VAT registration" both match here
+                // and only the longer one is right. Labels arrive longest
+                // first, so the first answer at a position is the best one.
+                if (preg_match(self::VALUE_PATTERN, $after, $value) === 1) {
+                    $values[$offset] ??= $value[1];
+                }
+            }
         }
 
-        preg_match_all(
-            '/\b(?:' . implode('|', $labels) . ')\b[\h:.\-#\n]{0,10}([a-z0-9]+(?:[\h.-][a-z0-9]+){0,4})/',
-            $folded,
-            $matches,
-        );
+        // Back into the order they appear on the page, which is the order the
+        // caller takes its first acceptable answer from.
+        ksort($values);
 
-        return $matches[1];
+        return array_values($values);
     }
 
     /**
