@@ -287,11 +287,10 @@ class SuggestDocumentMetadataTest extends TestCase
      *
      * @return mixed Whatever that step returned.
      */
-    private function labelsFor(string $kind): array
+    private function invoke(string $method, mixed ...$arguments): mixed
     {
-        $method = new ReflectionMethod(SuggestDocumentMetadata::class, 'labelsFor');
-
-        return $method->invoke(app(SuggestDocumentMetadata::class), $kind);
+        return (new ReflectionMethod(SuggestDocumentMetadata::class, $method))
+            ->invoke(app(SuggestDocumentMetadata::class), ...$arguments);
     }
 
     /**
