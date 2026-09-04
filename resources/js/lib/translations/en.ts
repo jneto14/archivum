@@ -375,6 +375,7 @@ export default {
         'Queues a background job that relocates every document currently filed at this location onto the selected one.',
     'organization.storage.target_location_label': 'Target location',
     'organization.storage.select_location_placeholder': 'Select a location',
+    'organization.storage.target_no_room_hint': '(not enough room)',
     'organization.storage.move_button': 'Move',
     'organization.storage.move_documents_tooltip': 'Move documents',
     'organization.storage.delete_location_tooltip': 'Delete location',

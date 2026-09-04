@@ -14,6 +14,7 @@ return [
     'invalid_rule_target_level' => 'The target level must belong to the same scheme.',
     'duplicate_rule_matcher' => 'A rule already exists for this matcher within the scheme.',
     'migration_target_must_differ' => 'The target location must be different from the source location.',
+    'migration_target_full' => 'The target location does not have room for every document being moved.',
     'scheme_already_exists' => 'This workspace already has an organization scheme.',
     'scheme_created' => 'Organization scheme created.',
     'scheme_updated' => 'Organization scheme updated.',

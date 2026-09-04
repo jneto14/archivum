@@ -481,14 +481,34 @@ export default function OrganizationStorage({
                                             (node) =>
                                                 node.id !== moveSource?.id,
                                         )
-                                        .map((node) => (
-                                            <SelectItem
-                                                key={node.id}
-                                                value={node.id}
-                                            >
-                                                {node.path}
-                                            </SelectItem>
-                                        ))}
+                                        .map((node) => {
+                                            // Everything at the source lands
+                                            // here at once, so the room that
+                                            // matters is room for all of it.
+                                            const roomLeft =
+                                                leafLevel?.capacity == null
+                                                    ? null
+                                                    : leafLevel.capacity -
+                                                      (node.documents_count ??
+                                                          0);
+                                            const fits =
+                                                roomLeft === null ||
+                                                roomLeft >=
+                                                    (moveSource?.documents_count ??
+                                                        0);
+
+                                            return (
+                                                <SelectItem
+                                                    key={node.id}
+                                                    value={node.id}
+                                                    disabled={!fits}
+                                                >
+                                                    {node.path}
+                                                    {!fits &&
+                                                        ` ${t('organization.storage.target_no_room_hint')}`}
+                                                </SelectItem>
+                                            );
+                                        })}
                                 </SelectContent>
                             </Select>
                             <InputError message={errors.target_node_id} />

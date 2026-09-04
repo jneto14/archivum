@@ -385,6 +385,7 @@ export default {
         'Coloca em fila uma tarefa em segundo plano que move todos os documentos atualmente arquivados neste local para o local selecionado.',
     'organization.storage.target_location_label': 'Local de destino',
     'organization.storage.select_location_placeholder': 'Seleciona um local',
+    'organization.storage.target_no_room_hint': '(sem espaço suficiente)',
     'organization.storage.move_button': 'Mover',
     'organization.storage.move_documents_tooltip': 'Mover documentos',
     'organization.storage.delete_location_tooltip': 'Eliminar local',

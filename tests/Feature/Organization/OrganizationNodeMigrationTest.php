@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Organization;
 
+use App\Actions\Documents\CreateDocument;
+use App\Actions\Documents\MoveDocument;
 use App\Actions\Organization\CreateOrganizationNode;
 use App\Actions\Organization\CreateScheme;
 use App\Enums\NodeValueStrategy;
@@ -11,6 +13,7 @@ use App\Enums\TaskStatus;
 use App\Enums\TaskType;
 use App\Enums\WorkspaceRole;
 use App\Jobs\BulkMoveDocuments;
+use App\Models\DocumentType;
 use App\Models\OrganizationNode;
 use App\Models\OrganizationScheme;
 use App\Models\Task;
@@ -108,6 +111,33 @@ class OrganizationNodeMigrationTest extends TestCase
         $this->assertDatabaseCount('tasks', 0);
     }
 
+    public function test_a_migration_the_target_cannot_hold_is_refused_before_it_is_queued()
+    {
+        Queue::fake([BulkMoveDocuments::class]);
+
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $type = DocumentType::factory()->for($workspace)->create();
+        $scheme = $this->createScheme($workspace, capacity: 2);
+        $source = $this->createNode($scheme, '001');
+        $target = $this->createNode($scheme, '002');
+
+        // Two documents on the move, one already at the target, room for two.
+        foreach ([$source, $source, $target] as $node) {
+            $document = app(CreateDocument::class)->handle($workspace, $admin->user, $type, 'Filed', null, null);
+            app(MoveDocument::class)->handle($document, $node);
+        }
+
+        $response = $this->actingAs($admin->user)->post(route('organization.nodes.migrate', $source), [
+            'target_node_id' => $target->id,
+        ]);
+
+        // Told at the dialog rather than by a task that fails minutes later.
+        $response->assertSessionHasErrors('target_node_id');
+        Queue::assertNothingPushed();
+        $this->assertDatabaseCount('tasks', 0);
+    }
+
     public function test_target_node_must_belong_to_the_same_workspace()
     {
         Queue::fake([BulkMoveDocuments::class]);
@@ -129,10 +159,10 @@ class OrganizationNodeMigrationTest extends TestCase
         $this->assertDatabaseCount('tasks', 0);
     }
 
-    private function createScheme(Workspace $workspace): OrganizationScheme
+    private function createScheme(Workspace $workspace, ?int $capacity = null): OrganizationScheme
     {
         return app(CreateScheme::class)->handle($workspace, 'Traditional Archive', [
-            ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
+            ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential, 'capacity' => $capacity],
         ]);
     }
 

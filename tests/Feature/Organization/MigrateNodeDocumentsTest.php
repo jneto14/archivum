@@ -15,6 +15,7 @@ use App\Models\OrganizationScheme;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Tests\TestCase;
 
@@ -66,6 +67,65 @@ class MigrateNodeDocumentsTest extends TestCase
         $this->assertNull($documentWithNoLocation->fresh()->currentLocation);
     }
 
+    public function test_a_migration_the_target_cannot_hold_is_refused_whole()
+    {
+        $workspace = Workspace::factory()->create();
+        $type = DocumentType::factory()->for($workspace)->create(['key' => 'invoice']);
+        $creator = User::factory()->create();
+        $scheme = $this->createScheme($workspace, capacity: 2);
+        $level = $scheme->levels->first();
+
+        $sourceNode = app(CreateOrganizationNode::class)->handle($level, null, '001');
+        $targetNode = app(CreateOrganizationNode::class)->handle($level, null, '002');
+
+        $moving = [];
+
+        foreach (range(1, 2) as $index) {
+            $moving[] = $document = app(CreateDocument::class)->handle($workspace, $creator, $type, "Moving {$index}", null, null);
+            app(MoveDocument::class)->handle($document, $sourceNode);
+        }
+
+        $filed = app(CreateDocument::class)->handle($workspace, $creator, $type, 'Already there', null, null);
+        app(MoveDocument::class)->handle($filed, $targetNode);
+
+        // The target holds one of its two, and two are on their way: filing
+        // both would leave it holding three.
+        try {
+            app(MigrateNodeDocuments::class)->handle($sourceNode, $targetNode);
+            $this->fail('Expected the migration to be refused.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('target_node_id', $exception->errors());
+        }
+
+        // Refused whole: not one of them moved, rather than the first fitting
+        // and the second being turned away halfway through.
+        foreach ($moving as $document) {
+            $this->assertSame($sourceNode->id, $document->refresh()->currentLocation->organization_node_id);
+        }
+    }
+
+    public function test_a_migration_that_exactly_fills_the_target_is_allowed()
+    {
+        $workspace = Workspace::factory()->create();
+        $type = DocumentType::factory()->for($workspace)->create(['key' => 'invoice']);
+        $creator = User::factory()->create();
+        $scheme = $this->createScheme($workspace, capacity: 2);
+        $level = $scheme->levels->first();
+
+        $sourceNode = app(CreateOrganizationNode::class)->handle($level, null, '001');
+        $targetNode = app(CreateOrganizationNode::class)->handle($level, null, '002');
+
+        $document = app(CreateDocument::class)->handle($workspace, $creator, $type, 'Moving', null, null);
+        app(MoveDocument::class)->handle($document, $sourceNode);
+
+        $filed = app(CreateDocument::class)->handle($workspace, $creator, $type, 'Already there', null, null);
+        app(MoveDocument::class)->handle($filed, $targetNode);
+
+        app(MigrateNodeDocuments::class)->handle($sourceNode, $targetNode);
+
+        $this->assertSame($targetNode->id, $document->refresh()->currentLocation->organization_node_id);
+    }
+
     public function test_migrating_to_the_same_node_throws()
     {
         $workspace = Workspace::factory()->create();
@@ -90,10 +150,10 @@ class MigrateNodeDocumentsTest extends TestCase
         app(MigrateNodeDocuments::class)->handle($sourceNode, $targetNode);
     }
 
-    private function createScheme(Workspace $workspace): OrganizationScheme
+    private function createScheme(Workspace $workspace, ?int $capacity = null): OrganizationScheme
     {
         return app(CreateScheme::class)->handle($workspace, 'Traditional Archive', [
-            ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
+            ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential, 'capacity' => $capacity],
         ]);
     }
 }
