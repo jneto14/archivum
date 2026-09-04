@@ -56,7 +56,7 @@ class OrganizationStorageTest extends TestCase
             );
     }
 
-    public function test_a_locations_contents_are_only_loaded_when_asked_for()
+    public function test_a_locations_contents_come_with_the_page_only_when_one_is_named()
     {
         $workspace = Workspace::factory()->create();
         $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
@@ -69,9 +69,19 @@ class OrganizationStorageTest extends TestCase
         app(MoveDocument::class)->handle($filed, $node);
         Document::factory()->for($workspace)->create(['title' => 'Filed nowhere']);
 
+        // Nothing is loaded for a page nobody asked a location of, and a label's
+        // QR code lands here with `?node=` already in the URL, so the sheet
+        // opens on arrival rather than after a second round trip.
         $this->actingAs($member->user)
             ->get(route('organization.schemes.storage', $scheme))
-            ->assertInertia(fn (Assert $page) => $page->missing('nodeDocuments'));
+            ->assertInertia(fn (Assert $page) => $page->where('nodeDocuments', null));
+
+        $this->actingAs($member->user)
+            ->get(route('organization.schemes.storage', ['scheme' => $scheme, 'node' => $node->id]))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('nodeDocuments.node.path', '001')
+                ->where('nodeDocuments.total', 1),
+            );
 
         $this->partialReload($member, $scheme, $node->id)
             ->assertOk()

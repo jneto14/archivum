@@ -24,13 +24,14 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string $key
  * @property int $position
  * @property int|null $capacity
+ * @property bool $has_printable_label
  * @property NodeValueStrategy $value_strategy
  * @property array<string, mixed>|null $display_settings
  * @property array<string, mixed>|null $metadata
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['scheme_id', 'name', 'key', 'position', 'capacity', 'value_strategy', 'display_settings', 'metadata'])]
+#[Fillable(['scheme_id', 'name', 'key', 'position', 'capacity', 'has_printable_label', 'value_strategy', 'display_settings', 'metadata'])]
 class OrganizationLevel extends Model
 {
     /** @use HasFactory<OrganizationLevelFactory> */
@@ -42,6 +43,7 @@ class OrganizationLevel extends Model
     protected function casts(): array
     {
         return [
+            'has_printable_label' => 'boolean',
             'value_strategy' => NodeValueStrategy::class,
             'display_settings' => 'array',
             'metadata' => 'array',
@@ -55,7 +57,7 @@ class OrganizationLevel extends Model
     {
         return LogOptions::defaults()
             ->useLogName('organization_level')
-            ->logOnly(['name', 'key', 'position', 'capacity', 'value_strategy'])
+            ->logOnly(['name', 'key', 'position', 'capacity', 'has_printable_label', 'value_strategy'])
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
     }

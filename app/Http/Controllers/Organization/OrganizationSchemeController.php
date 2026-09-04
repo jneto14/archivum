@@ -69,6 +69,7 @@ class OrganizationSchemeController extends Controller
                     'key' => $level->key,
                     'position' => $level->position,
                     'capacity' => $level->capacity,
+                    'has_printable_label' => $level->has_printable_label,
                     'value_strategy' => $level->value_strategy->value,
                     'is_leaf' => $level->isLeaf(),
                 ])->values()->all(),
@@ -111,6 +112,7 @@ class OrganizationSchemeController extends Controller
                     'key' => $level->key,
                     'position' => $level->position,
                     'capacity' => $level->capacity,
+                    'has_printable_label' => $level->has_printable_label,
                     'value_strategy' => $level->value_strategy->value,
                     'has_nodes' => $level->nodes()->exists(),
                 ])->values()->all(),
@@ -195,7 +197,7 @@ class OrganizationSchemeController extends Controller
      *
      * @param StoreOrganizationSchemeRequest $request The incoming request holding the validated `levels` array.
      *
-     * @return array<int, array{name: string, key: string, capacity: int|null, value_strategy: NodeValueStrategy, display_settings: array<string, mixed>|null, metadata: array<string, mixed>|null}> The normalized, ordered level definitions.
+     * @return array<int, array{name: string, key: string, capacity: int|null, has_printable_label: bool, value_strategy: NodeValueStrategy, display_settings: array<string, mixed>|null, metadata: array<string, mixed>|null}> The normalized, ordered level definitions.
      */
     private function levelsFromRequest(StoreOrganizationSchemeRequest $request): array
     {
@@ -206,6 +208,7 @@ class OrganizationSchemeController extends Controller
                 'name' => (string) $level['name'],
                 'key' => (string) $level['key'],
                 'capacity' => isset($level['capacity']) ? (int) $level['capacity'] : null,
+                'has_printable_label' => (bool) ($level['has_printable_label'] ?? false),
                 'value_strategy' => NodeValueStrategy::from((string) $level['value_strategy']),
                 'display_settings' => $level['display_settings'] ?? null,
                 'metadata' => $level['metadata'] ?? null,

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Organization\OrganizationLabelController;
 use App\Http\Controllers\Organization\OrganizationLevelController;
 use App\Http\Controllers\Organization\OrganizationNodeController;
 use App\Http\Controllers\Organization\OrganizationNodeMigrationController;
@@ -17,8 +18,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('organization/schemes/{scheme}/edit', [OrganizationSchemeController::class, 'edit'])->name('organization.schemes.edit');
     Route::patch('organization/schemes/{scheme}', [OrganizationSchemeController::class, 'update'])->name('organization.schemes.update');
     Route::get('organization/schemes/{scheme}/storage', [OrganizationStorageController::class, 'show'])->name('organization.schemes.storage');
+    Route::get('organization/schemes/{scheme}/labels', [OrganizationLabelController::class, 'index'])->name('organization.schemes.labels');
 
     Route::post('organization/schemes/{scheme}/levels', [OrganizationLevelController::class, 'store'])->name('organization.schemes.levels.store');
+    Route::patch('organization/schemes/{scheme}/levels/{level}', [OrganizationLevelController::class, 'update'])->name('organization.schemes.levels.update');
     Route::delete('organization/schemes/{scheme}/levels/{level}', [OrganizationLevelController::class, 'destroy'])->name('organization.schemes.levels.destroy');
 
     Route::post('organization/schemes/{scheme}/nodes', [OrganizationNodeController::class, 'store'])->name('organization.schemes.nodes.store');

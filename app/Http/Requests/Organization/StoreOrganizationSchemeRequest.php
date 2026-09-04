@@ -23,6 +23,7 @@ class StoreOrganizationSchemeRequest extends FormRequest
             'levels.*.name' => ['required', 'string', 'max:255'],
             'levels.*.key' => ['required', 'string', 'max:255', 'distinct'],
             'levels.*.capacity' => ['nullable', 'integer', 'min:1'],
+            'levels.*.has_printable_label' => ['nullable', 'boolean'],
             'levels.*.value_strategy' => ['required', Rule::enum(NodeValueStrategy::class)],
             'levels.*.display_settings' => ['nullable', 'array'],
             'levels.*.metadata' => ['nullable', 'array'],

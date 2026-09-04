@@ -28,6 +28,9 @@ createInertiaApp({
             // in — the desktop app's sidebar shell has no business there.
             case name.startsWith('capture/'):
                 return null;
+            // A sheet of labels on its way to a printer, for the same reason.
+            case name === 'organization/labels':
+                return null;
             case name.startsWith('auth/'):
                 return AuthLayout;
             case name.startsWith('settings/'):

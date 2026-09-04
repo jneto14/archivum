@@ -320,6 +320,7 @@ export default {
     'organization.form.level_name_label': 'Nome',
     'organization.form.level_key_label': 'Chave',
     'organization.form.level_capacity_label': 'Capacidade',
+    'organization.form.level_labels_label': 'Etiquetas imprimíveis',
     'organization.form.level_value_strategy_label': 'Estratégia de valor',
     'organization.form.new_level_name_placeholder': 'Caixa',
     'organization.form.new_level_key_placeholder': 'caixa',
@@ -392,6 +393,15 @@ export default {
     'organization.storage.see_all_documents': 'Ver todos (:count)',
     'organization.storage.close_documents': 'Fechar',
     'organization.storage.loading_documents': 'A ver o que está aqui…',
+    'organization.labels.title': 'Etiquetas de localização',
+    'organization.labels.count_one': ':count etiqueta de :scheme',
+    'organization.labels.count_other': ':count etiquetas de :scheme',
+    'organization.labels.print_button': 'Imprimir',
+    'organization.labels.empty': 'Ainda não há aqui nada para etiquetar.',
+    'organization.storage.print_label_tooltip': 'Imprimir esta etiqueta',
+    'organization.storage.print_inside_tooltip':
+        'Imprimir as etiquetas do que está lá dentro',
+    'organization.storage.print_level_labels': 'Etiquetas: :level',
     'organization.storage.no_documents_here':
         'Ainda não está aqui nada arquivado.',
     'organization.storage.target_no_room_hint': '(sem espaço suficiente)',

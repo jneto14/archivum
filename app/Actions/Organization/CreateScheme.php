@@ -21,7 +21,7 @@ class CreateScheme
      *
      * @param Workspace $workspace The workspace the scheme belongs to.
      * @param string $name The scheme's name.
-     * @param array<int, array{name: string, key: string, capacity?: int|null, value_strategy: NodeValueStrategy, display_settings?: array<string, mixed>|null, metadata?: array<string, mixed>|null}> $levels The scheme's levels in order; each entry's array position determines its position (1-indexed).
+     * @param array<int, array{name: string, key: string, capacity?: int|null, has_printable_label?: bool, value_strategy: NodeValueStrategy, display_settings?: array<string, mixed>|null, metadata?: array<string, mixed>|null}> $levels The scheme's levels in order; each entry's array position determines its position (1-indexed).
      *
      * @return OrganizationScheme The newly created scheme with its levels persisted.
      *
@@ -46,6 +46,7 @@ class CreateScheme
                     'key' => $level['key'],
                     'position' => $index + 1,
                     'capacity' => $this->normalizeAlphabeticalCapacity($level['value_strategy'], $level['capacity'] ?? null),
+                    'has_printable_label' => $level['has_printable_label'] ?? false,
                     'value_strategy' => $level['value_strategy'],
                     'display_settings' => $level['display_settings'] ?? null,
                     'metadata' => $level['metadata'] ?? null,
