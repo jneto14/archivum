@@ -36,6 +36,27 @@
         <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
         <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
 
+        {{-- Installable to a home screen. Through route() rather than asset():
+             the manifest declares the app's scope, which only counts if the
+             browser reads it from the same origin the app is served from, and
+             ASSET_URL may well point somewhere else. --}}
+        <link rel="manifest" href="{{ route('pwa.manifest') }}">
+
+        {{-- The browser paints its own chrome — the status bar on Android, the
+             title bar of an installed window — with this. Two of them, because
+             a manifest carries a single theme colour and the app has one per
+             appearance; the media queries match the html background above. --}}
+        <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+        <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+
+        {{-- iOS reads none of the manifest's display settings. Its home-screen
+             app is still configured the old way, through the apple-* meta tags
+             and the apple-touch-icon above. --}}
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-title" content="{{ config('app.name') }}">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
         {{-- The path this installation is served under, for the JavaScript
              bundle, whose route URLs were compiled without it. Read from a meta
              tag because it must be known before the first route module is used.

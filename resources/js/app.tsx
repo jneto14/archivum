@@ -6,6 +6,7 @@ import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { applyPathPrefix } from '@/lib/path-prefix';
+import { registerServiceWorker } from '@/lib/service-worker';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -55,3 +56,7 @@ createInertiaApp({
 
 // This will set light / dark mode on load...
 initializeTheme();
+
+// After the route definitions were rewritten above, so the worker is asked for
+// at the URL this installation actually serves it from.
+registerServiceWorker();
