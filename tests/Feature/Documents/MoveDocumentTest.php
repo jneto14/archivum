@@ -86,6 +86,52 @@ class MoveDocumentTest extends TestCase
         $this->assertSame('001', $document->currentLocation->node->path());
     }
 
+    public function test_a_document_cannot_be_filed_into_a_location_that_is_already_full()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $type = DocumentType::factory()->for($workspace)->create();
+
+        $scheme = app(CreateScheme::class)->handle($workspace, 'Scheme', [
+            ['name' => 'Shelf', 'key' => 'shelf', 'value_strategy' => NodeValueStrategy::Sequential, 'capacity' => 1],
+        ]);
+        $shelf = app(CreateOrganizationNode::class)->handle($scheme->levels->first(), null, '001');
+
+        $filed = app(CreateDocument::class)->handle($workspace, $admin->user, $type, 'Filed', null, null);
+        app(MoveDocument::class)->handle($filed, $shelf);
+
+        $document = app(CreateDocument::class)->handle($workspace, $admin->user, $type, 'Late', null, null);
+
+        // The suggestions leave a full shelf out, but nothing stopped a node
+        // picked by id: six documents went into a shelf with room for six.
+        $this->actingAs($admin->user)->post(route('documents.move', $document), [
+            'node_id' => $shelf->id,
+        ])->assertSessionHasErrors('node_id');
+
+        $this->assertNull($document->refresh()->currentLocation);
+    }
+
+    public function test_a_document_can_be_filed_again_into_the_full_location_it_already_occupies()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $type = DocumentType::factory()->for($workspace)->create();
+
+        $scheme = app(CreateScheme::class)->handle($workspace, 'Scheme', [
+            ['name' => 'Shelf', 'key' => 'shelf', 'value_strategy' => NodeValueStrategy::Sequential, 'capacity' => 1],
+        ]);
+        $shelf = app(CreateOrganizationNode::class)->handle($scheme->levels->first(), null, '001');
+
+        $document = app(CreateDocument::class)->handle($workspace, $admin->user, $type, 'Filed', null, null);
+        app(MoveDocument::class)->handle($document, $shelf);
+
+        // The shelf is full *of this document*, which does not take a second
+        // place on it, so re-filing it there is not what capacity is guarding.
+        app(MoveDocument::class)->handle($document->refresh(), $shelf);
+
+        $this->assertCount(2, $document->refresh()->locations);
+    }
+
     public function test_moving_twice_builds_history_with_current_location_as_the_latest()
     {
         $workspace = Workspace::factory()->create();

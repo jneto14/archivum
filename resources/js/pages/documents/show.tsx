@@ -759,6 +759,11 @@ export default function DocumentShow({
                                                 location.path ===
                                                 document.current_location
                                             }
+                                            isFull={
+                                                location.capacity !== null &&
+                                                location.documentsCount >=
+                                                    location.capacity
+                                            }
                                             onSelect={() =>
                                                 fileDocument({
                                                     node_id: location.id,
@@ -817,6 +822,7 @@ function LocationRow({
     recommended = false,
     isNew = false,
     isCurrent = false,
+    isFull = false,
     onSelect,
 }: {
     path: string;
@@ -827,6 +833,8 @@ function LocationRow({
     isNew?: boolean;
     /** Where the document already is: shown for orientation, but filing into it would do nothing. */
     isCurrent?: boolean;
+    /** Holding as many documents as it has room for; MoveDocument refuses it. */
+    isFull?: boolean;
     onSelect: () => void;
 }) {
     const t = useTranslation();
@@ -839,7 +847,7 @@ function LocationRow({
         <button
             type="button"
             onClick={onSelect}
-            disabled={isCurrent}
+            disabled={isCurrent || isFull}
             className="flex w-full items-center gap-3 rounded-md border p-3 text-left hover:bg-accent disabled:cursor-default disabled:opacity-60 disabled:hover:bg-transparent"
         >
             <div className="min-w-0 flex-1">
@@ -860,6 +868,11 @@ function LocationRow({
                     {isCurrent && (
                         <Badge variant="outline" className="shrink-0">
                             {t('documents.show.current_location_badge')}
+                        </Badge>
+                    )}
+                    {isFull && !isCurrent && (
+                        <Badge variant="outline" className="shrink-0">
+                            {t('documents.show.full_location_badge')}
                         </Badge>
                     )}
                 </div>
