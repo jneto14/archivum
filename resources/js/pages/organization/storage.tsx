@@ -32,6 +32,11 @@ import {
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useTranslation } from '@/hooks/use-translation';
+import {
+    countNodes,
+    firstEmptyDepth,
+    nodesAtDepth,
+} from '@/lib/organization-tree';
 import nodeActions from '@/routes/organization/nodes';
 import nodes from '@/routes/organization/schemes/nodes';
 
@@ -60,29 +65,6 @@ type Props = {
     canManage: boolean;
 };
 
-function countNodes(nodes: StorageNode[]): number {
-    return nodes.reduce(
-        (total, node) => total + 1 + countNodes(node.children),
-        0,
-    );
-}
-
-function nodesAtDepth(nodes: StorageNode[], depth: number): StorageNode[] {
-    if (depth === 0) {
-        return nodes;
-    }
-
-    return nodes.flatMap((node) => nodesAtDepth(node.children, depth - 1));
-}
-
-function firstEmptyLevel(levels: Level[], tree: StorageNode[]): Level | null {
-    return (
-        levels.find(
-            (level) => nodesAtDepth(tree, level.position - 1).length === 0,
-        ) ?? null
-    );
-}
-
 export default function OrganizationStorage({
     scheme,
     levels,
@@ -110,16 +92,21 @@ export default function OrganizationStorage({
     const leafLevel = levels[levels.length - 1];
     const leafNodes = leafLevel ? nodesAtDepth(tree, levels.length - 1) : [];
 
-    const addLevel = levels.find((level) => level.id === addLevelId) ?? null;
-    const addParentOptions = addLevel
-        ? nodesAtDepth(tree, addLevel.position - 2)
-        : [];
-    const isLevelAddable = (level: Level) =>
-        level.position === 1 ||
-        nodesAtDepth(tree, level.position - 2).length > 0;
+    // A level's depth is where it sits in `levels` (ordered by position), not
+    // its position value: a scheme's levels are not guaranteed to start at 1.
+    const addLevelDepth = levels.findIndex((level) => level.id === addLevelId);
+    const addLevel = addLevelDepth === -1 ? null : levels[addLevelDepth];
+    const addParentOptions =
+        addLevel === null ? [] : nodesAtDepth(tree, addLevelDepth - 1);
+    const isLevelAddable = (depth: number) =>
+        depth === 0 || nodesAtDepth(tree, depth - 1).length > 0;
 
     const openAdd = () => {
-        const target = firstEmptyLevel(levels, tree) ?? leafLevel ?? levels[0];
+        const emptyDepth = firstEmptyDepth(levels.length, tree);
+        const target =
+            (emptyDepth === null ? null : levels[emptyDepth]) ??
+            leafLevel ??
+            levels[0];
         setAddLevelId(target?.id ?? '');
         setAddParentId('');
         setAddValue('');
@@ -365,10 +352,10 @@ export default function OrganizationStorage({
                                         <SelectItem
                                             key={level.id}
                                             value={level.id}
-                                            disabled={!isLevelAddable(level)}
+                                            disabled={!isLevelAddable(index)}
                                         >
                                             {level.name}
-                                            {!isLevelAddable(level) &&
+                                            {!isLevelAddable(index) &&
                                                 ` ${t('organization.storage.add_level_first_hint', { level: levels[index - 1]?.name ?? '' })}`}
                                         </SelectItem>
                                     ))}
@@ -376,7 +363,7 @@ export default function OrganizationStorage({
                             </Select>
                             <InputError message={errors.level_id} />
                         </div>
-                        {addLevel && addLevel.position > 1 && (
+                        {addLevel && addLevelDepth > 0 && (
                             <div className="grid gap-2">
                                 <Label>
                                     {t(
