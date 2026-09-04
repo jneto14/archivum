@@ -513,6 +513,11 @@ export default function OrganizationStorage({
                             </Select>
                             <InputError message={errors.target_node_id} />
                         </div>
+                        {/* A migration already running for this workspace is
+                            refused by the lock StartBulkDocumentMove takes, and
+                            belongs to no field — without this the dialog took
+                            the click and said nothing. */}
+                        <InputError message={errors.task} />
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
