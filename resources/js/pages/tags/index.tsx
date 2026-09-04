@@ -121,8 +121,16 @@ export default function TagIndex({ workspace, tags }: Props) {
                         description={t('tags.index.empty_description')}
                     />
                 ) : (
-                    <Panel>
+                    <Panel className="@container/tags">
                         {tags.map((tag) => (
+                            /*
+                             * The meta text is the only flexible thing in this
+                             * row, so on a phone it was the only thing that
+                             * gave: squeezed to about 45px and wrapped over
+                             * four lines, while a neighbouring row wrapped over
+                             * two and every row ended up a different height.
+                             * Narrow, it takes a line of its own instead.
+                             */
                             <div
                                 key={tag.id}
                                 className="flex flex-wrap items-center gap-3.5 border-b px-4.5 py-3 last:border-b-0"
@@ -170,7 +178,7 @@ export default function TagIndex({ workspace, tags }: Props) {
                                 ) : (
                                     <Badge variant="outline">{tag.name}</Badge>
                                 )}
-                                <span className="min-w-0 flex-1 text-xs text-muted-foreground">
+                                <span className="order-last min-w-0 basis-full text-xs text-muted-foreground @lg/tags:order-0 @lg/tags:flex-1 @lg/tags:basis-auto">
                                     {tag.documents_count === 1
                                         ? t('tags.index.documents_count_one', {
                                               count: tag.documents_count,
@@ -189,7 +197,7 @@ export default function TagIndex({ workspace, tags }: Props) {
                                 <button
                                     type="button"
                                     onClick={() => showDocuments(tag)}
-                                    className="flex-none text-xs font-medium text-foreground underline decoration-foreground/40 underline-offset-4"
+                                    className="ml-auto flex-none text-xs font-medium text-foreground underline decoration-foreground/40 underline-offset-4"
                                 >
                                     {t('tags.index.show_documents_button')}
                                 </button>

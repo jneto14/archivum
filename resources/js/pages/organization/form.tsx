@@ -298,7 +298,7 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                     {t('organization.form.levels_title')}
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-4">
+                            <CardContent className="@container/levels space-y-4">
                                 {scheme.levels.map((level) => {
                                     const canDelete =
                                         level.id === lastLevel?.id &&
@@ -335,7 +335,7 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                                     )}
                                                 </span>
                                             </span>
-                                            <span className="flex-1 text-xs text-muted-foreground">
+                                            <span className="min-w-0 basis-full text-xs text-muted-foreground @2xl/levels:flex-1 @2xl/levels:basis-auto">
                                                 {
                                                     strategyDescriptions[
                                                         level.value_strategy
@@ -397,7 +397,7 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                     );
                                 })}
 
-                                <div className="grid grid-cols-[1fr_1fr_auto_1fr_auto] items-end gap-2 rounded-md border border-dashed p-3">
+                                <div className="grid grid-cols-1 items-end gap-3 rounded-md border border-dashed p-3 @2xl/levels:grid-cols-[1fr_1fr_auto_1fr_auto] @2xl/levels:gap-2">
                                     <div className="grid gap-2">
                                         <Label>
                                             {t(
@@ -556,11 +556,11 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                     {t('organization.form.levels_title')}
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-4">
+                            <CardContent className="@container/levels space-y-4">
                                 {form.data.levels.map((level, index) => (
                                     <div
                                         key={level.id}
-                                        className="grid grid-cols-[1fr_1fr_auto_1fr_auto] items-end gap-2 rounded-md border p-3"
+                                        className="grid grid-cols-1 items-end gap-3 rounded-md border p-3 @2xl/levels:grid-cols-[1fr_1fr_auto_1fr_auto] @2xl/levels:gap-2"
                                     >
                                         <div className="grid gap-2">
                                             <Label>
