@@ -127,12 +127,31 @@ a different number, a different date and a different total, and measured plain
 they sit as close as a rescan does.
 
 **Suggested values, to save typing them.** `SuggestDocumentMetadata` reads dates,
-currency amounts, tax numbers and vehicle registrations out of the text and the
-edit form offers them for the fields still empty. Nothing is written without
-being accepted, and the heuristics are precision-first: an amount needs a
-currency marker beside it, a tax number needs its check digit to agree. See
-[documents.md](documents.md) for how a suggestion decides which key it belongs
-in.
+currency amounts, tax numbers and vehicle registrations out of the text. Nothing
+is written without being accepted, and the heuristics are precision-first: an
+amount needs a currency marker beside it, a tax number needs its check digit to
+agree. See [documents.md](documents.md) for how a suggestion decides which key it
+belongs in.
+
+## The review queue
+
+Both of the above are found minutes after a document is registered, by which
+time whoever registered it is filing the next one — and there is no bulk
+registration, so an archive is built one document at a time. Waiting for each
+document's own page to be revisited would mean nothing is ever confirmed.
+
+So the findings are collected on **To review** (`documents.review`), a
+workspace-wide queue: one row per document, its suggested values ticked by
+default, applied or dismissed in a click. Flagged duplicates are listed below
+it. The sidebar carries the count, which costs one query on every request and is
+the reason the queue is used at all.
+
+What is stored is only *what the text said* — kind and value, on
+`documents.metadata_suggestions`. Which field each value belongs in, and whether
+that field is still empty, are worked out when the suggestions are read: both
+change after extraction ran, and a queue offering to fill a field that already
+has a value in it is one people stop trusting. The column is emptied when the
+document is reviewed, and on any edit that leaves nothing to suggest.
 
 ## Searching it
 
