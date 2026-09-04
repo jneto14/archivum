@@ -568,6 +568,19 @@ export default {
     'workspace.settings.limits_documents_label': 'Limite de documentos',
     'workspace.settings.limits_attachments_label': 'Limite de anexos',
     'workspace.settings.limits_save_button': 'Guardar limites',
+    'workspace.settings.vocabulary_section_title': 'Vocabulário aprendido',
+    'workspace.settings.vocabulary_description':
+        'Palavras que este arquivo foi visto escrever à frente de um valor. Aceitar uma ensina o leitor a reconhecer esse tipo de valor por ela, só neste workspace. Nada é usado até o dizer.',
+    'workspace.settings.vocabulary_pending_title': 'À espera de resposta',
+    'workspace.settings.vocabulary_accepted_title': 'Em uso',
+    'workspace.settings.vocabulary_evidence_one': 'visto em :count documento',
+    'workspace.settings.vocabulary_evidence_other':
+        'visto em :count documentos',
+    'workspace.settings.vocabulary_accept': 'Usar',
+    'workspace.settings.vocabulary_reject': 'Ignorar',
+    'workspace.settings.vocabulary_retire': 'Deixar de usar',
+    'workspace.settings.vocabulary_kind_tax_id': 'Número de contribuinte',
+    'workspace.settings.vocabulary_kind_vehicle_registration': 'Matrícula',
     'workspace.settings.instance_section_title': 'Instância',
     'workspace.settings.instance_description':
         'Definido através da configuração do ambiente — não editável aqui.',

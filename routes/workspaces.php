@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Workspaces\ActivityController;
+use App\Http\Controllers\Workspaces\IntakeLabelController;
 use App\Http\Controllers\Workspaces\TaskController;
 use App\Http\Controllers\Workspaces\WorkspaceController;
 use App\Http\Controllers\Workspaces\WorkspaceLimitController;
@@ -46,6 +47,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware(DenyInDemoMode::class)
         ->name('workspaces.limits.update');
     Route::get('workspaces/{workspace}/settings', [WorkspaceSettingsController::class, 'show'])->name('workspaces.settings.show');
+
+    // Answering a label the archive taught itself. Accept, reject, and retire
+    // an accepted one are the same write — see IntakeLabelController.
+    Route::patch('workspaces/{workspace}/intake-labels/{intakeLabel}', [IntakeLabelController::class, 'update'])
+        ->name('workspaces.intake-labels.update');
 
     Route::get('workspaces/{workspace}/users', [WorkspaceUserController::class, 'index'])->name('workspaces.users.index');
     Route::post('workspaces/{workspace}/users', [WorkspaceUserController::class, 'store'])->name('workspaces.users.store');

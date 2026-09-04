@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Documents;
 
 use App\Models\Document;
+use App\Models\IntakeLabel;
 use DateTimeImmutable;
 use Illuminate\Support\Str;
 use IntlDateFormatter;
@@ -36,6 +37,11 @@ use IntlDateFormatter;
  * formats are not national: a date, and a number written to exactly two
  * decimals.
  *
+ * A workspace can also add words of its own, mined from the values its users
+ * filled in by hand and accepted by an admin — see LearnIntakeLabels. Those are
+ * scoped to the workspace that accepted them and are read beside the shipped
+ * ones, never instead of them.
+ *
  * The cost is recall on a value printed with no label at all, which is rare —
  * and the failure it causes is silence, not a wrong suggestion.
  *
@@ -50,6 +56,20 @@ use IntlDateFormatter;
  */
 class SuggestDocumentMetadata
 {
+    /**
+     * The kinds recognised by the words in front of them rather than by their
+     * own shape.
+     *
+     * Only these have vocabulary, so only these can be taught any — a date and
+     * an amount are found by their form, and words learned for them would sit
+     * unread. It also bounds the risk of learning: the phrases in front of a
+     * tax number or a plate are specific ones, where the words in front of an
+     * amount would be every heading on every invoice.
+     *
+     * @var list<string>
+     */
+    public const array LABEL_DRIVEN_KINDS = ['tax_id', 'vehicle_registration'];
+
     /** @var int How many recent documents of the same type are read to learn which keys that type actually uses. Enough to see the pattern, bounded so a large archive does not pay for it. */
     private const KEY_SAMPLE_SIZE = 50;
 
@@ -59,8 +79,11 @@ class SuggestDocumentMetadata
     /** @var array<string, int>|null Month names to month numbers, across every configured language — see months(). */
     private ?array $months = null;
 
-    /** @var array<string, list<string>> Folded label words per kind, across every configured language — see labelsFor(). */
+    /** @var array<string, list<string>> Folded label words per "kind:workspace" — see knownLabels(). */
     private array $labels = [];
+
+    /** @var array<string, list<string>> Regex-quoted labels per "kind:workspace" — see labelsFor(). */
+    private array $quotedLabels = [];
 
     /** @var array<string, list<string>> Normalised field-name aliases per kind, across every configured language — see aliasesFor(). */
     private array $aliases = [];
@@ -89,10 +112,11 @@ class SuggestDocumentMetadata
      * filled in on it. Run once when extraction completes.
      *
      * @param string|null $text The extracted text.
+     * @param string|null $workspaceId The workspace whose learned vocabulary to read with, if any.
      *
      * @return list<array{kind: string, value: string}> One entry per kind that matched, in a fixed order.
      */
-    public function extract(?string $text): array
+    public function extract(?string $text, ?string $workspaceId = null): array
     {
         if (blank($text)) {
             return [];
@@ -103,8 +127,8 @@ class SuggestDocumentMetadata
         $values = [
             'document_date' => $this->firstDate($folded),
             'amount' => $this->largestAmount($text),
-            'tax_id' => $this->taxId($folded),
-            'vehicle_registration' => $this->vehicleRegistration($folded),
+            'tax_id' => $this->taxId($folded, $workspaceId),
+            'vehicle_registration' => $this->vehicleRegistration($folded, $workspaceId),
         ];
 
         $findings = [];
@@ -135,7 +159,10 @@ class SuggestDocumentMetadata
         // Falls back to reading the text where nothing was stored, which is
         // every document extracted before the column existed. Those simply do
         // not appear in the review queue until they are read again.
-        return $this->resolve($document, $document->metadata_suggestions ?? $this->extract($document->ocr_text));
+        return $this->resolve(
+            $document,
+            $document->metadata_suggestions ?? $this->extract($document->ocr_text, $document->workspace_id),
+        );
     }
 
     /**
@@ -153,7 +180,7 @@ class SuggestDocumentMetadata
      */
     public function record(Document $document): void
     {
-        $findings = $this->extract($document->ocr_text);
+        $findings = $this->extract($document->ocr_text, $document->workspace_id);
 
         $waiting = array_map(
             static fn (array $suggestion): string => $suggestion['kind'],
@@ -225,7 +252,7 @@ class SuggestDocumentMetadata
      *
      * @return string The same text, folded, with its lines intact.
      */
-    private function fold(string $text): string
+    public function fold(string $text): string
     {
         /** @var list<string> $lines */
         $lines = preg_split('/\R/', $text) ?: [];
@@ -506,13 +533,14 @@ class SuggestDocumentMetadata
      * many characters that a sentence would qualify.
      *
      * @param string $folded The extracted text, lowercased and ASCII-folded.
+     * @param string|null $workspaceId The workspace whose learned vocabulary to read with, if any.
      *
      * @return string|null The number, without its spacing, or null if the text holds none.
      */
-    private function taxId(string $folded): ?string
+    private function taxId(string $folded, ?string $workspaceId = null): ?string
     {
         // Letters allowed: a Spanish, Irish or Dutch VAT number carries them.
-        foreach ($this->labelled($folded, 'tax_id') as $candidate) {
+        foreach ($this->labelled($folded, 'tax_id', $workspaceId) as $candidate) {
             $value = mb_strtoupper((string) preg_replace('/[^a-z0-9]/', '', $candidate));
             $digits = (string) preg_replace('/\D/', '', $value);
 
@@ -536,12 +564,13 @@ class SuggestDocumentMetadata
      * is true of every country's and true of very little else.
      *
      * @param string $folded The extracted text, lowercased and ASCII-folded.
+     * @param string|null $workspaceId The workspace whose learned vocabulary to read with, if any.
      *
      * @return string|null The registration as written, uppercased, or null if the text holds none.
      */
-    private function vehicleRegistration(string $folded): ?string
+    private function vehicleRegistration(string $folded, ?string $workspaceId = null): ?string
     {
-        foreach ($this->labelled($folded, 'vehicle_registration') as $candidate) {
+        foreach ($this->labelled($folded, 'vehicle_registration', $workspaceId) as $candidate) {
             $value = (string) preg_replace('/[^a-z0-9]/', '', $candidate);
 
             $mixed = preg_match('/\d/', $value) === 1 && preg_match('/[a-z]/', $value) === 1;
@@ -570,14 +599,15 @@ class SuggestDocumentMetadata
      *
      * @param string $folded The extracted text, lowercased and ASCII-folded.
      * @param string $kind The kind whose labels to look for.
+     * @param string|null $workspaceId The workspace whose learned vocabulary to read with, if any.
      *
      * @return list<string> The matched values, still to be validated by the caller.
      */
-    private function labelled(string $folded, string $kind): array
+    private function labelled(string $folded, string $kind, ?string $workspaceId = null): array
     {
         $values = [];
 
-        foreach ($this->labelsFor($kind) as $label) {
+        foreach ($this->labelsFor($kind, $workspaceId) as $label) {
             preg_match_all('/\b' . $label . '\b/', $folded, $found, PREG_OFFSET_CAPTURE);
 
             foreach ($found[0] as [$matched, $offset]) {
@@ -602,20 +632,29 @@ class SuggestDocumentMetadata
     }
 
     /**
-     * The label words for one kind, from every configured language at once.
+     * The label words for one kind: every configured language, plus whatever
+     * this workspace has learned and accepted.
      *
      * All languages rather than the interface's: an archive holds an English
      * invoice and a Portuguese receipt side by side, and which one somebody
      * happens to be reading the application in says nothing about either.
      *
-     * @param string $kind The kind whose labels are wanted.
+     * The learned half is scoped to the workspace on purpose. A phrase mined
+     * from one archive's suppliers can be meaningless in another's, so a label
+     * that turns out to be a bad one degrades the readings of the workspace
+     * that accepted it and of nobody else. See LearnIntakeLabels.
      *
-     * @return list<string> The labels, folded and regex-quoted, longest first.
+     * @param string $kind The kind whose labels are wanted.
+     * @param string|null $workspaceId The workspace whose accepted labels to include, if any.
+     *
+     * @return list<string> The labels, folded, longest first.
      */
-    private function labelsFor(string $kind): array
+    public function knownLabels(string $kind, ?string $workspaceId = null): array
     {
-        if (isset($this->labels[$kind])) {
-            return $this->labels[$kind];
+        $cacheKey = $kind . ':' . ($workspaceId ?? '');
+
+        if (isset($this->labels[$cacheKey])) {
+            return $this->labels[$cacheKey];
         }
 
         $labels = [];
@@ -638,16 +677,66 @@ class SuggestDocumentMetadata
             }
         }
 
+        if ($workspaceId !== null) {
+            foreach (IntakeLabel::query()
+                ->accepted()
+                ->where('workspace_id', $workspaceId)
+                ->where('kind', $kind)
+                ->pluck('label') as $label) {
+                $labels[] = Str::ascii(mb_strtolower((string) $label));
+            }
+        }
+
         $labels = array_values(array_unique($labels));
 
         // Longest first, so "vat registration" is tried before "vat" and the
         // gap after the label is measured from the end of the longer phrase.
         usort($labels, static fn (string $first, string $second): int => mb_strlen($second) <=> mb_strlen($first));
 
-        return $this->labels[$kind] = array_map(
+        return $this->labels[$cacheKey] = $labels;
+    }
+
+    /**
+     * The same labels, ready to drop into a pattern.
+     *
+     * @param string $kind The kind whose labels are wanted.
+     * @param string|null $workspaceId The workspace whose accepted labels to include, if any.
+     *
+     * @return list<string> The labels, regex-quoted, longest first.
+     */
+    private function labelsFor(string $kind, ?string $workspaceId = null): array
+    {
+        $cacheKey = $kind . ':' . ($workspaceId ?? '');
+
+        return $this->quotedLabels[$cacheKey] ??= array_map(
             static fn (string $label): string => preg_quote($label, '/'),
-            $labels,
+            $this->knownLabels($kind, $workspaceId),
         );
+    }
+
+    /**
+     * Which kind of value a metadata key is holding, if any.
+     *
+     * The inverse of resolveKey(): that one asks where a finding should land,
+     * this one asks what a filled-in field was. Mining needs it to know that a
+     * workspace's field called "Nº Contribuinte" holds tax numbers, and so that
+     * the words in front of its values are candidate labels for that kind.
+     *
+     * @param string $key The metadata key as the user wrote it.
+     *
+     * @return string|null The kind it corresponds to, or null if it matches none.
+     */
+    public function kindForKey(string $key): ?string
+    {
+        $normalized = $this->normalizeKey($key);
+
+        foreach (self::LABEL_DRIVEN_KINDS as $kind) {
+            if (in_array($normalized, $this->aliasesFor($kind), true)) {
+                return $kind;
+            }
+        }
+
+        return null;
     }
 
     /**

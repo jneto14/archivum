@@ -254,6 +254,20 @@ return [
         | number is over twelve, ignore this and read correctly either way.
         */
         'date_order' => env('INTAKE_DATE_ORDER', 'day'),
+
+        /*
+        | How many documents must be seen writing the same words in front of the
+        | same kind of value before that phrase is offered as a label the reader
+        | could use (see LearnIntakeLabels).
+        |
+        | This is the threshold that keeps one supplier's layout from teaching
+        | the whole archive. Below it a phrase is evidence of nothing: any page
+        | has a word in front of any value. Raising it asks for more agreement
+        | before a workspace admin is troubled with the question; it never lets
+        | a phrase into the vocabulary on its own, because nothing enters it
+        | unaccepted.
+        */
+        'label_min_support' => (int) env('INTAKE_LABEL_MIN_SUPPORT', 3),
     ],
 
     /*

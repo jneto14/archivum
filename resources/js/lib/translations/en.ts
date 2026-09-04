@@ -553,6 +553,19 @@ export default {
     'workspace.settings.limits_documents_label': 'Document limit',
     'workspace.settings.limits_attachments_label': 'Attachment limit',
     'workspace.settings.limits_save_button': 'Save limits',
+    'workspace.settings.vocabulary_section_title': 'Learned vocabulary',
+    'workspace.settings.vocabulary_description':
+        'Words this archive was seen writing in front of a value. Accepting one teaches the reader to recognise that kind of value by it, in this workspace only. Nothing is used until you say so.',
+    'workspace.settings.vocabulary_pending_title': 'Waiting for an answer',
+    'workspace.settings.vocabulary_accepted_title': 'In use',
+    'workspace.settings.vocabulary_evidence_one': 'seen on :count document',
+    'workspace.settings.vocabulary_evidence_other': 'seen on :count documents',
+    'workspace.settings.vocabulary_accept': 'Use it',
+    'workspace.settings.vocabulary_reject': 'Ignore',
+    'workspace.settings.vocabulary_retire': 'Stop using',
+    'workspace.settings.vocabulary_kind_tax_id': 'Tax number',
+    'workspace.settings.vocabulary_kind_vehicle_registration':
+        'Vehicle registration',
     'workspace.settings.instance_section_title': 'Instance',
     'workspace.settings.instance_description':
         'Set via environment configuration — not editable here.',

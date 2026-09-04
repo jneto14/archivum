@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Console\Commands\LearnIntakeLabels;
 use App\Console\Commands\PruneExpiredDocumentExports;
 use App\Console\Commands\ResetDemo;
 use App\Support\DemoMode;
@@ -17,6 +18,17 @@ Schedule::command('activitylog:clean')->daily();
 | record worth keeping forever.
 */
 Schedule::command('queue:prune-failed', ['--hours' => 336])->daily();
+
+/*
+| Weekly, because it reads every document a workspace has and the answer it
+| gives moves at the speed of an archive being filled — a phrase that no three
+| documents agree on today will not be agreed on by tomorrow either.
+|
+| Safe to leave running unattended: everything it writes is a question for a
+| workspace admin, and nothing it finds is read by anything until one of them
+| says yes.
+*/
+Schedule::command(LearnIntakeLabels::class)->weeklyOn(1, '03:00');
 
 /*
 | Registered only on a demo installation, so an ordinary one has nothing

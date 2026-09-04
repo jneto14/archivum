@@ -33,6 +33,7 @@ import {
     destroy as destroyWorkspace,
     update as updateWorkspace,
 } from '@/routes/workspaces';
+import { update as updateIntakeLabel } from '@/routes/workspaces/intake-labels';
 import { update as updateWorkspaceLimits } from '@/routes/workspaces/limits';
 
 type Scheme = { id: string; name: string } | null;
@@ -59,8 +60,17 @@ type Props = {
         attachments_disk: string;
     };
     tokens: Token[];
+    intakeLabels: { pending: IntakeLabel[]; accepted: IntakeLabel[] };
     isPlatformAdmin: boolean;
     limits: WorkspaceLimits | null;
+};
+
+/** A phrase this archive was seen writing in front of a value. */
+type IntakeLabel = {
+    id: string;
+    kind: string;
+    label: string;
+    support: number;
 };
 
 const BYTES_PER_MB = 1024 * 1024;
@@ -70,6 +80,7 @@ export default function WorkspaceSettings({
     scheme,
     instance,
     tokens: apiTokens,
+    intakeLabels,
     isPlatformAdmin,
     limits,
 }: Props) {
@@ -155,6 +166,37 @@ export default function WorkspaceSettings({
         event.preventDefault();
 
         router.delete(destroyWorkspace.url(workspace.id));
+    };
+
+    /**
+     * A candidate is only worth answering with what stands behind it: which
+     * kind of value it was seen introducing, and on how many documents.
+     */
+    const kindLabel = (kind: string): string =>
+        kind === 'tax_id'
+            ? t('workspace.settings.vocabulary_kind_tax_id')
+            : kind === 'vehicle_registration'
+              ? t('workspace.settings.vocabulary_kind_vehicle_registration')
+              : kind;
+
+    const evidence = (support: number): string =>
+        support === 1
+            ? t('workspace.settings.vocabulary_evidence_one', {
+                  count: support,
+              })
+            : t('workspace.settings.vocabulary_evidence_other', {
+                  count: support,
+              });
+
+    const answerLabel = (
+        label: IntakeLabel,
+        status: 'accepted' | 'rejected',
+    ) => {
+        router.patch(
+            updateIntakeLabel.url([workspace.id, label.id]),
+            { status },
+            { preserveScroll: true },
+        );
     };
 
     return (
@@ -395,6 +437,108 @@ export default function WorkspaceSettings({
                                 </Button>
                             </div>
                         </form>
+                    </CardContent>
+                </Card>
+            )}
+
+            {(intakeLabels.pending.length > 0 ||
+                intakeLabels.accepted.length > 0) && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>
+                            {t('workspace.settings.vocabulary_section_title')}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <p className="text-xs text-muted-foreground">
+                            {t('workspace.settings.vocabulary_description')}
+                        </p>
+
+                        {intakeLabels.pending.length > 0 && (
+                            <div className="space-y-2">
+                                <p className="text-xs font-medium text-muted-foreground">
+                                    {t(
+                                        'workspace.settings.vocabulary_pending_title',
+                                    )}
+                                </p>
+                                {intakeLabels.pending.map((label) => (
+                                    <div
+                                        key={label.id}
+                                        className="flex flex-wrap items-center gap-2 rounded-md border p-3"
+                                    >
+                                        <div className="min-w-0 flex-1">
+                                            <div className="truncate text-sm font-medium">
+                                                {label.label}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {kindLabel(label.kind)} ·{' '}
+                                                {evidence(label.support)}
+                                            </div>
+                                        </div>
+                                        <Button
+                                            size="sm"
+                                            className="shrink-0"
+                                            onClick={() =>
+                                                answerLabel(label, 'accepted')
+                                            }
+                                        >
+                                            {t(
+                                                'workspace.settings.vocabulary_accept',
+                                            )}
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="shrink-0"
+                                            onClick={() =>
+                                                answerLabel(label, 'rejected')
+                                            }
+                                        >
+                                            {t(
+                                                'workspace.settings.vocabulary_reject',
+                                            )}
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {intakeLabels.accepted.length > 0 && (
+                            <div className="space-y-2">
+                                <p className="text-xs font-medium text-muted-foreground">
+                                    {t(
+                                        'workspace.settings.vocabulary_accepted_title',
+                                    )}
+                                </p>
+                                {intakeLabels.accepted.map((label) => (
+                                    <div
+                                        key={label.id}
+                                        className="flex flex-wrap items-center gap-2 rounded-md border p-3"
+                                    >
+                                        <div className="min-w-0 flex-1">
+                                            <div className="truncate text-sm font-medium">
+                                                {label.label}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {kindLabel(label.kind)}
+                                            </div>
+                                        </div>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="shrink-0"
+                                            onClick={() =>
+                                                answerLabel(label, 'rejected')
+                                            }
+                                        >
+                                            {t(
+                                                'workspace.settings.vocabulary_retire',
+                                            )}
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             )}

@@ -152,6 +152,45 @@ rare — and it fails by saying nothing rather than by suggesting something wron
 `archivum:backfill-suggestions` reads documents extracted before any of this
 existed; `--all` re-reads everything, for when these heuristics improve.
 
+### Vocabulary an archive learns for itself
+
+The shipped words cannot cover every way a document names things. A page
+writing "Steuernummer", or an abbreviation nobody thought of, is simply not
+read, and the only fix would be somebody noticing, reporting it and waiting for
+a release.
+
+But the archive is already holding the answer. Whenever a user fills in a field
+the reader missed, it keeps both the extracted text and the value they decided
+belonged in it. Find that value in that text, look at the words immediately in
+front of it, and the page has said what it calls the thing.
+
+`archivum:learn-intake-labels` does that across a workspace — weekly on the
+schedule, or by hand for one workspace with `--workspace=`. Nothing had to be
+captured up front for it: `ocr_text` and `metadata` are both retained, so an
+archive that has been running for years can be mined the first time it is run.
+
+**A bad label is not a private mistake.** It makes the reader confidently wrong
+across every document in the workspace, and a word common in prose would match
+prose. Four things stand in the way:
+
+| | |
+| --- | --- |
+| Only label-driven kinds | A date and an amount are read by their shape. The words in front of an amount are every heading on every invoice; the words in front of a tax number are a short, specific list. |
+| A support threshold | A phrase must recur across `INTAKE_LABEL_MIN_SUPPORT` documents in the same workspace (3 by default) before it is offered at all. |
+| A length floor | The word touching the value must be long enough to be a word, which keeps "de" and "nº" from being proposed alone while leaving them usable inside a longer phrase. |
+| Approval | Nothing enters the vocabulary unaccepted. Candidates wait on the workspace settings page for an admin to answer. |
+
+A rejection is recorded rather than simply not accepted, because the mining that
+proposed a phrase once will propose it again on every later run — without a no
+that sticks, an admin would spend the rest of the archive's life turning down
+the same word. Retiring a label already in use is the same write, for the same
+reason.
+
+Accepted labels are read alongside the ones in `lang/{locale}/intake.php`, and
+are **scoped to the workspace that accepted them**: a phrase mined from one
+archive's suppliers can be meaningless in another's, so a label that turns out
+to be a bad one degrades the readings of one workspace and of nobody else.
+
 ## The review queue
 
 Both of the above are found minutes after a document is registered, by which
