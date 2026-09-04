@@ -8,6 +8,7 @@ use App\Actions\Documents\CreateDocument;
 use App\Actions\Documents\DeleteAttachment;
 use App\Actions\Documents\FindDuplicateAttachment;
 use App\Actions\Documents\SearchDocuments;
+use App\Actions\Documents\SuggestDocumentMetadata;
 use App\Actions\Workspace\RetryTask;
 use App\Enums\OcrStatus;
 use App\Enums\TaskStatus;
@@ -419,6 +420,7 @@ class ExtractAttachmentTextTest extends TestCase
             app(AttachmentTextExtractor::class),
             app(TextFingerprint::class),
             app(FindDuplicateAttachment::class),
+            app(SuggestDocumentMetadata::class),
         );
 
         return $task;

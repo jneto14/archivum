@@ -64,17 +64,22 @@ class SuggestDocumentMetadata
     /** @var int How many recent documents of the same type are read to learn which keys that type actually uses. Enough to see the pattern, bounded so a large archive does not pay for it. */
     private const KEY_SAMPLE_SIZE = 50;
 
-    /**
-     * Suggest values for $document's empty fields from its extracted text.
-     *
-     * @param Document $document The document to suggest for; its `ocr_text` mirror is the source.
-     *
-     * @return list<array{kind: string, key: string, value: string}> The suggestions, at most one per kind, for fields that are still empty.
-     */
-    public function handle(Document $document): array
-    {
-        $text = $document->ocr_text;
+    /** @var array<string, list<string>> Keys in use, per "workspace:type" — see keysUsedByType(). */
+    private array $keysByType = [];
 
+    /**
+     * Read every kind of value this recognises out of a text.
+     *
+     * The objective half of the job, and the half worth storing: what the page
+     * says, regardless of which document it belongs to or what is already
+     * filled in on it. Run once when extraction completes.
+     *
+     * @param string|null $text The extracted text.
+     *
+     * @return list<array{kind: string, value: string}> One entry per kind that matched, in a fixed order.
+     */
+    public function extract(?string $text): array
+    {
         if (blank($text)) {
             return [];
         }
@@ -86,33 +91,61 @@ class SuggestDocumentMetadata
             'vehicle_registration' => $this->vehicleRegistration($text),
         ];
 
+        $findings = [];
+
+        foreach ($values as $kind => $value) {
+            if ($value !== null) {
+                $findings[] = ['kind' => $kind, 'value' => $value];
+            }
+        }
+
+        return $findings;
+    }
+
+    /**
+     * Suggest values for whichever of $document's fields are still empty.
+     *
+     * Which field a value belongs in, and whether that field is still empty,
+     * are both worked out here rather than stored: the document's type may
+     * gain keys and its fields may be filled in by hand long after extraction
+     * ran, and a suggestion for a field that now has a value in it is noise.
+     *
+     * @param Document $document The document to suggest for.
+     *
+     * @return list<array{kind: string, key: string, value: string}> The suggestions, at most one per kind, for fields that are still empty.
+     */
+    public function handle(Document $document): array
+    {
+        // Falls back to reading the text where nothing was stored, which is
+        // every document extracted before the column existed. Those simply do
+        // not appear in the review queue until they are extracted again.
+        $findings = $document->metadata_suggestions ?? $this->extract($document->ocr_text);
+
+        if ($findings === []) {
+            return [];
+        }
+
         $existingKeys = $this->keysUsedByType($document);
         $metadata = $document->metadata ?? [];
 
         $suggestions = [];
 
-        foreach ($values as $kind => $value) {
-            if ($value === null) {
-                continue;
-            }
+        foreach ($findings as $finding) {
+            ['kind' => $kind, 'value' => $value] = $finding;
 
             if ($kind === 'document_date') {
-                if ($document->document_date !== null) {
-                    continue;
+                if ($document->document_date === null) {
+                    $suggestions[] = ['kind' => $kind, 'key' => 'document_date', 'value' => $value];
                 }
-
-                $suggestions[] = ['kind' => $kind, 'key' => 'document_date', 'value' => $value];
 
                 continue;
             }
 
             $key = $this->resolveKey($kind, $existingKeys);
 
-            if (filled($metadata[$key] ?? null)) {
-                continue;
+            if (blank($metadata[$key] ?? null)) {
+                $suggestions[] = ['kind' => $kind, 'key' => $key, 'value' => $value];
             }
-
-            $suggestions[] = ['kind' => $kind, 'key' => $key, 'value' => $value];
         }
 
         return $suggestions;
@@ -287,6 +320,9 @@ class SuggestDocumentMetadata
     /**
      * Pick the metadata key a suggestion should land in.
      *
+     * Tolerant of a kind it does not know, because findings are read back from
+     * a column written by an earlier version of this class.
+     *
      * @param string $kind The kind of value being suggested.
      * @param list<string> $existingKeys Keys already used by this document's type, most used first.
      *
@@ -294,7 +330,7 @@ class SuggestDocumentMetadata
      */
     private function resolveKey(string $kind, array $existingKeys): string
     {
-        $aliases = self::KINDS[$kind]['aliases'];
+        $aliases = self::KINDS[$kind]['aliases'] ?? [];
 
         foreach ($existingKeys as $key) {
             if (in_array($this->normalizeKey($key), $aliases, true)) {
@@ -302,12 +338,20 @@ class SuggestDocumentMetadata
             }
         }
 
-        return self::KINDS[$kind]['key'];
+        return self::KINDS[$kind]['key'] ?? $kind;
     }
 
     /**
      * The metadata keys other documents of $document's type already use, most
      * common first.
+     *
+     * Memoised per type, because the review queue asks this for every document
+     * on the page and they are mostly of the same few types — without it that
+     * page is an N+1 that grows with how much there is to review.
+     *
+     * The excluded document is deliberately not part of the key: leaving one
+     * document out of a sample of fifty cannot change which key wins, and
+     * keying on it would defeat the memo entirely.
      *
      * @param Document $document The document whose type and workspace scope the search.
      *
@@ -315,6 +359,12 @@ class SuggestDocumentMetadata
      */
     private function keysUsedByType(Document $document): array
     {
+        $cacheKey = $document->workspace_id . ':' . $document->document_type_id;
+
+        if (isset($this->keysByType[$cacheKey])) {
+            return $this->keysByType[$cacheKey];
+        }
+
         $counts = [];
 
         Document::query()
@@ -333,7 +383,7 @@ class SuggestDocumentMetadata
 
         arsort($counts);
 
-        return array_map('strval', array_keys($counts));
+        return $this->keysByType[$cacheKey] = array_map('strval', array_keys($counts));
     }
 
     /**

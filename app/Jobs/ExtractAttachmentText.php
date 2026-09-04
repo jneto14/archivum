@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Actions\Documents\FindDuplicateAttachment;
+use App\Actions\Documents\SuggestDocumentMetadata;
 use App\Enums\OcrStatus;
 use App\Models\DocumentAttachment;
 use App\Models\Task;
@@ -69,6 +70,7 @@ class ExtractAttachmentText implements ShouldQueue
      * @param AttachmentTextExtractor $extractor Decides how to read the file and does it.
      * @param TextFingerprint $fingerprints Reduces the extracted text to a comparable fingerprint.
      * @param FindDuplicateAttachment $findDuplicate Looks for an earlier attachment with a matching fingerprint.
+     * @param SuggestDocumentMetadata $suggest Reads values out of the text for the document's empty fields.
      *
      * @return void No return value; updates the attachment, its task, the document's mirrored text and the search index as a side effect.
      */
@@ -76,6 +78,7 @@ class ExtractAttachmentText implements ShouldQueue
         AttachmentTextExtractor $extractor,
         TextFingerprint $fingerprints,
         FindDuplicateAttachment $findDuplicate,
+        SuggestDocumentMetadata $suggest,
     ): void {
         $this->attachment->markOcrProcessing();
         $this->task->markProcessing();
@@ -120,7 +123,14 @@ class ExtractAttachmentText implements ShouldQueue
             $this->fingerprint($extracted->text, $fingerprints, $findDuplicate);
         }
 
-        $this->attachment->document?->refreshOcrText();
+        $document = $this->attachment->document;
+
+        $document?->refreshOcrText();
+
+        // Read from the document's mirror rather than this attachment's text:
+        // a document is often several pages, and the date is on the one that
+        // happens to be extracted last as readily as the first.
+        $document?->recordMetadataSuggestions($suggest->extract($document->ocr_text));
 
         $this->task->markCompleted([
             'filename' => $this->attachment->filename,

@@ -29,6 +29,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon|null $document_date
  * @property array<string, mixed>|null $metadata
  * @property string|null $ocr_text
+ * @property array<int, array{kind: string, value: string}>|null $metadata_suggestions
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -74,6 +75,7 @@ class Document extends Model
         return [
             'document_date' => 'date',
             'metadata' => 'array',
+            'metadata_suggestions' => 'array',
         ];
     }
 
@@ -122,6 +124,23 @@ class Document extends Model
         $this->forceFill(['ocr_text' => $text === '' ? null : $text])->save();
 
         $this->searchable();
+    }
+
+    /**
+     * Record what this document's extracted text was found to contain, so the
+     * review queue can find it without re-reading every document.
+     *
+     * An empty list is stored as null — "nothing to review" and "not looked at
+     * yet" are the same thing to every reader of this column, and null is what
+     * the queue filters on.
+     *
+     * @param array<int, array{kind: string, value: string}> $findings What the heuristics read out of the text.
+     *
+     * @return void No return value; saves the model as a side effect.
+     */
+    public function recordMetadataSuggestions(array $findings): void
+    {
+        $this->forceFill(['metadata_suggestions' => $findings === [] ? null : $findings])->save();
     }
 
     /**

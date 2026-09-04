@@ -6,6 +6,7 @@ namespace Tests\Feature\Documents;
 
 use App\Actions\Documents\CreateDocument;
 use App\Actions\Documents\FindDuplicateAttachment;
+use App\Actions\Documents\SuggestDocumentMetadata;
 use App\Enums\TaskStatus;
 use App\Enums\TaskType;
 use App\Enums\WorkspaceRole;
@@ -245,6 +246,7 @@ class AttachmentDuplicateTest extends TestCase
             app(AttachmentTextExtractor::class),
             app(TextFingerprint::class),
             app(FindDuplicateAttachment::class),
+            app(SuggestDocumentMetadata::class),
         );
 
         return $attachment;

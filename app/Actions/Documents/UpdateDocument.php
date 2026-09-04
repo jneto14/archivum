@@ -10,8 +10,15 @@ use Illuminate\Support\Facades\DB;
 
 class UpdateDocument
 {
+    public function __construct(private readonly SuggestDocumentMetadata $suggest) {}
+
     /**
      * Update a Document's attributes and resync its tags.
+     *
+     * Also takes the document off the intake review queue once the edit has
+     * left nothing to suggest — whether the values were accepted from the
+     * suggestions or typed by hand, they are filled in either way, and a queue
+     * that lists documents with nothing waiting on them is one nobody trusts.
      *
      * @param Document $document The document to update.
      * @param DocumentType $type The document type to assign.
@@ -33,6 +40,10 @@ class UpdateDocument
             ]);
 
             $document->tags()->sync($tagIds);
+
+            if ($document->metadata_suggestions !== null && $this->suggest->handle($document) === []) {
+                $document->recordMetadataSuggestions([]);
+            }
 
             return $document;
         });
