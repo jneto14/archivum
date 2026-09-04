@@ -30,6 +30,8 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string|null $ocr_text
  * @property string|null $ocr_error
  * @property Carbon|null $ocr_extracted_at
+ * @property int|null $text_simhash
+ * @property string|null $duplicate_of_attachment_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -98,6 +100,7 @@ class DocumentAttachment extends Model
         return [
             'ocr_status' => OcrStatus::class,
             'ocr_extracted_at' => 'datetime',
+            'text_simhash' => 'integer',
         ];
     }
 
@@ -157,6 +160,17 @@ class DocumentAttachment extends Model
     }
 
     /**
+     * The earlier attachment this one appears to be another copy of, until
+     * somebody says otherwise.
+     *
+     * @return BelongsTo<DocumentAttachment, $this>
+     */
+    public function duplicateOf(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'duplicate_of_attachment_id');
+    }
+
+    /**
      * Mark that text extraction has started on this attachment.
      *
      * @return void No return value; persists the status as a side effect.
@@ -213,6 +227,37 @@ class DocumentAttachment extends Model
     public function markOcrFailed(string $error): void
     {
         $this->recordOcr(OcrStatus::Failed, error: $error);
+    }
+
+    /**
+     * Record what the fingerprint pass made of this attachment's text.
+     *
+     * Both halves land in one write because they are one conclusion: a
+     * fingerprint, and whichever earlier attachment it turned out to match.
+     *
+     * @param int|null $simhash The text's fingerprint, or null if there was too little text to fingerprint.
+     * @param DocumentAttachment|null $duplicateOf The earlier attachment this one appears to copy, if any.
+     *
+     * @return void No return value; saves the model as a side effect.
+     */
+    public function recordTextFingerprint(?int $simhash, ?self $duplicateOf = null): void
+    {
+        $this->forceFill([
+            'text_simhash' => $simhash,
+            'duplicate_of_attachment_id' => $duplicateOf?->id,
+        ])->save();
+    }
+
+    /**
+     * Drop the duplicate flag, because somebody has looked at it and decided to
+     * keep both copies. Deliberately permanent: a warning that returns on the
+     * next page load has not been dismissed.
+     *
+     * @return void No return value; saves the model as a side effect.
+     */
+    public function dismissDuplicate(): void
+    {
+        $this->forceFill(['duplicate_of_attachment_id' => null])->save();
     }
 
     /**

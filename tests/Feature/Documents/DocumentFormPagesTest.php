@@ -57,6 +57,44 @@ class DocumentFormPagesTest extends TestCase
             );
     }
 
+    public function test_the_edit_form_carries_what_the_scan_suggests_for_the_empty_fields()
+    {
+        $workspace = Workspace::factory()->create();
+        $creator = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $type = DocumentType::factory()->for($workspace)->create();
+        $document = app(CreateDocument::class)->handle($workspace, $creator->user, $type, 'Scan', null, null);
+
+        // `ocr_text` is a mirror maintained by extraction, never fillable — see
+        // Document::refreshOcrText().
+        $document->forceFill([
+            'ocr_text' => 'Fatura FT2026/1240 emitida em 20/08/2026, total a pagar 1.250,50 EUR.',
+        ])->save();
+
+        $this->actingAs($creator->user)
+            ->get(route('documents.edit', $document))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('documents/form')
+                ->where('metadataSuggestions.0.kind', 'document_date')
+                ->where('metadataSuggestions.0.value', '2026-08-20')
+                ->where('metadataSuggestions.1.kind', 'amount')
+                ->where('metadataSuggestions.1.value', '1250.50'),
+            );
+    }
+
+    public function test_the_create_form_has_no_suggestions_to_carry()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+
+        $this->actingAs($member->user)
+            ->get(route('documents.create', $workspace))
+            ->assertOk()
+            // A document being registered has no attachments yet, so the prop
+            // is absent rather than empty and the form falls back to none.
+            ->assertInertia(fn (Assert $page) => $page->missing('metadataSuggestions'));
+    }
+
     public function test_non_creator_member_cannot_view_the_edit_form()
     {
         $workspace = Workspace::factory()->create();

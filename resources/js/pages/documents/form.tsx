@@ -5,6 +5,8 @@ import { useState } from 'react';
 import DocumentController from '@/actions/App/Http/Controllers/Documents/DocumentController';
 import { DatePicker } from '@/components/date-picker';
 import InputError from '@/components/input-error';
+import { MetadataSuggestions } from '@/components/metadata-suggestions';
+import type { MetadataSuggestion } from '@/components/metadata-suggestions';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
@@ -29,6 +31,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useTranslation } from '@/hooks/use-translation';
+import { randomId } from '@/lib/utils';
 import {
     edit as documentEdit,
     index as documentsIndex,
@@ -52,6 +55,8 @@ type Props = {
     document: DocumentFormValue | null;
     documentTypes: DocumentType[];
     tags: Tag[];
+    /** Absent when registering a document: there are no attachments to read yet. */
+    metadataSuggestions?: MetadataSuggestion[];
 };
 
 export default function DocumentForm({
@@ -59,6 +64,7 @@ export default function DocumentForm({
     document,
     documentTypes,
     tags: workspaceTags,
+    metadataSuggestions = [],
 }: Props) {
     const isEditing = document !== null;
 
@@ -127,7 +133,7 @@ export default function DocumentForm({
     const addMetadataPair = () =>
         setMetadataPairs([
             ...metadataPairs,
-            { id: `added:${crypto.randomUUID()}`, key: '', value: '' },
+            { id: `added:${randomId()}`, key: '', value: '' },
         ]);
     const removeMetadataPair = (index: number) =>
         setMetadataPairs(metadataPairs.filter((_, i) => i !== index));
@@ -141,6 +147,36 @@ export default function DocumentForm({
                 i === index ? { ...pair, [field]: value } : pair,
             ),
         );
+
+    /**
+     * Fill a suggested value in, without saving: the date field for a date,
+     * and otherwise the metadata row for its key — updating one that already
+     * exists rather than adding a second row with the same name.
+     */
+    const acceptSuggestion = (suggestion: MetadataSuggestion) => {
+        if (suggestion.kind === 'document_date') {
+            form.setData('document_date', suggestion.value);
+
+            return;
+        }
+
+        setMetadataPairs((pairs) =>
+            pairs.some((pair) => pair.key === suggestion.key)
+                ? pairs.map((pair) =>
+                      pair.key === suggestion.key
+                          ? { ...pair, value: suggestion.value }
+                          : pair,
+                  )
+                : [
+                      ...pairs,
+                      {
+                          id: `suggested:${suggestion.key}`,
+                          key: suggestion.key,
+                          value: suggestion.value,
+                      },
+                  ],
+        );
+    };
 
     const createTag = () => {
         if (newTagName.trim() === '') {
@@ -363,6 +399,10 @@ export default function DocumentForm({
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3">
+                            <MetadataSuggestions
+                                suggestions={metadataSuggestions}
+                                onAccept={acceptSuggestion}
+                            />
                             {metadataPairs.map((pair, index) => (
                                 <div
                                     key={pair.id}

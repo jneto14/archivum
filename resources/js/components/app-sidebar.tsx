@@ -2,6 +2,7 @@ import { router, usePage } from '@inertiajs/react';
 import {
     Activity,
     Archive,
+    ClipboardCheck,
     FileStack,
     FileText,
     FolderTree,
@@ -28,7 +29,10 @@ import { WorkspaceSwitcher } from '@/components/workspace-switcher';
 import { useTranslation } from '@/hooks/use-translation';
 import { dashboard } from '@/routes';
 import { index as documentTypesIndex } from '@/routes/document-types';
-import { index as documentsIndex } from '@/routes/documents';
+import {
+    index as documentsIndex,
+    review as documentsReview,
+} from '@/routes/documents';
 import {
     create as schemeCreate,
     show as schemeShow,
@@ -54,6 +58,7 @@ export function AppSidebar() {
         isWorkspaceAdmin,
         canSwitchWorkspace,
         documentsCount,
+        intakeReviewCount,
         workspace,
         organizationSchemeId,
     } = usePage().props;
@@ -81,6 +86,16 @@ export function AppSidebar() {
             icon: FileText,
             disabled: !workspace,
             badge: documentsCount,
+        },
+        // Always listed, badge or no badge. Hiding it while empty made the
+        // feature impossible to find at all — and left no way to tell "nothing
+        // is waiting" apart from "this is broken".
+        {
+            title: t('nav.review'),
+            href: workspace ? documentsReview.url(workspace.id) : '#',
+            icon: ClipboardCheck,
+            disabled: !workspace,
+            badge: intakeReviewCount ? intakeReviewCount : undefined,
         },
         {
             title: t('nav.physical_storage'),

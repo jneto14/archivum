@@ -2,6 +2,7 @@ import { Head, router, setLayoutProps, usePage } from '@inertiajs/react';
 import { DownloadIcon, EyeIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
+import AttachmentController from '@/actions/App/Http/Controllers/Documents/AttachmentController';
 import { DocumentCaptureDialog } from '@/components/document-capture-dialog';
 import { DocumentPreviewDialog } from '@/components/document-preview-dialog';
 import InputError from '@/components/input-error';
@@ -20,7 +21,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { useDateFormatter } from '@/hooks/use-date-formatter';
 import { useTranslation } from '@/hooks/use-translation';
-import { formatBytes } from '@/lib/utils';
+import { formatBytes, randomId } from '@/lib/utils';
 import {
     destroy as attachmentDestroy,
     show as attachmentShow,
@@ -30,6 +31,7 @@ import {
     edit as documentEdit,
     index as documentsIndex,
     move as moveStore,
+    show as documentShow,
 } from '@/routes/documents';
 
 type LocationSuggestion = {
@@ -57,6 +59,12 @@ type AttachmentRow = {
     ocr_status: OcrStatus;
     created_at: string;
     uploader: { id: string; name: string } | null;
+    /** An earlier attachment with near-identical text, until somebody dismisses the warning. */
+    duplicate_of: {
+        document_id: string;
+        document_title: string | null;
+        filename: string;
+    } | null;
 };
 
 /**
@@ -92,6 +100,8 @@ type Props = {
     };
     canFile: boolean;
     locationSuggestions: LocationSuggestion[];
+    /** How many values the extracted text has to offer for fields still empty. The values themselves live on the edit form, which is where they can be accepted. */
+    metadata_suggestions_count: number;
     active_capture_session: { id: string; photos_count: number } | null;
 };
 
@@ -99,6 +109,7 @@ export default function DocumentShow({
     document,
     canFile,
     locationSuggestions,
+    metadata_suggestions_count: metadataSuggestionsCount,
     active_capture_session: activeCaptureSession,
 }: Props) {
     const t = useTranslation();
@@ -146,7 +157,7 @@ export default function DocumentShow({
         if (picked.length > 0) {
             setQueue((current) => [
                 ...current,
-                ...picked.map((file) => ({ id: crypto.randomUUID(), file })),
+                ...picked.map((file) => ({ id: randomId(), file })),
             ]);
             setUploadError(undefined);
         }
@@ -269,6 +280,36 @@ export default function DocumentShow({
                                         </div>
                                     ))}
                                 </div>
+                                {metadataSuggestionsCount > 0 && (
+                                    <div className="mt-4 flex flex-wrap items-center gap-2 rounded-md border border-dashed p-3">
+                                        <p className="min-w-0 flex-1 text-sm text-muted-foreground">
+                                            {t(
+                                                metadataSuggestionsCount === 1
+                                                    ? 'documents.show.metadata_suggestions_one'
+                                                    : 'documents.show.metadata_suggestions_other',
+                                                {
+                                                    count: metadataSuggestionsCount,
+                                                },
+                                            )}
+                                        </p>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="shrink-0"
+                                            onClick={() =>
+                                                router.visit(
+                                                    documentEdit.url(
+                                                        document.id,
+                                                    ),
+                                                )
+                                            }
+                                        >
+                                            {t(
+                                                'documents.show.metadata_suggestions_review',
+                                            )}
+                                        </Button>
+                                    </div>
+                                )}
                                 <div className="mt-4 flex flex-wrap gap-1.5 border-t pt-4">
                                     {(document.tags ?? []).map((tag) => (
                                         <Badge key={tag.id} variant="outline">
@@ -386,86 +427,142 @@ export default function DocumentShow({
                                             ocrStatusKeys[
                                                 attachment.ocr_status
                                             ];
+                                        const duplicate =
+                                            attachment.duplicate_of;
 
                                         return (
                                             <div
                                                 key={attachment.id}
-                                                className="flex items-center gap-3 rounded-md border p-2"
+                                                className="space-y-2 rounded-md border p-2"
                                             >
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="truncate text-sm font-medium">
-                                                        {attachment.filename}
+                                                <div className="flex items-center gap-3">
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="truncate text-sm font-medium">
+                                                            {
+                                                                attachment.filename
+                                                            }
+                                                        </div>
+                                                        <div className="text-xs text-muted-foreground">
+                                                            {formatBytes(
+                                                                attachment.size,
+                                                            )}
+                                                            {ocrKey && (
+                                                                <>
+                                                                    {' · '}
+                                                                    <span
+                                                                        className={
+                                                                            attachment.ocr_status ===
+                                                                            'failed'
+                                                                                ? 'text-destructive'
+                                                                                : undefined
+                                                                        }
+                                                                    >
+                                                                        {t(
+                                                                            ocrKey,
+                                                                        )}
+                                                                    </span>
+                                                                </>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        {formatBytes(
-                                                            attachment.size,
-                                                        )}
-                                                        {ocrKey && (
-                                                            <>
-                                                                {' · '}
-                                                                <span
-                                                                    className={
-                                                                        attachment.ocr_status ===
-                                                                        'failed'
-                                                                            ? 'text-destructive'
-                                                                            : undefined
-                                                                    }
-                                                                >
-                                                                    {t(ocrKey)}
-                                                                </span>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                {(attachment.mime_type ===
-                                                    'application/pdf' ||
-                                                    attachment.mime_type.startsWith(
-                                                        'image/',
-                                                    )) && (
+                                                    {(attachment.mime_type ===
+                                                        'application/pdf' ||
+                                                        attachment.mime_type.startsWith(
+                                                            'image/',
+                                                        )) && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            title={t(
+                                                                'documents.show.preview_button',
+                                                            )}
+                                                            onClick={() =>
+                                                                setPreviewAttachment(
+                                                                    attachment,
+                                                                )
+                                                            }
+                                                        >
+                                                            <EyeIcon />
+                                                        </Button>
+                                                    )}
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        title={t(
-                                                            'documents.show.preview_button',
-                                                        )}
+                                                        asChild
+                                                    >
+                                                        <a
+                                                            href={attachmentShow.url(
+                                                                attachment.id,
+                                                            )}
+                                                        >
+                                                            <DownloadIcon />
+                                                        </a>
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
                                                         onClick={() =>
-                                                            setPreviewAttachment(
-                                                                attachment,
+                                                            router.delete(
+                                                                attachmentDestroy.url(
+                                                                    attachment.id,
+                                                                ),
+                                                                {
+                                                                    preserveScroll: true,
+                                                                },
                                                             )
                                                         }
                                                     >
-                                                        <EyeIcon />
+                                                        <Trash2Icon />
                                                     </Button>
+                                                </div>
+                                                {duplicate && (
+                                                    <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted p-2">
+                                                        <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+                                                            {t(
+                                                                'documents.show.duplicate_warning',
+                                                            )}{' '}
+                                                            <span className="font-medium text-foreground">
+                                                                {duplicate.document_title ??
+                                                                    duplicate.filename}
+                                                            </span>
+                                                        </p>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="shrink-0"
+                                                            onClick={() =>
+                                                                router.visit(
+                                                                    documentShow.url(
+                                                                        duplicate.document_id,
+                                                                    ),
+                                                                )
+                                                            }
+                                                        >
+                                                            {t(
+                                                                'documents.show.duplicate_open',
+                                                            )}
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="shrink-0"
+                                                            onClick={() =>
+                                                                router.delete(
+                                                                    AttachmentController.dismissDuplicate.url(
+                                                                        attachment.id,
+                                                                    ),
+                                                                    {
+                                                                        preserveScroll: true,
+                                                                    },
+                                                                )
+                                                            }
+                                                        >
+                                                            {t(
+                                                                'documents.show.duplicate_dismiss',
+                                                            )}
+                                                        </Button>
+                                                    </div>
                                                 )}
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    asChild
-                                                >
-                                                    <a
-                                                        href={attachmentShow.url(
-                                                            attachment.id,
-                                                        )}
-                                                    >
-                                                        <DownloadIcon />
-                                                    </a>
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        router.delete(
-                                                            attachmentDestroy.url(
-                                                                attachment.id,
-                                                            ),
-                                                            {
-                                                                preserveScroll: true,
-                                                            },
-                                                        )
-                                                    }
-                                                >
-                                                    <Trash2Icon />
-                                                </Button>
                                             </div>
                                         );
                                     },

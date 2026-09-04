@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Actions\Documents\FindDuplicateAttachment;
+use App\Actions\Documents\SuggestDocumentMetadata;
 use App\Enums\OcrStatus;
 use App\Models\DocumentAttachment;
 use App\Models\Task;
 use App\Services\Ocr\AttachmentTextExtractor;
+use App\Services\Ocr\TextFingerprint;
 use App\Services\Ocr\UnreadableAttachment;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -65,11 +68,18 @@ class ExtractAttachmentText implements ShouldQueue
 
     /**
      * @param AttachmentTextExtractor $extractor Decides how to read the file and does it.
+     * @param TextFingerprint $fingerprints Reduces the extracted text to a comparable fingerprint.
+     * @param FindDuplicateAttachment $findDuplicate Looks for an earlier attachment with a matching fingerprint.
+     * @param SuggestDocumentMetadata $suggest Reads values out of the text for the document's empty fields.
      *
      * @return void No return value; updates the attachment, its task, the document's mirrored text and the search index as a side effect.
      */
-    public function handle(AttachmentTextExtractor $extractor): void
-    {
+    public function handle(
+        AttachmentTextExtractor $extractor,
+        TextFingerprint $fingerprints,
+        FindDuplicateAttachment $findDuplicate,
+        SuggestDocumentMetadata $suggest,
+    ): void {
         $this->attachment->markOcrProcessing();
         $this->task->markProcessing();
 
@@ -109,7 +119,20 @@ class ExtractAttachmentText implements ShouldQueue
             ),
         };
 
-        $this->attachment->document?->refreshOcrText();
+        if ($extracted->status === OcrStatus::Completed) {
+            $this->fingerprint($extracted->text, $fingerprints, $findDuplicate);
+        }
+
+        $document = $this->attachment->document;
+
+        $document?->refreshOcrText();
+
+        // Read from the document's mirror rather than this attachment's text:
+        // a document is often several pages, and the date is on the one that
+        // happens to be extracted last as readily as the first.
+        if ($document !== null) {
+            $suggest->record($document);
+        }
 
         $this->task->markCompleted([
             'filename' => $this->attachment->filename,
@@ -117,6 +140,37 @@ class ExtractAttachmentText implements ShouldQueue
             'outcome' => $extracted->status->value,
             'characters' => mb_strlen($extracted->text),
         ]);
+    }
+
+    /**
+     * Fingerprint the extracted text and flag whatever it duplicates.
+     *
+     * Anything that goes wrong here is reported and swallowed. The text is what
+     * this job exists to produce and it is already stored; failing the job over
+     * a suggestion-grade extra would throw that away and retry the whole OCR
+     * run to get it back.
+     *
+     * @param string $text The text just extracted.
+     * @param TextFingerprint $fingerprints Reduces the text to a comparable fingerprint.
+     * @param FindDuplicateAttachment $findDuplicate Looks for an earlier attachment with a matching fingerprint.
+     *
+     * @return void No return value; updates the attachment as a side effect.
+     */
+    private function fingerprint(
+        string $text,
+        TextFingerprint $fingerprints,
+        FindDuplicateAttachment $findDuplicate,
+    ): void {
+        try {
+            $simhash = $fingerprints->simhash($text);
+
+            $this->attachment->recordTextFingerprint(
+                $simhash,
+                $simhash === null ? null : $findDuplicate->handle($this->attachment, $simhash),
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+        }
     }
 
     /**

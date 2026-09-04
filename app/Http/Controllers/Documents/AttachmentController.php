@@ -120,4 +120,22 @@ class AttachmentController extends Controller
 
         return back();
     }
+
+    /**
+     * Dismiss an attachment's duplicate warning, keeping both copies.
+     *
+     * @param DocumentAttachment $attachment The attachment whose warning is dismissed.
+     *
+     * @return RedirectResponse Redirect back to the previous page.
+     *
+     * @throws AuthorizationException If the current user cannot update $attachment.
+     */
+    public function dismissDuplicate(DocumentAttachment $attachment): RedirectResponse
+    {
+        $this->authorize('update', $attachment);
+
+        $attachment->dismissDuplicate();
+
+        return back();
+    }
 }

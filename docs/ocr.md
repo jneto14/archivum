@@ -108,6 +108,70 @@ queue retry_after  >  worker --timeout  >=  job timeout  >=  max_pages × ocr.ti
 All of them derive from `OCR_MAX_PAGES` and `OCR_TIMEOUT`, so raising the page
 cap moves the whole chain. `QueueTimeoutTest` fails if it stops holding.
 
+## What is made of the text
+
+Two things, both once extraction completes and both on the queue, so nothing is
+computed while somebody waits for a page.
+
+**A fingerprint, to catch a document filed twice.** The text is reduced to a
+64-bit SimHash (`TextFingerprint`) and compared against every other attachment
+in the same workspace; anything within `INTAKE_DUPLICATE_MAX_DISTANCE` bits is
+recorded on the attachment as the copy it appears to be of, and the document
+page says so with a link and a way to dismiss it. A plain hash would be useless
+here — the case worth catching is one page scanned twice, and OCR reads a few
+characters differently on each pass.
+
+Shingles carrying a number count for four, which is what makes the threshold
+work at all: two invoices from the same supplier are the same page of prose with
+a different number, a different date and a different total, and measured plain
+they sit as close as a rescan does.
+
+**Suggested values, to save typing them.** `SuggestDocumentMetadata` reads dates,
+amounts, tax numbers and vehicle registrations out of the text. Nothing is
+written without being accepted. See [documents.md](documents.md) for how a
+suggestion decides which key it belongs in.
+
+A value is recognised by the **words in front of it**, not by its format:
+"VAT registration 501 234 567" is a tax number because of what introduces it,
+which needs to know nothing about the country that issued it. That vocabulary
+lives in `lang/{locale}/intake.php`, so adding a language to `archivum.locales`
+and translating that file is the whole of teaching this a new country — there is
+no list of countries in the code. Every configured language is searched at once,
+because an archive holds an English invoice and a Portuguese receipt side by
+side, and month names come from `intl` for the same reason.
+
+Two kinds need no vocabulary, because their formats are not national: a date,
+and a number written to exactly two decimals (largest wins — an invoice's total
+is no smaller than the lines above it). The one thing left that a country
+decides is whether `03/04/2026` is March or April, which is
+`INTAKE_DATE_ORDER`.
+
+The cost of reading by label is a value printed with no label at all, which is
+rare — and it fails by saying nothing rather than by suggesting something wrong.
+
+`archivum:backfill-suggestions` reads documents extracted before any of this
+existed; `--all` re-reads everything, for when these heuristics improve.
+
+## The review queue
+
+Both of the above are found minutes after a document is registered, by which
+time whoever registered it is filing the next one — and there is no bulk
+registration, so an archive is built one document at a time. Waiting for each
+document's own page to be revisited would mean nothing is ever confirmed.
+
+So the findings are collected on **To review** (`documents.review`), a
+workspace-wide queue: one row per document, its suggested values ticked by
+default, applied or dismissed in a click. Flagged duplicates are listed below
+it. The sidebar carries the count, which costs one query on every request and is
+the reason the queue is used at all.
+
+What is stored is only *what the text said* — kind and value, on
+`documents.metadata_suggestions`. Which field each value belongs in, and whether
+that field is still empty, are worked out when the suggestions are read: both
+change after extraction ran, and a queue offering to fill a field that already
+has a value in it is one people stop trusting. The column is emptied when the
+document is reviewed, and on any edit that leaves nothing to suggest.
+
 ## Searching it
 
 See [search.md](search.md) for the two modes, and why the extracted text is

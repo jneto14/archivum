@@ -35,6 +35,7 @@ export default {
     'nav.group_configuration': 'Configuração',
     'nav.dashboard': 'Dashboard',
     'nav.documents': 'Documentos',
+    'nav.review': 'Por rever',
     'nav.physical_storage': 'Armazenamento físico',
     'nav.activity': 'Atividade',
     'nav.tasks': 'Tarefas',
@@ -108,6 +109,14 @@ export default {
     'documents.form.new_tag_placeholder': 'Nome da nova etiqueta',
     'documents.form.new_tag_button': 'Nova etiqueta',
     'documents.form.metadata_section_title': 'Metadados',
+    'documents.form.suggestions_title': 'Sugerido pela digitalização',
+    'documents.form.suggestions_description':
+        'Lido dos anexos deste documento. Nada é guardado até gravares o formulário.',
+    'documents.form.suggestion_document_date_label': 'Data do documento',
+    'documents.form.suggestion_use_button': 'Usar',
+    'documents.form.suggestion_use_label': 'Usar :value em :field',
+    'documents.form.suggestion_ignore_button': 'Ignorar',
+    'documents.form.suggestion_ignore_label': 'Ignorar a sugestão para :field',
     'documents.form.metadata_key_placeholder': 'Chave',
     'documents.form.metadata_value_placeholder': 'Valor',
     'documents.form.add_field_button': 'Adicionar campo',
@@ -124,6 +133,24 @@ export default {
     'documents.form.delete_dialog_cancel': 'Cancelar',
     'documents.form.delete_confirm_button': 'Eliminar documento',
 
+    'documents.review.breadcrumb_documents': 'Documentos',
+    'documents.review.page_title': 'Por rever',
+    'documents.review.description':
+        'O que foi lido das digitalizações recentes, à espera que confirmes.',
+    'documents.review.empty_title': 'Nada por rever',
+    'documents.review.empty_description':
+        'Os detalhes lidos de uma digitalização aparecem aqui assim que o texto for extraído.',
+    'documents.review.suggestions_title': 'Detalhes sugeridos',
+    'documents.review.document_date_label': 'Data do documento',
+    'documents.review.apply_button': 'Aplicar (:count)',
+    'documents.review.skip_button': 'Não é nada disto',
+    'documents.review.duplicates_title': 'Possíveis duplicados',
+    'documents.review.duplicates_description':
+        'Estas digitalizações leem-se quase como uma que já está arquivada.',
+    'documents.review.duplicate_of': ':filename parece “:document”',
+    'documents.review.open_original': 'Abrir o original',
+    'documents.review.keep_both': 'Manter os dois',
+
     'documents.show.breadcrumb_documents': 'Documentos',
     'documents.show.edit_button': 'Editar',
     'documents.show.move_document_button': 'Mover documento',
@@ -132,6 +159,14 @@ export default {
         'O arquivamento é apenas para administradores',
     'documents.show.metadata_title': 'Metadados',
     'documents.show.document_date_label': 'Data do documento',
+    'documents.show.metadata_suggestions_one':
+        ':count detalhe sugerido pela digitalização',
+    'documents.show.metadata_suggestions_other':
+        ':count detalhes sugeridos pela digitalização',
+    'documents.show.metadata_suggestions_review': 'Rever',
+    'documents.show.duplicate_warning': 'Parece um documento que já tens:',
+    'documents.show.duplicate_open': 'Abrir',
+    'documents.show.duplicate_dismiss': 'Manter os dois',
     'documents.show.attachments_title': 'Anexos',
     'documents.show.choose_files_button': 'Escolher ficheiros',
     'documents.show.upload_button': 'Carregar',

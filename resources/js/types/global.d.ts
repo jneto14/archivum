@@ -27,6 +27,8 @@ declare module '@inertiajs/core' {
             canSwitchWorkspace: boolean;
             isWorkspaceAdmin: boolean;
             documentsCount: number | null;
+            /** Documents with suggestions plus attachments flagged as duplicates, for the sidebar badge. */
+            intakeReviewCount: number | null;
             organizationSchemeId: string | null;
             [key: string]: unknown;
         };

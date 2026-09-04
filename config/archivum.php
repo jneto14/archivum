@@ -214,6 +214,50 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Intake
+    |--------------------------------------------------------------------------
+    |
+    | What is made of an attachment's text once it has been extracted, beyond
+    | indexing it for search: values suggested for the document's metadata, and
+    | a check for something that looks like it is already filed.
+    |
+    */
+
+    'intake' => [
+        /*
+        | How many of a 64-bit fingerprint's bits may differ before two
+        | attachments stop counting as the same document.
+        |
+        | Zero would only ever match an identical text, which defeats the point:
+        | the case worth catching is one page scanned twice, where OCR reads
+        | some characters differently each time. On realistic samples a rescan
+        | lands 10-19 bits away, two invoices from the same supplier land around
+        | 29, and unrelated documents around 31 — so 20 catches the first
+        | without reaching the other two. Lower it if duplicates are being
+        | reported that are not duplicates.
+        */
+        'duplicate_max_distance' => (int) env('INTAKE_DUPLICATE_MAX_DISTANCE', 20),
+
+        /*
+        | Word triples a text must yield before it is fingerprinted at all. A
+        | SimHash over a few tokens carries almost no signal and would report
+        | every near-empty scan as a duplicate of every other.
+        */
+        'duplicate_min_shingles' => (int) env('INTAKE_DUPLICATE_MIN_SHINGLES', 20),
+
+        /*
+        | Which number comes first in a date written `03/04/2026`: 'day' or
+        | 'month'. Genuinely ambiguous, and the one thing about reading a
+        | document that a country still decides — everything else is recognised
+        | by the words around it, in whichever languages are configured (see
+        | lang/{locale}/intake.php). Dates written out, and dates whose first
+        | number is over twelve, ignore this and read correctly either way.
+        */
+        'date_order' => env('INTAKE_DATE_ORDER', 'day'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Locales
     |--------------------------------------------------------------------------
     |

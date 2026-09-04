@@ -117,6 +117,51 @@ class DocumentShowTest extends TestCase
             );
     }
 
+    public function test_the_page_names_the_document_a_duplicate_scan_was_already_filed_under()
+    {
+        Storage::fake('local');
+
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $type = DocumentType::factory()->for($workspace)->create();
+
+        $original = app(CreateDocument::class)->handle($workspace, $member->user, $type, 'Manutencao agosto', null, null);
+        $copy = app(CreateDocument::class)->handle($workspace, $member->user, $type, 'Scan sem titulo', null, null);
+
+        $file = fn () => UploadedFile::fake()->create('scan.pdf', 100, 'application/pdf');
+        $filed = app(UploadAttachment::class)->handle($original, $file(), $member->user);
+        $duplicate = app(UploadAttachment::class)->handle($copy, $file(), $member->user);
+
+        // What extraction concludes is covered by AttachmentDuplicateTest; this
+        // is only about the flag reaching the page that has to show it.
+        $duplicate->recordTextFingerprint(1234, $filed);
+
+        $this->actingAs($member->user)
+            ->get(route('documents.show', $copy))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('document.attachments.0.duplicate_of.document_id', $original->id)
+                ->where('document.attachments.0.duplicate_of.document_title', 'Manutencao agosto'),
+            );
+    }
+
+    public function test_the_page_says_how_many_details_the_scan_has_to_suggest()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $type = DocumentType::factory()->for($workspace)->create();
+        $document = app(CreateDocument::class)->handle($workspace, $member->user, $type, 'Scan', null, null);
+
+        $document->forceFill([
+            'ocr_text' => 'Fatura emitida em 20/08/2026, total a pagar 1.250,50 EUR.',
+        ])->save();
+
+        $this->actingAs($member->user)
+            ->get(route('documents.show', $document))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('metadata_suggestions_count', 2));
+    }
+
     public function test_an_active_capture_session_is_reported_to_the_desktop_page()
     {
         $workspace = Workspace::factory()->create();

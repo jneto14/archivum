@@ -34,6 +34,7 @@ export default {
     'nav.group_configuration': 'Configuration',
     'nav.dashboard': 'Dashboard',
     'nav.documents': 'Documents',
+    'nav.review': 'To review',
     'nav.physical_storage': 'Physical storage',
     'nav.activity': 'Activity',
     'nav.tasks': 'Tasks',
@@ -105,6 +106,15 @@ export default {
     'documents.form.new_tag_placeholder': 'New tag name',
     'documents.form.new_tag_button': 'New tag',
     'documents.form.metadata_section_title': 'Metadata',
+    'documents.form.suggestions_title': 'Suggested from the scan',
+    'documents.form.suggestions_description':
+        'Read from this document’s attachments. Nothing is saved until you save the form.',
+    'documents.form.suggestion_document_date_label': 'Document date',
+    'documents.form.suggestion_use_button': 'Use',
+    'documents.form.suggestion_use_label': 'Use :value for :field',
+    'documents.form.suggestion_ignore_button': 'Ignore',
+    'documents.form.suggestion_ignore_label':
+        'Ignore the suggestion for :field',
     'documents.form.metadata_key_placeholder': 'Key',
     'documents.form.metadata_value_placeholder': 'Value',
     'documents.form.add_field_button': 'Add field',
@@ -121,6 +131,24 @@ export default {
     'documents.form.delete_dialog_cancel': 'Cancel',
     'documents.form.delete_confirm_button': 'Delete document',
 
+    'documents.review.breadcrumb_documents': 'Documents',
+    'documents.review.page_title': 'To review',
+    'documents.review.description':
+        'What was read from recently filed scans, waiting on you to confirm it.',
+    'documents.review.empty_title': 'Nothing to review',
+    'documents.review.empty_description':
+        'Details read from a scan show up here once its text has been extracted.',
+    'documents.review.suggestions_title': 'Suggested details',
+    'documents.review.document_date_label': 'Document date',
+    'documents.review.apply_button': 'Apply (:count)',
+    'documents.review.skip_button': 'Nothing here',
+    'documents.review.duplicates_title': 'Possible duplicates',
+    'documents.review.duplicates_description':
+        'These scans read almost the same as one already filed.',
+    'documents.review.duplicate_of': ':filename looks like “:document”',
+    'documents.review.open_original': 'Open the original',
+    'documents.review.keep_both': 'Keep both',
+
     'documents.show.breadcrumb_documents': 'Documents',
     'documents.show.edit_button': 'Edit',
     'documents.show.move_document_button': 'Move document',
@@ -128,6 +156,15 @@ export default {
     'documents.show.filing_admin_only': 'Filing is admin-only',
     'documents.show.metadata_title': 'Metadata',
     'documents.show.document_date_label': 'Document date',
+    'documents.show.metadata_suggestions_one':
+        ':count detail suggested from the scan',
+    'documents.show.metadata_suggestions_other':
+        ':count details suggested from the scan',
+    'documents.show.metadata_suggestions_review': 'Review',
+    'documents.show.duplicate_warning':
+        'Looks like a document you already have:',
+    'documents.show.duplicate_open': 'Open it',
+    'documents.show.duplicate_dismiss': 'Keep both',
     'documents.show.attachments_title': 'Attachments',
     'documents.show.choose_files_button': 'Choose files',
     'documents.show.upload_button': 'Upload',

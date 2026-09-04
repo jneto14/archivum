@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Documents;
 use App\Actions\Documents\CreateDocument;
 use App\Actions\Documents\DeleteDocument;
 use App\Actions\Documents\SearchDocuments;
+use App\Actions\Documents\SuggestDocumentMetadata;
 use App\Actions\Documents\UpdateDocument;
 use App\Actions\Organization\SuggestDocumentLocations;
 use App\Enums\SearchMode;
@@ -105,6 +106,7 @@ class DocumentController extends Controller
             'tags',
             'currentLocation.node.level.scheme',
             'attachments.uploader',
+            'attachments.duplicateOf.document',
             'locations.node',
             'creator',
             'activeCaptureSession',
@@ -125,6 +127,11 @@ class DocumentController extends Controller
             // reusing Inertia's own partial-reload polling rather than a
             // bespoke status endpoint. Null once the session ends, however it
             // ended — the dialog only needs to know it's gone, not why.
+            // Only the count: the suggestions themselves belong to the form,
+            // which is where they can be accepted. This is the pointer that
+            // makes them discoverable, since extraction only finishes long
+            // after the form was last open.
+            'metadata_suggestions_count' => count(app(SuggestDocumentMetadata::class)->handle($document)),
             'active_capture_session' => $document->activeCaptureSession ? [
                 'id' => $document->activeCaptureSession->id,
                 'photos_count' => $document->activeCaptureSession->photos_count,
@@ -137,12 +144,13 @@ class DocumentController extends Controller
      * Show the form for editing an existing document.
      *
      * @param Document $document The document being edited.
+     * @param SuggestDocumentMetadata $suggest Reads values out of the document's extracted text.
      *
      * @return Response The rendered document form page.
      *
      * @throws AuthorizationException If the current user cannot update $document.
      */
-    public function edit(Document $document): Response
+    public function edit(Document $document, SuggestDocumentMetadata $suggest): Response
     {
         $this->authorize('update', $document);
 
@@ -153,6 +161,10 @@ class DocumentController extends Controller
             'document' => new DocumentResource($document),
             'documentTypes' => $this->workspaceDocumentTypes($document->workspace),
             'tags' => $this->workspaceTags($document->workspace),
+            // Worked out on each render rather than stored: the text is already
+            // in hand, the heuristics cost microseconds against it, and storing
+            // them would mean a backfill every time one of them improves.
+            'metadataSuggestions' => $suggest->handle($document),
         ]);
     }
 

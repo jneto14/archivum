@@ -6,6 +6,8 @@ use App\Http\Controllers\Documents\DocumentController;
 use App\Http\Controllers\Documents\DocumentMoveController;
 use App\Http\Controllers\Documents\DocumentSearchController;
 use App\Http\Controllers\Documents\DocumentTypeController;
+use App\Http\Controllers\Documents\IntakeReviewController;
+use App\Http\Controllers\Documents\MetadataSuggestionController;
 use App\Http\Controllers\Documents\TagController;
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +16,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('workspaces/{workspace}/documents', [DocumentController::class, 'store'])->name('documents.store');
     Route::get('workspaces/{workspace}/documents/create', [DocumentController::class, 'create'])->name('documents.create');
     Route::get('workspaces/{workspace}/documents/search', [DocumentSearchController::class, 'index'])->name('documents.search');
+    Route::get('workspaces/{workspace}/documents/review', [IntakeReviewController::class, 'index'])->name('documents.review');
+    Route::post('documents/{document}/metadata-suggestions', [MetadataSuggestionController::class, 'store'])->name('documents.suggestions.accept');
     Route::get('documents/{document}', [DocumentController::class, 'show'])->name('documents.show');
     Route::get('documents/{document}/edit', [DocumentController::class, 'edit'])->name('documents.edit');
     Route::patch('documents/{document}', [DocumentController::class, 'update'])->name('documents.update');

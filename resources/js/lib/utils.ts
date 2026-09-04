@@ -11,6 +11,36 @@ export function toUrl(url: NonNullable<InertiaLinkProps['href']>): string {
     return typeof url === 'string' ? url : url.url;
 }
 
+/**
+ * An id for a row that only exists in the browser — a queued file, an unsaved
+ * form row — unique enough to be a React key and nothing more.
+ *
+ * `crypto.randomUUID()` is not available here. It is restricted to secure
+ * contexts, and this application is routinely served over plain HTTP on a LAN
+ * (a self-hosted box at http://192.168.x.x, which is also how a phone reaches
+ * the capture page), where it is simply undefined — attaching a file threw
+ * `crypto.randomUUID is not a function` and the page died.
+ *
+ * `crypto.getRandomValues()` carries no such restriction, so it is the one used
+ * where present; the last resort is only for a runtime with no Web Crypto at
+ * all. Neither the value nor its randomness ever leaves the page.
+ */
+export function randomId(): string {
+    const bytes = new Uint8Array(16);
+
+    if (typeof crypto !== 'undefined' && 'getRandomValues' in crypto) {
+        crypto.getRandomValues(bytes);
+    } else {
+        for (let index = 0; index < bytes.length; index++) {
+            bytes[index] = Math.floor(Math.random() * 256);
+        }
+    }
+
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join(
+        '',
+    );
+}
+
 export function formatBytes(bytes: number): string {
     if (bytes < 1024) {
         return `${bytes} B`;

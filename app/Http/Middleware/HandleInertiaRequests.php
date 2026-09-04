@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Actions\Documents\CountIntakeReview;
 use App\Actions\Workspace\CalculateWorkspaceUsage;
 use App\Enums\WorkspaceRole;
 use App\Models\Workspace;
@@ -99,6 +100,10 @@ class HandleInertiaRequests extends Middleware
             'canSwitchWorkspace' => (bool) config('archivum.multi_workspace_enabled'),
             'isWorkspaceAdmin' => $isWorkspaceAdmin,
             'documentsCount' => $workspace ? app(CalculateWorkspaceUsage::class)->documents($workspace) : null,
+            // The sidebar badge on the intake review queue. Costs one query on
+            // every request, which is the price of the queue being noticed at
+            // all — see CountIntakeReview. `QueryBudgetTest` covers it.
+            'intakeReviewCount' => $workspace ? app(CountIntakeReview::class)->handle($workspace) : null,
             // Selected as a subquery on the workspace row by ResolveWorkspace,
             // rather than fetched here — see that middleware's withSchemeId().
             'organizationSchemeId' => $workspace?->organization_scheme_id,
