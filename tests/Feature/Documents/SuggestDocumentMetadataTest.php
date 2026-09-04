@@ -86,8 +86,8 @@ class SuggestDocumentMetadataTest extends TestCase
             $expected,
             $suggestions[$kind] ?? null,
             "Read from \"{$text}\": " . json_encode($suggestions)
-                . ' | labels: ' . json_encode($this->labelsFor($kind))
-                . ' | locales: ' . json_encode(array_keys(config('archivum.locales'))),
+                . ' | folded: ' . json_encode($this->invoke('fold', $text))
+                . ' | captured: ' . json_encode($this->invoke('labelled', $this->invoke('fold', $text), $kind)),
         );
     }
 
@@ -280,11 +280,12 @@ class SuggestDocumentMetadataTest extends TestCase
     }
 
     /**
-     * The label vocabulary the reader compiled for a kind.
+     * Reach into one of the reader's steps, to say where a parse fell over.
      *
-     * @param string $kind The kind whose labels are wanted.
+     * @param string $method The private method to call.
+     * @param mixed ...$arguments Its arguments.
      *
-     * @return array<int, string> The labels, or a note when the kind has none.
+     * @return mixed Whatever that step returned.
      */
     private function labelsFor(string $kind): array
     {
