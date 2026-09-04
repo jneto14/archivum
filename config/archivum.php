@@ -266,6 +266,9 @@ return [
         | before a workspace admin is troubled with the question; it never lets
         | a phrase into the vocabulary on its own, because nothing enters it
         | unaccepted.
+        |
+        | Applied when candidates are read rather than when they are recorded,
+        | so changing it takes effect on everything already mined.
         */
         'label_min_support' => (int) env('INTAKE_LABEL_MIN_SUPPORT', 3),
     ],

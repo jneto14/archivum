@@ -61,6 +61,10 @@ class LearnIntakeLabelsTest extends TestCase
      * The threshold is what stops one supplier's layout teaching the archive.
      * Two documents agreeing is a coincidence; any page has some word in front
      * of any value.
+     *
+     * The row exists — evidence has to accumulate somewhere before it can add
+     * up to anything — but nothing offers it, and `offered()` is the only way
+     * anything reads candidates.
      */
     public function test_a_phrase_only_two_documents_agree_on_is_not_offered()
     {
@@ -75,7 +79,8 @@ class LearnIntakeLabelsTest extends TestCase
         }
 
         $this->assertSame(0, app(LearnIntakeLabels::class)->handle($workspace));
-        $this->assertDatabaseCount('intake_labels', 0);
+        $this->assertSame(0, IntakeLabel::query()->offered()->count());
+        $this->assertDatabaseHas('intake_labels', ['label' => 'steuernummer', 'support' => 2]);
     }
 
     /**
@@ -116,7 +121,7 @@ class LearnIntakeLabelsTest extends TestCase
         app(LearnIntakeLabels::class)->handle($workspace);
 
         $this->assertDatabaseMissing('intake_labels', ['label' => 'de']);
-        $this->assertDatabaseCount('intake_labels', 0);
+        $this->assertDatabaseMissing('intake_labels', ['label' => 'numero de']);
     }
 
     /**
@@ -257,6 +262,130 @@ class LearnIntakeLabelsTest extends TestCase
         }
 
         $this->assertSame(0, app(LearnIntakeLabels::class)->handle($workspace));
+    }
+
+    /**
+     * The point of the kinds not being written down anywhere. Nobody shipped a
+     * policy number, nobody could have — and the archive learns to read one
+     * with no more ceremony than the tax number it was shipped knowing about.
+     */
+    public function test_a_field_nobody_shipped_is_learned_like_any_other()
+    {
+        $workspace = Workspace::factory()->create();
+
+        foreach (['AP4471182', 'AP4471183', 'AP4471184'] as $policy) {
+            $this->documentSaying(
+                $workspace,
+                "Seguradora Exemplo\nApolice {$policy}\nPremio 120,00 EUR",
+                ['Nº Apólice' => $policy],
+            );
+        }
+
+        $this->assertSame(1, app(LearnIntakeLabels::class)->handle($workspace));
+        $this->assertDatabaseHas('intake_labels', [
+            'workspace_id' => $workspace->id,
+            // The metadata key, normalised. There is no enum this had to be in.
+            'kind' => 'no_apolice',
+            'label' => 'apolice',
+            'support' => 3,
+        ]);
+    }
+
+    /**
+     * The consistency filter. A field somebody types sentences into has no
+     * shape to check a reading against, so learning for it would teach the
+     * reader to lift prose off pages — the failure this whole design is
+     * arranged to avoid.
+     */
+    public function test_a_free_text_field_teaches_nothing()
+    {
+        $workspace = Workspace::factory()->create();
+
+        $notes = [
+            'Entregue em mao no balcao 3 durante a manha',
+            'Aguarda parecer juridico 2026',
+            'Substitui o documento anterior de 2024 por engano',
+        ];
+
+        foreach ($notes as $note) {
+            $this->documentSaying($workspace, "Observacoes {$note}", ['Observações' => $note]);
+        }
+
+        $this->assertSame(0, app(LearnIntakeLabels::class)->handle($workspace));
+        $this->assertDatabaseCount('intake_labels', 0);
+    }
+
+    /**
+     * The reason the evidence is rows rather than a counter. Learning is
+     * incremental now — a document is read again every time it is saved — and a
+     * count that is added to would climb every time somebody edited the same
+     * document, until one page cleared a threshold meant to require several.
+     */
+    public function test_reading_the_same_document_again_does_not_count_it_twice()
+    {
+        $workspace = Workspace::factory()->create();
+        $document = $this->documentSaying($workspace, 'Steuernummer 501442600', ['tax_id' => '501442600']);
+
+        $learn = app(LearnIntakeLabels::class);
+
+        $learn->learn($document);
+        $learn->learn($document);
+        $learn->learn($document);
+
+        $this->assertDatabaseHas('intake_labels', ['label' => 'steuernummer', 'support' => 1]);
+    }
+
+    /**
+     * A value corrected to a different number stops being evidence for whatever
+     * introduced the old one. Without replacing the document's evidence, a typo
+     * would keep voting for the phrase it was mistakenly found next to.
+     */
+    public function test_correcting_a_value_withdraws_what_it_taught()
+    {
+        $workspace = Workspace::factory()->create();
+
+        $document = $this->documentSaying(
+            $workspace,
+            "Steuernummer 501442600\nBestellnummer 998877665",
+            ['tax_id' => '501442600'],
+        );
+
+        $learn = app(LearnIntakeLabels::class);
+        $learn->learn($document);
+
+        $this->assertDatabaseHas('intake_labels', ['label' => 'steuernummer']);
+
+        $document->update(['metadata' => ['tax_id' => '998877665']]);
+        $learn->learn($document);
+
+        $this->assertDatabaseMissing('intake_labels', ['label' => 'steuernummer']);
+        $this->assertDatabaseHas('intake_labels', ['label' => 'bestellnummer', 'support' => 1]);
+    }
+
+    /**
+     * Which documents said so, not just how many. It is what makes the count
+     * idempotent, and what an admin is shown so a candidate can be judged
+     * rather than believed.
+     */
+    public function test_the_documents_that_taught_a_phrase_are_recorded()
+    {
+        $workspace = Workspace::factory()->create();
+
+        $documents = collect(['501442600', '501442611', '501442622'])
+            ->map(fn (string $number): Document => $this->documentSaying(
+                $workspace,
+                "Steuernummer {$number}",
+                ['tax_id' => $number],
+            ));
+
+        app(LearnIntakeLabels::class)->handle($workspace);
+
+        $label = IntakeLabel::query()->where('label', 'steuernummer')->sole();
+
+        $this->assertEqualsCanonicalizing(
+            $documents->pluck('id')->all(),
+            $label->documents->pluck('id')->all(),
+        );
     }
 
     /**

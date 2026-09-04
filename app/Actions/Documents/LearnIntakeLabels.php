@@ -8,19 +8,20 @@ use App\Enums\IntakeLabelStatus;
 use App\Models\Document;
 use App\Models\IntakeLabel;
 use App\Models\Workspace;
+use App\Support\Intake\ValueShape;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 /**
- * Mines a workspace's own documents for words it could be reading values by.
+ * Mines a document for words the reader could be recognising values by.
  *
  * ## The signal
  *
  * `SuggestDocumentMetadata` reads a page by the words in front of a value, and
  * that vocabulary ships in `lang/{locale}/intake.php`. What it cannot do is get
- * better on its own: a document writing "Steuernummer", or an abbreviation
- * nobody thought of, is simply not read, and the only fix is for somebody to
- * notice, report it and wait for a release.
+ * better on its own: a document writing "Steuernummer", or a field nobody
+ * thought of — a policy number, a patient reference — is simply not read, and
+ * the only fix is for somebody to notice, report it and wait for a release.
  *
  * Meanwhile every document already holds both halves of the answer. When a user
  * fills in a field the reader missed, the archive keeps the extracted text and
@@ -28,9 +29,27 @@ use Illuminate\Support\Str;
  * the words immediately before it, and the page has told you what it calls the
  * thing.
  *
- * Nothing had to be captured up front for this: `ocr_text` and `metadata` are
- * both retained, so an archive that has been running for years can be mined the
- * day this is first run.
+ * ## Why it runs per document rather than on a schedule
+ *
+ * This used to be a weekly sweep of every document in every workspace. Two
+ * things were wrong with that. A user correcting a field waited up to a week to
+ * be asked about it, by which time the connection between what they did and
+ * what they are being asked is gone. And the cost grew with the size of the
+ * archive rather than with how much of it changed — the same ten thousand
+ * documents re-read every Monday to find what the fifty edited ones said.
+ *
+ * The signal has an exact moment: somebody saves metadata on a document, or
+ * that document's text finishes extracting. Mining one document at that moment
+ * is a regex over one page. So `learn()` is what normally runs, from
+ * `LearnDocumentIntakeLabels`, and `handle()` survives only as the backfill for
+ * an archive that was filled before any of this existed.
+ *
+ * Counting incrementally is what makes the evidence rows necessary. A recount
+ * from scratch could not double-count; an increment can, the second time the
+ * same document is edited. So which documents evidence a phrase is recorded
+ * rather than how many, which makes re-mining a document idempotent by
+ * construction — and gives an admin the documents themselves to judge a
+ * candidate by, rather than a number asking to be trusted.
  *
  * ## What stops it learning nonsense
  *
@@ -38,9 +57,10 @@ use Illuminate\Support\Str;
  * workspace, confidently, and a word common in prose would match prose. Four
  * things stand in the way, in increasing order of importance:
  *
- * - Only the label-driven kinds are mined at all. The words in front of an
- *   amount would be every heading on every invoice; the words in front of a tax
- *   number are a short, specific list.
+ * - Only keys whose filed values describe one kind of thing are mined at all.
+ *   A free-text field has no shape to check a reading against, so learning for
+ *   it would teach the reader to lift sentences off pages. See
+ *   `IntakeVocabulary::isMinable()`.
  * - A phrase must recur across several documents in the same workspace before
  *   it is offered, so one supplier's layout cannot teach the archive anything
  *   on its own.
@@ -48,12 +68,12 @@ use Illuminate\Support\Str;
  *   keeps "de", "no" and their kind from being proposed alone while leaving
  *   them usable inside a longer phrase.
  * - Nothing enters the vocabulary unaccepted. Everything here writes candidates
- *   for a workspace admin to answer, and a rejection is recorded so the next run
- *   does not ask again.
+ *   for a workspace admin to answer on the review queue, and a rejection is
+ *   recorded so the next document does not ask again.
  */
 class LearnIntakeLabels
 {
-    /** Documents read per query, so a large archive is mined in bounded memory. */
+    /** Documents read per query, so a large archive is backfilled in bounded memory. */
     private const int DOCUMENT_CHUNK = 200;
 
     /** The longest candidate offered: "no contribuinte" is two, "vat registration number" three. */
@@ -68,44 +88,107 @@ class LearnIntakeLabels
      */
     private const int MIN_ADJACENT_WORD_LENGTH = 3;
 
+    public function __construct(
+        private readonly SuggestDocumentMetadata $suggest,
+        private readonly IntakeVocabulary $vocabulary,
+    ) {}
+
     /**
-     * How much of a value must survive squeezing before it is worth hunting for.
+     * Learn from one document, replacing whatever it evidenced before.
      *
-     * A short one matches by accident: four characters of a plate appear inside
-     * a dozen unrelated numbers on the same page, and every one of those would
-     * contribute whatever word happened to precede it.
+     * Replacing rather than adding, because a document is mined again every
+     * time its metadata changes: a value corrected from one number to another
+     * stops being evidence for the phrase in front of the old one.
+     *
+     * @param Document $document The document to read.
+     *
+     * @return void No return value; writes candidate labels and their evidence as a side effect.
      */
-    private const int MIN_VALUE_LENGTH = 5;
+    public function learn(Document $document): void
+    {
+        if (blank($document->ocr_text) || blank($document->metadata)) {
+            $this->forget($document);
 
-    public function __construct(private readonly SuggestDocumentMetadata $suggest) {}
+            return;
+        }
+
+        $candidates = $this->candidatesIn($document);
+
+        DB::transaction(function () use ($document, $candidates): void {
+            $before = $this->evidencedBy($document);
+            $after = [];
+
+            foreach ($candidates as $candidate) {
+                [$kind, $label] = explode("\0", $candidate, 2);
+
+                $after[] = IntakeLabel::query()->firstOrCreate(
+                    [
+                        'workspace_id' => $document->workspace_id,
+                        'kind' => $kind,
+                        'label' => $label,
+                    ],
+                    ['status' => IntakeLabelStatus::Pending, 'support' => 0],
+                )->id;
+            }
+
+            $this->replaceEvidence($document, $before, $after);
+        });
+    }
 
     /**
-     * Read every document in $workspace and record what it suggests calling
-     * things.
+     * Drop everything a document was evidence for.
      *
-     * @param Workspace $workspace The workspace to mine, and whose vocabulary any candidate joins.
+     * Called when its text or its metadata goes away, and on the way through
+     * `learn()` for a document that has nothing to say: what it taught was true
+     * of a version of it that no longer exists.
+     *
+     * @param Document $document The document to forget.
+     *
+     * @return void No return value; deletes evidence and recounts as a side effect.
+     */
+    private function forget(Document $document): void
+    {
+        $before = $this->evidencedBy($document);
+
+        if ($before === []) {
+            return;
+        }
+
+        DB::transaction(function () use ($document, $before): void {
+            $this->replaceEvidence($document, $before, []);
+        });
+    }
+
+    /**
+     * Mine a whole workspace, one document at a time.
+     *
+     * The backfill. Extraction and editing keep the vocabulary current by
+     * themselves, so this exists for the documents that were filed before they
+     * did — on an installation upgrading into this feature, that is the entire
+     * archive, and without this it would learn only from what is filed from
+     * today onwards.
+     *
+     * @param Workspace $workspace The workspace to mine.
      *
      * @return int How many candidates are now waiting to be answered.
      */
     public function handle(Workspace $workspace): int
     {
-        /** @var array<string, int> $support Phrase, keyed "kind\0label", to the number of documents evidencing it. */
-        $support = [];
-
         Document::query()
             ->where('workspace_id', $workspace->id)
             ->whereNotNull('ocr_text')
             ->whereNotNull('metadata')
             ->select(['id', 'workspace_id', 'metadata', 'ocr_text'])
-            ->chunkById(self::DOCUMENT_CHUNK, function (Collection $documents) use (&$support, $workspace): void {
+            ->chunkById(self::DOCUMENT_CHUNK, function (Collection $documents): void {
                 foreach ($documents as $document) {
-                    foreach ($this->candidatesIn($document, $workspace) as $candidate) {
-                        $support[$candidate] = ($support[$candidate] ?? 0) + 1;
-                    }
+                    $this->learn($document);
                 }
             });
 
-        return $this->record($workspace, $support);
+        return IntakeLabel::query()
+            ->where('workspace_id', $workspace->id)
+            ->offered()
+            ->count();
     }
 
     /**
@@ -117,12 +200,12 @@ class LearnIntakeLabels
      * meant to require several.
      *
      * @param Document $document The document to read.
-     * @param Workspace $workspace The workspace whose current vocabulary decides what is already known.
      *
      * @return list<string> Phrases keyed "kind\0label".
      */
-    private function candidatesIn(Document $document, Workspace $workspace): array
+    private function candidatesIn(Document $document): array
     {
+        $workspaceId = $document->workspace_id;
         $folded = $this->suggest->fold((string) $document->ocr_text);
         $found = [];
 
@@ -131,9 +214,16 @@ class LearnIntakeLabels
                 continue;
             }
 
-            $kind = $this->suggest->kindForKey((string) $key);
+            $kind = $this->vocabulary->kindForKey((string) $key);
 
-            if ($kind === null) {
+            if (!$this->vocabulary->isMinable($kind, $workspaceId)) {
+                continue;
+            }
+
+            // A value that does not look like the others filed under this key
+            // says nothing about what introduces one. This is where an "n/a"
+            // typed into an identifier field stops.
+            if (!$this->vocabulary->shape($kind, $workspaceId)->matches((string) $value)) {
                 continue;
             }
 
@@ -143,7 +233,7 @@ class LearnIntakeLabels
                 continue;
             }
 
-            $known = $this->suggest->knownLabels($kind, $workspace->id);
+            $known = $this->vocabulary->labelsFor($kind, $workspaceId);
 
             if (preg_match_all($pattern, $folded, $matches, PREG_OFFSET_CAPTURE) === false) {
                 continue;
@@ -235,13 +325,9 @@ class LearnIntakeLabels
      */
     private function patternFor(string $value): ?string
     {
-        $squeezed = (string) preg_replace(
-            '/[^a-z0-9]/',
-            '',
-            Str::ascii(mb_strtolower($value)),
-        );
+        $squeezed = ValueShape::squeeze($value);
 
-        if (mb_strlen($squeezed) < self::MIN_VALUE_LENGTH) {
+        if (mb_strlen($squeezed) < ValueShape::MIN_LENGTH) {
             return null;
         }
 
@@ -256,47 +342,78 @@ class LearnIntakeLabels
     }
 
     /**
-     * Write the phrases that cleared the threshold, and count what is now
-     * waiting.
+     * @param Document $document The document to look up.
      *
-     * A phrase already answered keeps its answer: the evidence behind it is
-     * refreshed and its status is left exactly where the admin put it. Without
-     * that, every run would re-ask a question the workspace has already said no
-     * to.
-     *
-     * @param Workspace $workspace The workspace the vocabulary belongs to.
-     * @param array<string, int> $support Phrase, keyed "kind\0label", to the number of documents evidencing it.
-     *
-     * @return int How many candidates are waiting to be answered.
+     * @return list<string> The ids of the labels this document currently evidences.
      */
-    private function record(Workspace $workspace, array $support): int
+    private function evidencedBy(Document $document): array
     {
-        $threshold = max(2, (int) config('archivum.intake.label_min_support', 3));
+        $ids = [];
 
-        foreach ($support as $candidate => $documents) {
-            if ($documents < $threshold) {
-                continue;
-            }
-
-            [$kind, $label] = explode("\0", $candidate, 2);
-
-            $learned = IntakeLabel::query()->firstOrNew([
-                'workspace_id' => $workspace->id,
-                'kind' => $kind,
-                'label' => $label,
-            ]);
-
-            if (!$learned->exists) {
-                $learned->status = IntakeLabelStatus::Pending;
-            }
-
-            $learned->support = $documents;
-            $learned->save();
+        foreach (DB::table('intake_label_documents')->where('document_id', $document->id)->pluck('intake_label_id') as $id) {
+            $ids[] = (string) $id;
         }
 
-        return IntakeLabel::query()
-            ->where('workspace_id', $workspace->id)
-            ->where('status', IntakeLabelStatus::Pending)
-            ->count();
+        return $ids;
+    }
+
+    /**
+     * Swap one document's evidence rows for another set, and settle the counts.
+     *
+     * The support figure is derived from the rows rather than incremented
+     * beside them, so it cannot drift out of step with what it claims to count
+     * however many times a document is re-read.
+     *
+     * A label left evidenced by nothing is deleted, unless somebody has already
+     * answered it: a rejection has to outlive its evidence, or the next document
+     * to use the phrase would ask the same question again.
+     *
+     * @param Document $document The document whose evidence is being replaced.
+     * @param list<string> $before The label ids it evidenced.
+     * @param list<string> $after The label ids it evidences now.
+     *
+     * @return void No return value; writes the evidence table and the support counts as a side effect.
+     */
+    private function replaceEvidence(Document $document, array $before, array $after): void
+    {
+        $removed = array_diff($before, $after);
+        $added = array_diff($after, $before);
+
+        if ($removed !== []) {
+            DB::table('intake_label_documents')
+                ->where('document_id', $document->id)
+                ->whereIn('intake_label_id', $removed)
+                ->delete();
+        }
+
+        if ($added !== []) {
+            DB::table('intake_label_documents')->insert(array_map(
+                static fn (string $labelId): array => [
+                    'intake_label_id' => $labelId,
+                    'document_id' => $document->id,
+                ],
+                array_values($added),
+            ));
+        }
+
+        $touched = array_values(array_unique([...$removed, ...$added]));
+
+        if ($touched === []) {
+            return;
+        }
+
+        IntakeLabel::query()
+            ->whereIn('id', $touched)
+            ->update([
+                'support' => DB::raw(
+                    '(select count(*) from intake_label_documents where intake_label_documents.intake_label_id = intake_labels.id)',
+                ),
+            ]);
+
+        IntakeLabel::query()
+            ->whereIn('id', $touched)
+            ->pending()
+            ->where('support', 0)
+            ->delete();
     }
 }

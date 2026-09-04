@@ -12,19 +12,21 @@ use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Collection;
 
 #[Signature('archivum:learn-intake-labels {--workspace= : Mine one workspace by id, rather than every one}')]
-#[Description('Mine filed documents for words the reader could be recognising values by, and offer them to each workspace for approval')]
+#[Description('Mine documents filed before the archive started learning, and offer each workspace the words they suggest')]
 class LearnIntakeLabels extends Command
 {
     /**
      * Mine every workspace, or one, for candidate labels.
      *
-     * A batch job rather than something a request triggers: it reads every
-     * document a workspace has, and the answer changes slowly — a phrase that
-     * is not evidenced by several documents today is not evidenced by a page
-     * refresh either.
+     * The backfill, and nothing else. Learning happens a document at a time as
+     * documents are saved and extracted (see `LearnDocumentIntakeLabels`), so
+     * this is not scheduled and is not meant to be: it exists for the archive
+     * that was already there when this feature arrived, which no edit is going
+     * to touch and which is where most of the evidence lives.
      *
-     * Nothing it writes is used until an admin accepts it, which is why it is
-     * safe to leave running on a schedule.
+     * Nothing it writes is used until an admin accepts it, so running it again
+     * is safe at any time — a document already mined contributes exactly what
+     * it contributed before.
      *
      * @param LearnLabels $learn Reads the documents and records what they suggest.
      *
