@@ -150,6 +150,14 @@ export default {
     'documents.review.duplicate_of': ':filename looks like “:document”',
     'documents.review.open_original': 'Open the original',
     'documents.review.keep_both': 'Keep both',
+    'documents.review.labels_title': 'Words this archive uses',
+    'documents.review.labels_description':
+        'Your own documents were seen writing these in front of a value. Accept one and the reader will recognise that field by it from now on, across this workspace and nowhere else.',
+    'documents.review.label_reads_as': '“:label” introduces :field',
+    'documents.review.label_evidence_one': 'seen on :count document',
+    'documents.review.label_evidence_other': 'seen on :count documents',
+    'documents.review.label_accept': 'Use it',
+    'documents.review.label_reject': 'Ignore',
 
     'documents.show.breadcrumb_documents': 'Documents',
     'documents.show.edit_button': 'Edit',
@@ -555,17 +563,8 @@ export default {
     'workspace.settings.limits_save_button': 'Save limits',
     'workspace.settings.vocabulary_section_title': 'Learned vocabulary',
     'workspace.settings.vocabulary_description':
-        'Words this archive was seen writing in front of a value. Accepting one teaches the reader to recognise that kind of value by it, in this workspace only. Nothing is used until you say so.',
-    'workspace.settings.vocabulary_pending_title': 'Waiting for an answer',
-    'workspace.settings.vocabulary_accepted_title': 'In use',
-    'workspace.settings.vocabulary_evidence_one': 'seen on :count document',
-    'workspace.settings.vocabulary_evidence_other': 'seen on :count documents',
-    'workspace.settings.vocabulary_accept': 'Use it',
-    'workspace.settings.vocabulary_reject': 'Ignore',
+        'Words this archive taught itself, and that the reader now recognises fields by. New ones are proposed on the review queue; here is where one stops being used.',
     'workspace.settings.vocabulary_retire': 'Stop using',
-    'workspace.settings.vocabulary_kind_tax_id': 'Tax number',
-    'workspace.settings.vocabulary_kind_vehicle_registration':
-        'Vehicle registration',
     'workspace.settings.instance_section_title': 'Instance',
     'workspace.settings.instance_description':
         'Set via environment configuration — not editable here.',

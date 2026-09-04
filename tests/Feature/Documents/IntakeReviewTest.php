@@ -11,6 +11,7 @@ use App\Enums\WorkspaceRole;
 use App\Models\Document;
 use App\Models\DocumentAttachment;
 use App\Models\DocumentType;
+use App\Models\IntakeLabel;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
@@ -236,6 +237,75 @@ class IntakeReviewTest extends TestCase
      *
      * @return Workspace The persisted workspace.
      */
+    /**
+     * Candidate labels belong here rather than in workspace settings, where they
+     * were first put. Settings carries no badge and nobody opens it looking for
+     * work; this queue is the one screen the sidebar points at.
+     */
+    public function test_an_admin_is_shown_the_words_the_archive_wants_to_adopt()
+    {
+        $workspace = $this->workspace();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+
+        $label = IntakeLabel::factory()->for($workspace)->create([
+            'kind' => 'tax_id',
+            'label' => 'steuernummer',
+            'support' => 3,
+        ]);
+
+        $document = $this->reviewable($workspace, 'Rechnung 2026');
+        $label->documents()->attach($document);
+
+        $this->actingAs($admin->user)
+            ->get(route('documents.review', $workspace))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('labels', 1)
+                ->where('labels.0.label', 'steuernummer')
+                ->where('labels.0.field', 'Tax number')
+                // The documents that taught it, so the candidate can be judged
+                // rather than believed.
+                ->where('labels.0.documents.0.title', 'Rechnung 2026'),
+            );
+    }
+
+    /**
+     * A candidate below the threshold has a row — that is where its evidence
+     * accumulates — but one document agreeing with itself is not a finding.
+     */
+    public function test_a_candidate_too_few_documents_agree_on_is_not_shown()
+    {
+        $workspace = $this->workspace();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+
+        IntakeLabel::factory()->for($workspace)->create(['support' => 1]);
+
+        $this->actingAs($admin->user)
+            ->get(route('documents.review', $workspace))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('labels', []));
+    }
+
+    /**
+     * Accepting a word changes how every document in the workspace is read,
+     * which is not a member's decision — and a member who cannot answer must
+     * not be badged towards it either.
+     */
+    public function test_a_member_is_shown_no_candidates_and_counted_none()
+    {
+        $workspace = $this->workspace();
+
+        IntakeLabel::factory()->for($workspace)->create(['support' => 5]);
+
+        $this->actingAs($this->member($workspace))
+            ->get(route('documents.review', $workspace))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('labels', []));
+
+        $this->assertSame(0, app(CountIntakeReview::class)->handle($workspace));
+        $this->assertSame(1, app(CountIntakeReview::class)->handle($workspace, canAnswerLabels: true));
+    }
+
     private function workspace(): Workspace
     {
         $workspace = Workspace::factory()->create();

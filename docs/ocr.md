@@ -126,10 +126,10 @@ work at all: two invoices from the same supplier are the same page of prose with
 a different number, a different date and a different total, and measured plain
 they sit as close as a rescan does.
 
-**Suggested values, to save typing them.** `SuggestDocumentMetadata` reads dates,
-amounts, tax numbers and vehicle registrations out of the text. Nothing is
-written without being accepted. See [documents.md](documents.md) for how a
-suggestion decides which key it belongs in.
+**Suggested values, to save typing them.** `SuggestDocumentMetadata` reads
+values out of the text. Nothing is written without being accepted. See
+[documents.md](documents.md) for how a suggestion decides which key it belongs
+in.
 
 A value is recognised by the **words in front of it**, not by its format:
 "VAT registration 501 234 567" is a tax number because of what introduces it,
@@ -152,20 +152,66 @@ rare — and it fails by saying nothing rather than by suggesting something wron
 `archivum:backfill-suggestions` reads documents extracted before any of this
 existed; `--all` re-reads everything, for when these heuristics improve.
 
+### There is no list of the things an archive holds
+
+A date and an amount are the only kinds named in the code, and they earn it by
+being found by their shape rather than by any word. Everything else is
+**whatever the archive itself files**: metadata is free-form key/value pairs, so
+a workspace that created "Nº de apólice" has already said what that field is,
+more accurately than any list could. The metadata key *is* the kind
+(`IntakeVocabulary`).
+
+This replaced a fixed pair — a tax number and a vehicle registration, each with
+a hand-written rule for what its value may look like. `strlen >= 8 && digits >=
+6` is a Portuguese assumption wearing a general face, and an archive of
+insurance policies, clinical records or building permits got nothing out of it
+at all.
+
+**The shape is learned too.** What a value of some kind looks like is derived
+from the ones the workspace has already filed under that key: how long they are,
+whether they carry letters, whether they are purely numeric (`ValueShape`). It
+is counting characters over data that is already there — no model, no country
+list — and it gets sharper as the archive grows. Two rules are not derived,
+because they are what makes any of it safe: a value must carry a digit, and must
+be at least five characters. That is what stops a label sitting in front of "não
+aplicável" adopting those two words.
+
+The same derivation is a filter. A key whose filed values do not describe one
+kind of thing — "Observações", or anything else free-text — has no shape to
+check a reading against, so **nothing is learned for it**. Without that, the
+reader would start lifting sentences off pages.
+
+The keys in `lang/{locale}/intake.php` remain, as a **seed**. Without them a new
+archive would read nothing until somebody had filled the same field in by hand
+on three documents, which is a feature for saving typing that requires the
+typing first.
+
 ### Vocabulary an archive learns for itself
 
 The shipped words cannot cover every way a document names things. A page
-writing "Steuernummer", or an abbreviation nobody thought of, is simply not
-read, and the only fix would be somebody noticing, reporting it and waiting for
-a release.
+writing "Steuernummer", or a field nobody thought of, is simply not read, and
+the only fix would be somebody noticing, reporting it and waiting for a release.
 
 But the archive is already holding the answer. Whenever a user fills in a field
 the reader missed, it keeps both the extracted text and the value they decided
 belonged in it. Find that value in that text, look at the words immediately in
 front of it, and the page has said what it calls the thing.
 
-`archivum:learn-intake-labels` does that across a workspace — weekly on the
-schedule, or by hand for one workspace with `--workspace=`. Nothing had to be
+**It learns one document at a time, when the signal exists.** That is the moment
+somebody saves metadata on a document, and the moment a document's text finishes
+extracting — `LearnDocumentIntakeLabels`, on the queue. This used to be a weekly
+sweep of every document in every workspace, which was wrong twice over: a user
+correcting a field waited up to a week to be asked about it, and the cost grew
+with the size of the archive rather than with how much of it changed.
+
+Counting incrementally is why `intake_label_documents` exists. A recount cannot
+double-count; an increment can, the second time the same document is edited. So
+**which** documents evidence a phrase is recorded rather than how many, which
+makes re-reading a document idempotent by construction — and gives an admin the
+documents themselves to judge a candidate by.
+
+`archivum:learn-intake-labels` survives as the backfill, for an archive that was
+filled before any of this existed. It is not scheduled. Nothing had to be
 captured up front for it: `ocr_text` and `metadata` are both retained, so an
 archive that has been running for years can be mined the first time it is run.
 
@@ -175,21 +221,26 @@ prose. Four things stand in the way:
 
 | | |
 | --- | --- |
-| Only label-driven kinds | A date and an amount are read by their shape. The words in front of an amount are every heading on every invoice; the words in front of a tax number are a short, specific list. |
-| A support threshold | A phrase must recur across `INTAKE_LABEL_MIN_SUPPORT` documents in the same workspace (3 by default) before it is offered at all. |
+| A consistent field | Only keys whose filed values describe one kind of thing are mined. A free-text field has no shape to check a reading against; a date and an amount are read by their shape and have nothing to learn. |
+| A support threshold | A phrase must recur across `INTAKE_LABEL_MIN_SUPPORT` documents in the same workspace (3 by default) before it is offered at all. Applied when candidates are read, so raising it takes effect on what is already mined. |
 | A length floor | The word touching the value must be long enough to be a word, which keeps "de" and "nº" from being proposed alone while leaving them usable inside a longer phrase. |
-| Approval | Nothing enters the vocabulary unaccepted. Candidates wait on the workspace settings page for an admin to answer. |
+| Approval | Nothing enters the vocabulary unaccepted. Candidates wait on the review queue for an admin to answer, with the documents that taught them. |
 
 A rejection is recorded rather than simply not accepted, because the mining that
-proposed a phrase once will propose it again on every later run — without a no
-that sticks, an admin would spend the rest of the archive's life turning down
-the same word. Retiring a label already in use is the same write, for the same
-reason.
+proposed a phrase once will propose it again from the next document that writes
+it — without a no that sticks, an admin would spend the rest of the archive's
+life turning down the same word. Retiring a label already in use is the same
+write, for the same reason.
 
 Accepted labels are read alongside the ones in `lang/{locale}/intake.php`, and
 are **scoped to the workspace that accepted them**: a phrase mined from one
 archive's suppliers can be meaningless in another's, so a label that turns out
 to be a bad one degrades the readings of one workspace and of nobody else.
+
+Answering either way starts `RereadWorkspaceSuggestions`, which reads the
+workspace's already-extracted documents again. Without it, accepting a word
+would only ever have applied to documents filed afterwards — the opposite of why
+anybody accepts one, since the point is the archive that is already there.
 
 ## The review queue
 
@@ -201,8 +252,11 @@ document's own page to be revisited would mean nothing is ever confirmed.
 So the findings are collected on **To review** (`documents.review`), a
 workspace-wide queue: one row per document, its suggested values ticked by
 default, applied or dismissed in a click. Flagged duplicates are listed below
-it. The sidebar carries the count, which costs one query on every request and is
-the reason the queue is used at all.
+it, and below those — **for workspace admins only** — the words the archive is
+proposing to read by. The sidebar carries the count, which costs one query on
+every request and is the reason the queue is used at all; the label half of it
+is counted only for the admins who are shown that section, so nobody is badged
+towards work they cannot do.
 
 What is stored is only *what the text said* — kind and value, on
 `documents.metadata_suggestions`. Which field each value belongs in, and whether
