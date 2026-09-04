@@ -396,13 +396,18 @@ export default function DocumentShow({
                                     className="sr-only"
                                     onChange={queueFiles}
                                 />
-                                {/* Narrow, these are a block of equal buttons
-                                    under the title rather than three pills of
-                                    different widths wrapping against the right
-                                    edge. The card's own width decides, not the
+                                {/* Narrow, these stack full width under the
+                                    title rather than wrapping into pills of
+                                    different widths against the right edge. One
+                                    per row, not two: "Digitalizar com o
+                                    telemóvel" does not fit half of a phone, and
+                                    a button does not wrap its own label — it
+                                    overflows its border instead.
+
+                                    The card's own width decides, not the
                                     viewport's: the sidebar moves this by 208px
                                     without the viewport changing at all. */}
-                                <div className="grid w-full grid-cols-2 gap-2 @lg/attachments:flex @lg/attachments:w-auto @lg/attachments:min-w-0 @lg/attachments:flex-1 @lg/attachments:flex-wrap @lg/attachments:items-center @lg/attachments:justify-end">
+                                <div className="grid w-full grid-cols-1 gap-2 @lg/attachments:flex @lg/attachments:w-auto @lg/attachments:min-w-0 @lg/attachments:flex-1 @lg/attachments:flex-wrap @lg/attachments:items-center @lg/attachments:justify-end">
                                     <Button
                                         variant="outline"
                                         size="sm"
@@ -433,7 +438,7 @@ export default function DocumentShow({
                                     </Button>
                                     <Button
                                         size="sm"
-                                        className="col-span-2 @lg/attachments:col-span-1 @lg/attachments:shrink-0"
+                                        className="@lg/attachments:shrink-0"
                                         onClick={uploadAttachments}
                                         disabled={queue.length === 0}
                                     >
