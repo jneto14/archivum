@@ -185,8 +185,14 @@ export default {
     'documents.show.no_location_suggestions':
         "No available positions found for this document's scheme.",
     'documents.show.suggested_badge': 'Suggested',
+    'documents.show.new_location_badge': 'New',
+    'documents.show.current_location_badge': 'Current',
+    'documents.show.full_location_badge': 'Full',
     'documents.show.location_suggestion_count_one': ':count document',
     'documents.show.location_suggestion_count_other': ':count documents',
+    'documents.show.browse_locations_button': 'Choose another location',
+    'documents.show.search_locations_placeholder': 'Search locations',
+    'documents.show.no_matching_locations': 'No location matches that search.',
     'documents.show.cancel_button': 'Cancel',
     'documents.show.preview_button': 'Preview',
     'documents.show.preview_not_supported':
@@ -359,7 +365,9 @@ export default {
     'organization.storage.add_level_first_hint': '(add :level first)',
     'organization.storage.parent_location_label': 'Parent location',
     'organization.storage.select_parent_placeholder': 'Select a parent',
-    'organization.storage.value_label': 'Value (leave blank to auto-generate)',
+    'organization.storage.value_label': 'Value',
+    'organization.storage.value_label_optional':
+        'Value (leave blank to auto-generate)',
     'organization.storage.cancel_button': 'Cancel',
     'organization.storage.add_button': 'Add',
     'organization.storage.move_dialog_title': 'Move documents from :path',
@@ -367,6 +375,7 @@ export default {
         'Queues a background job that relocates every document currently filed at this location onto the selected one.',
     'organization.storage.target_location_label': 'Target location',
     'organization.storage.select_location_placeholder': 'Select a location',
+    'organization.storage.target_no_room_hint': '(not enough room)',
     'organization.storage.move_button': 'Move',
     'organization.storage.move_documents_tooltip': 'Move documents',
     'organization.storage.delete_location_tooltip': 'Delete location',

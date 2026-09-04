@@ -124,6 +124,21 @@ class OrganizationLevel extends Model
     }
 
     /**
+     * Determine whether this is the topmost level of its scheme — the one whose nodes have
+     * no parent. Asked relatively rather than by comparing against a fixed position number,
+     * since a scheme's levels are only guaranteed to be ordered, not to start at 1.
+     *
+     * @return bool True if no level in this scheme sits above this one.
+     */
+    public function isRoot(): bool
+    {
+        return !static::query()
+            ->where('scheme_id', $this->scheme_id)
+            ->where('position', '<', $this->position)
+            ->exists();
+    }
+
+    /**
      * Count the existing nodes of this level that share the given parent node.
      *
      * @param OrganizationNode|null $parent The parent node to count direct children under, or null to count root-level nodes of this level (those with no parent).
@@ -169,8 +184,22 @@ class OrganizationLevel extends Model
      */
     public function nextValueForParent(?OrganizationNode $parent): string
     {
-        $position = $this->siblingCountUnder($parent) + 1;
+        return $this->valueForPosition($this->siblingCountUnder($parent) + 1);
+    }
 
+    /**
+     * Generate the value a node would take at the given 1-based position among its siblings,
+     * based on this level's value strategy. Used directly when the parent does not exist yet
+     * and so has no siblings to count (see FindAvailableLocation::preview()).
+     *
+     * @param int $position The 1-based position among siblings.
+     *
+     * @return string The generated value.
+     *
+     * @throws LogicException If this level's value_strategy is Manual, since Manual values must be supplied explicitly and cannot be auto-generated.
+     */
+    public function valueForPosition(int $position): string
+    {
         return match ($this->value_strategy) {
             NodeValueStrategy::Sequential => mb_str_pad((string) $position, 3, '0', STR_PAD_LEFT),
             NodeValueStrategy::Alphabetical => $this->numberToLetters($position),

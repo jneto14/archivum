@@ -16,6 +16,8 @@ use LogicException;
 
 class StartBulkDocumentMove
 {
+    public function __construct(private readonly MigrateNodeDocuments $migrateNodeDocuments) {}
+
     /**
      * Queue the relocation of every document at $source onto $target, guarded by an
      * atomic lock so two bulk moves can't run concurrently for the same workspace.
@@ -26,10 +28,14 @@ class StartBulkDocumentMove
      *
      * @return Task The newly created, queued task.
      *
-     * @throws ValidationException If a bulk document move is already running for the source node's workspace.
+     * @throws ValidationException If $target cannot hold every document being moved, or a bulk document move is already running for the source node's workspace.
      */
     public function handle(OrganizationNode $source, OrganizationNode $target, User $user): Task
     {
+        // Asked before the lock and the task, so a migration that cannot fit is
+        // refused in the dialog rather than by a task that fails minutes later.
+        $this->migrateNodeDocuments->assertTargetHasRoom($source, $target);
+
         $workspaceId = $source->level->scheme->workspace_id;
 
         // `lockKey()` is nullable because attachment text extraction has no

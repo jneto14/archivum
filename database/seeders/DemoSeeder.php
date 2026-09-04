@@ -133,7 +133,7 @@ class DemoSeeder extends Seeder
                 'scheme_id' => $scheme->id,
                 'name' => $level['name'],
                 'key' => $level['key'],
-                'position' => $position,
+                'position' => $position + 1,
                 'capacity' => $level['capacity'],
                 'value_strategy' => $level['strategy'],
             ]);

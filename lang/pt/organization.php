@@ -14,6 +14,7 @@ return [
     'invalid_rule_target_level' => 'O nível de destino deve pertencer ao mesmo esquema.',
     'duplicate_rule_matcher' => 'Já existe uma regra para este critério dentro do esquema.',
     'migration_target_must_differ' => 'A localização de destino tem de ser diferente da localização de origem.',
+    'migration_target_full' => 'A localização de destino não tem espaço para todos os documentos a mover.',
     'scheme_already_exists' => 'Este workspace já tem um esquema de organização.',
     'scheme_created' => 'Esquema de organização criado.',
     'scheme_updated' => 'Esquema de organização atualizado.',

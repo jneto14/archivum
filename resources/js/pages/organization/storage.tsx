@@ -32,10 +32,26 @@ import {
 } from '@/components/ui/select';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useTranslation } from '@/hooks/use-translation';
+import {
+    countNodes,
+    firstEmptyDepth,
+    nodesAtDepth,
+} from '@/lib/organization-tree';
 import nodeActions from '@/routes/organization/nodes';
 import nodes from '@/routes/organization/schemes/nodes';
 
 type StorageView = 'tree' | 'columns';
+
+/**
+ * What a value looks like at each strategy. A Manual level has nothing to
+ * suggest — the user names the node — so it shows no example rather than one
+ * borrowed from a strategy it does not use.
+ */
+const valuePlaceholders = {
+    manual: '',
+    sequential: '001',
+    alphabetical: 'A',
+} as const;
 
 type StorageNode = {
     id: string;
@@ -50,6 +66,7 @@ type Level = {
     name: string;
     position: number;
     capacity: number | null;
+    value_strategy: 'manual' | 'sequential' | 'alphabetical';
     is_leaf: boolean;
 };
 
@@ -59,29 +76,6 @@ type Props = {
     tree: StorageNode[];
     canManage: boolean;
 };
-
-function countNodes(nodes: StorageNode[]): number {
-    return nodes.reduce(
-        (total, node) => total + 1 + countNodes(node.children),
-        0,
-    );
-}
-
-function nodesAtDepth(nodes: StorageNode[], depth: number): StorageNode[] {
-    if (depth === 0) {
-        return nodes;
-    }
-
-    return nodes.flatMap((node) => nodesAtDepth(node.children, depth - 1));
-}
-
-function firstEmptyLevel(levels: Level[], tree: StorageNode[]): Level | null {
-    return (
-        levels.find(
-            (level) => nodesAtDepth(tree, level.position - 1).length === 0,
-        ) ?? null
-    );
-}
 
 export default function OrganizationStorage({
     scheme,
@@ -110,16 +104,21 @@ export default function OrganizationStorage({
     const leafLevel = levels[levels.length - 1];
     const leafNodes = leafLevel ? nodesAtDepth(tree, levels.length - 1) : [];
 
-    const addLevel = levels.find((level) => level.id === addLevelId) ?? null;
-    const addParentOptions = addLevel
-        ? nodesAtDepth(tree, addLevel.position - 2)
-        : [];
-    const isLevelAddable = (level: Level) =>
-        level.position === 1 ||
-        nodesAtDepth(tree, level.position - 2).length > 0;
+    // A level's depth is where it sits in `levels` (ordered by position), not
+    // its position value: a scheme's levels are not guaranteed to start at 1.
+    const addLevelDepth = levels.findIndex((level) => level.id === addLevelId);
+    const addLevel = addLevelDepth === -1 ? null : levels[addLevelDepth];
+    const addParentOptions =
+        addLevel === null ? [] : nodesAtDepth(tree, addLevelDepth - 1);
+    const isLevelAddable = (depth: number) =>
+        depth === 0 || nodesAtDepth(tree, depth - 1).length > 0;
 
     const openAdd = () => {
-        const target = firstEmptyLevel(levels, tree) ?? leafLevel ?? levels[0];
+        const emptyDepth = firstEmptyDepth(levels.length, tree);
+        const target =
+            (emptyDepth === null ? null : levels[emptyDepth]) ??
+            leafLevel ??
+            levels[0];
         setAddLevelId(target?.id ?? '');
         setAddParentId('');
         setAddValue('');
@@ -365,10 +364,10 @@ export default function OrganizationStorage({
                                         <SelectItem
                                             key={level.id}
                                             value={level.id}
-                                            disabled={!isLevelAddable(level)}
+                                            disabled={!isLevelAddable(index)}
                                         >
                                             {level.name}
-                                            {!isLevelAddable(level) &&
+                                            {!isLevelAddable(index) &&
                                                 ` ${t('organization.storage.add_level_first_hint', { level: levels[index - 1]?.name ?? '' })}`}
                                         </SelectItem>
                                     ))}
@@ -376,7 +375,7 @@ export default function OrganizationStorage({
                             </Select>
                             <InputError message={errors.level_id} />
                         </div>
-                        {addLevel && addLevel.position > 1 && (
+                        {addLevel && addLevelDepth > 0 && (
                             <div className="grid gap-2">
                                 <Label>
                                     {t(
@@ -410,7 +409,11 @@ export default function OrganizationStorage({
                         )}
                         <div className="grid gap-2">
                             <Label htmlFor="node_value">
-                                {t('organization.storage.value_label')}
+                                {addLevel?.value_strategy === 'manual'
+                                    ? t('organization.storage.value_label')
+                                    : t(
+                                          'organization.storage.value_label_optional',
+                                      )}
                             </Label>
                             <Input
                                 id="node_value"
@@ -418,7 +421,11 @@ export default function OrganizationStorage({
                                 onChange={(event) =>
                                     setAddValue(event.target.value)
                                 }
-                                placeholder="A"
+                                placeholder={
+                                    valuePlaceholders[
+                                        addLevel?.value_strategy ?? 'manual'
+                                    ]
+                                }
                             />
                             <InputError message={errors.value} />
                             <InputError message={errors.capacity} />
@@ -474,18 +481,43 @@ export default function OrganizationStorage({
                                             (node) =>
                                                 node.id !== moveSource?.id,
                                         )
-                                        .map((node) => (
-                                            <SelectItem
-                                                key={node.id}
-                                                value={node.id}
-                                            >
-                                                {node.path}
-                                            </SelectItem>
-                                        ))}
+                                        .map((node) => {
+                                            // Everything at the source lands
+                                            // here at once, so the room that
+                                            // matters is room for all of it.
+                                            const roomLeft =
+                                                leafLevel?.capacity == null
+                                                    ? null
+                                                    : leafLevel.capacity -
+                                                      (node.documents_count ??
+                                                          0);
+                                            const fits =
+                                                roomLeft === null ||
+                                                roomLeft >=
+                                                    (moveSource?.documents_count ??
+                                                        0);
+
+                                            return (
+                                                <SelectItem
+                                                    key={node.id}
+                                                    value={node.id}
+                                                    disabled={!fits}
+                                                >
+                                                    {node.path}
+                                                    {!fits &&
+                                                        ` ${t('organization.storage.target_no_room_hint')}`}
+                                                </SelectItem>
+                                            );
+                                        })}
                                 </SelectContent>
                             </Select>
                             <InputError message={errors.target_node_id} />
                         </div>
+                        {/* A migration already running for this workspace is
+                            refused by the lock StartBulkDocumentMove takes, and
+                            belongs to no field — without this the dialog took
+                            the click and said nothing. */}
+                        <InputError message={errors.task} />
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>

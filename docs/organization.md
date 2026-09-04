@@ -55,8 +55,8 @@ An `OrganizationLevel` is one tier of the hierarchy. It defines:
 | --- | --- |
 | Name | What people call it — "Cover" |
 | Key | A stable identifier for rules to match on |
-| Position | Its depth, 1-indexed, within the scheme |
-| Capacity | How many children fit under one parent, or unlimited |
+| Position | Its depth within the scheme, counted from the top |
+| Capacity | How much fits: child nodes under one parent, or documents in a leaf |
 | Value strategy | How a new node's value is generated |
 | Display settings | Presentation only |
 
@@ -70,6 +70,11 @@ Two value strategies:
 
 Only the last level in a scheme can be deleted, and only while it holds no
 nodes. Removing a level from the middle would orphan everything below it.
+
+Which level is the top one and which is the bottom is asked relatively — no
+level above it, no level below it — rather than by comparing a position against
+1. `CreateScheme` numbers levels from 1, but a scheme built any other way still
+files correctly.
 
 ## Nodes
 
@@ -95,7 +100,9 @@ location renders as the values from root to leaf:
 
 A node with documents currently located at it cannot be deleted. To empty it,
 migrate its documents to another node first — that is what the bulk move does,
-on the queue, tracked as a `Task`.
+on the queue, tracked as a `Task`. A migration whose target cannot hold every
+document being moved is refused whole, before any of it happens: filling the
+target and stopping partway would leave the documents split across both nodes.
 
 ## Rules
 
@@ -112,6 +119,13 @@ a scheme, and a rule may only target a level of its own scheme.
 Rules are recommendations, not constraints. A user can always file a document
 somewhere else.
 
+Capacity is not a recommendation. A location already holding as many documents
+as it has room for refuses another, whoever asks: the suggestion, the picker,
+the move endpoint, or a bulk migration. They all write through `MoveDocument`,
+which is where the check lives, and it counts and writes under a lock on the
+destination so two documents filed at the same instant cannot both take the last
+free place.
+
 ## The engine
 
 ```text
@@ -127,14 +141,21 @@ OrganizationNode            the leaf the document is filed at
 1. If a rule names a preferred value at this level, use that node — creating it
    if this is the first document to be filed there.
 2. If the preferred node is full, or there is no rule, use the first sibling
-   that still has room below it.
+   that still has room.
 3. If none has room, create a new node at this level.
 
-"Room below it" means the child level has not reached its capacity under that
-node. Capacity is what makes `001-A` fill up and `001-B` open.
+"Room" is read at the level of whatever the node holds. An intermediate node has
+room while its child level has not reached its capacity under it — that is what
+makes `001-A` fill up and `001-B` open. A leaf node holds documents rather than
+nodes, so it has room while it holds fewer documents than its own level's
+capacity. A leaf level with no capacity configured has no known room, so every
+document opens a fresh leaf, one document per position.
 
-The result is a suggestion. The document show page offers it; the user files the
-document wherever they like.
+The result is a suggestion. `FindAvailableLocation::preview()` answers the same
+question without writing anything, which is what the document show page calls: a
+recommended location that does not exist yet is offered as a path, and is only
+created once the user picks it. The user files the document wherever they like —
+the picker also lists every existing location, not just the suggested ones.
 
 ## Location history
 

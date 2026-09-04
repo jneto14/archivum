@@ -5,6 +5,7 @@ declare(strict_types=1);
 return [
     'limit_reached' => 'This workspace has reached its document limit.',
     'location_workspace_mismatch' => 'The location must belong to the same workspace as the document.',
+    'location_full' => 'This location is already holding as many documents as it has room for.',
     'attachment_limit_reached' => 'This workspace has reached its attachment limit.',
     'attachment_limit_remaining_one' => 'Only 1 more attachment fits in this workspace.',
     'attachment_limit_remaining_other' => 'Only :count more attachments fit in this workspace.',

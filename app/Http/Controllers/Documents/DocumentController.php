@@ -9,6 +9,7 @@ use App\Actions\Documents\DeleteDocument;
 use App\Actions\Documents\SearchDocuments;
 use App\Actions\Documents\SuggestDocumentMetadata;
 use App\Actions\Documents\UpdateDocument;
+use App\Actions\Organization\ListSchemeLocations;
 use App\Actions\Organization\SuggestDocumentLocations;
 use App\Enums\SearchMode;
 use App\Http\Controllers\Controller;
@@ -119,9 +120,16 @@ class DocumentController extends Controller
         return Inertia::render('documents/show', [
             'document' => new DocumentResource($document),
             'canFile' => $canFile,
+            'schemeId' => $canFile ? $scheme?->id : null,
             'locationSuggestions' => ($canFile && $scheme !== null)
                 ? app(SuggestDocumentLocations::class)->handle($document, $scheme)
                 : [],
+            // The full list of locations is only worth loading when the user
+            // opens the picker to look past the suggestions, so it is fetched
+            // by a partial reload rather than shipped with every page view.
+            'locations' => Inertia::optional(
+                fn () => ($canFile && $scheme !== null) ? app(ListSchemeLocations::class)->handle($scheme) : [],
+            ),
             // Polled by the "scan with your phone" dialog while it's open
             // (see resources/js/components/document-capture-dialog.tsx),
             // reusing Inertia's own partial-reload polling rather than a

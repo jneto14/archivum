@@ -97,6 +97,11 @@ A document's physical placement is a history of assignments, not a field. The
 newest row is the current location; the rest is where it used to be. See
 [organization.md](organization.md).
 
+The document page suggests where to file it and lists every location in the
+workspace to pick from instead. A suggested location that does not exist yet is
+only created once it is picked, so looking at a document leaves no empty
+positions behind, and a location that is full is refused rather than offered.
+
 ## Activity
 
 Important operations are recorded through `spatie/laravel-activitylog`, scoped

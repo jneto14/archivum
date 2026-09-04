@@ -188,8 +188,15 @@ export default {
     'documents.show.no_location_suggestions':
         'Não foram encontradas posições disponíveis para o esquema deste documento.',
     'documents.show.suggested_badge': 'Sugerido',
+    'documents.show.new_location_badge': 'Nova',
+    'documents.show.current_location_badge': 'Atual',
+    'documents.show.full_location_badge': 'Cheia',
     'documents.show.location_suggestion_count_one': ':count documento',
     'documents.show.location_suggestion_count_other': ':count documentos',
+    'documents.show.browse_locations_button': 'Escolher outra localização',
+    'documents.show.search_locations_placeholder': 'Procurar localizações',
+    'documents.show.no_matching_locations':
+        'Nenhuma localização corresponde a essa procura.',
     'documents.show.cancel_button': 'Cancelar',
     'documents.show.preview_button': 'Pré-visualizar',
     'documents.show.preview_not_supported':
@@ -368,7 +375,8 @@ export default {
     'organization.storage.parent_location_label': 'Local principal',
     'organization.storage.select_parent_placeholder':
         'Seleciona um local principal',
-    'organization.storage.value_label':
+    'organization.storage.value_label': 'Valor',
+    'organization.storage.value_label_optional':
         'Valor (deixa em branco para gerar automaticamente)',
     'organization.storage.cancel_button': 'Cancelar',
     'organization.storage.add_button': 'Adicionar',
@@ -377,6 +385,7 @@ export default {
         'Coloca em fila uma tarefa em segundo plano que move todos os documentos atualmente arquivados neste local para o local selecionado.',
     'organization.storage.target_location_label': 'Local de destino',
     'organization.storage.select_location_placeholder': 'Seleciona um local',
+    'organization.storage.target_no_room_hint': '(sem espaço suficiente)',
     'organization.storage.move_button': 'Mover',
     'organization.storage.move_documents_tooltip': 'Mover documentos',
     'organization.storage.delete_location_tooltip': 'Eliminar local',
