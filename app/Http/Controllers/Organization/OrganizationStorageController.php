@@ -17,6 +17,9 @@ use Inertia\Response;
 
 class OrganizationStorageController extends Controller
 {
+    /** How many of a location's documents the panel lists before deferring to the documents index. */
+    private const int NODE_DOCUMENTS_SHOWN = 20;
+
     /**
      * Browse a scheme's physical node tree.
      *
@@ -45,7 +48,58 @@ class OrganizationStorageController extends Controller
             ])->values()->all(),
             'tree' => $this->buildTree($scheme->levels),
             'canManage' => $scheme->workspace->isManageableBy($request->user()),
+            // Only the location the user asked to look inside, fetched by a
+            // partial reload: shipping every location's contents with the page
+            // would be the whole archive.
+            'nodeDocuments' => Inertia::optional(
+                fn () => $this->nodeDocuments($scheme, $request->query('node')),
+            ),
         ]);
+    }
+
+    /**
+     * The documents currently filed at one of the scheme's nodes, capped: a location
+     * holding hundreds is answered with the first page and a count, and the documents
+     * index — filtered by the same node — is where the rest lives.
+     *
+     * @param OrganizationScheme $scheme The scheme the node must belong to.
+     * @param mixed $nodeId The requested node id, straight off the query string.
+     *
+     * @return array{node: array{id: string, path: string}, documents: array<int, array{id: string, title: string, document_type: string|null, document_date: string|null}>, total: int}|null The node's contents, or null if no node was asked for or it is not this scheme's.
+     */
+    private function nodeDocuments(OrganizationScheme $scheme, mixed $nodeId): ?array
+    {
+        if (!is_string($nodeId)) {
+            return null;
+        }
+
+        $node = OrganizationNode::query()
+            ->whereHas('level', fn ($query) => $query->where('scheme_id', $scheme->id))
+            ->find($nodeId);
+
+        if ($node === null) {
+            return null;
+        }
+
+        $documents = Document::query()
+            ->whereHas('currentLocation', fn ($query) => $query->where('organization_node_id', $node->id))
+            ->with('documentType')
+            ->orderBy('title');
+
+        return [
+            'node' => ['id' => $node->id, 'path' => $node->path()],
+            'total' => $documents->clone()->count(),
+            'documents' => $documents
+                ->limit(self::NODE_DOCUMENTS_SHOWN)
+                ->get()
+                ->map(fn (Document $document) => [
+                    'id' => $document->id,
+                    'title' => $document->title,
+                    'document_type' => $document->documentType?->name,
+                    'document_date' => $document->document_date?->toDateString(),
+                ])
+                ->all(),
+        ];
     }
 
     /**

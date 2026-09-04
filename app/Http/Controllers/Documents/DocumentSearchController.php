@@ -39,6 +39,7 @@ class DocumentSearchController extends Controller
                 'tag_ids' => $request->validated('tag_ids') ?? [],
                 'from' => $request->validated('from'),
                 'to' => $request->validated('to'),
+                'node_id' => $request->validated('node_id'),
             ],
         );
 

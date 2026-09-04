@@ -23,6 +23,7 @@ class SearchDocumentsRequest extends FormRequest
             'document_type_id' => ['nullable', 'uuid', 'exists:document_types,id'],
             'tag_ids' => ['nullable', 'array'],
             'tag_ids.*' => ['uuid', 'exists:tags,id'],
+            'node_id' => ['nullable', 'uuid', 'exists:organization_nodes,id'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date'],
         ];
