@@ -10,6 +10,7 @@ import {
     Trash2Icon,
 } from 'lucide-react';
 import { useState } from 'react';
+import type { CSSProperties } from 'react';
 import InputError from '@/components/input-error';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
@@ -279,7 +280,7 @@ export default function OrganizationStorage({
                 </PageHeader>
 
                 {view === 'tree' && (
-                    <Panel>
+                    <Panel className="@container/tree">
                         <PanelHeader>
                             <span className="text-xs font-medium text-muted-foreground">
                                 {t(
@@ -757,19 +758,29 @@ function TreeRows({
 
                 return (
                     <div key={node.id}>
+                        {/*
+                         * Every fixed width in this row is paid again at each
+                         * depth, and the panel clips what does not fit — so on
+                         * a phone the trailing actions were pushed out of the
+                         * row entirely, by a different amount per row. They are
+                         * the one thing that may not shrink; everything to
+                         * their left gives way instead.
+                         */}
                         <div
-                            className="flex items-center gap-2.5 border-b px-4 py-2.5"
-                            style={{ paddingLeft: 16 + depth * 22 }}
+                            className="flex items-center gap-2.5 border-b py-2.5 pr-4 pl-[calc(1rem+var(--tree-depth)*0.875rem)] @md/tree:pl-[calc(1rem+var(--tree-depth)*1.375rem)]"
+                            style={{ '--tree-depth': depth } as CSSProperties}
                         >
                             <span className="flex w-3.5 flex-none items-center text-muted-foreground">
                                 {hasChildren && (
                                     <ChevronRightIcon className="size-3.5" />
                                 )}
                             </span>
-                            <span className="min-w-[110px] flex-none font-mono text-sm font-medium">
+                            {/* A column of aligned values is worth 110px of a
+                                desktop row and not of a phone's. */}
+                            <span className="min-w-0 flex-none truncate font-mono text-sm font-medium @md/tree:min-w-[110px]">
                                 {node.value}
                             </span>
-                            <span className="flex-1 truncate text-xs text-muted-foreground">
+                            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
                                 {level.is_leaf
                                     ? `${t(
                                           node.documents_count === 1
@@ -784,12 +795,18 @@ function TreeRows({
                                           { count: node.children.length },
                                       )}
                             </span>
+                            {/* The count beside it already reads "2 / 6", so on
+                                a narrow row the gauge is the 96px most worth
+                                giving back. */}
                             {pct !== null && (
-                                <div className="w-24 flex-none">
+                                <div className="hidden w-24 flex-none @md/tree:block">
                                     <Progress value={pct} />
                                 </div>
                             )}
-                            <div className="flex flex-none items-center gap-1">
+                            {/* One group, so the actions line up down the
+                                column however many of them a row happens to
+                                carry. */}
+                            <div className="ml-auto flex flex-none items-center gap-1">
                                 {level.is_leaf && (
                                     <Button
                                         variant="ghost"
@@ -841,21 +858,19 @@ function TreeRows({
                                         </Link>
                                     </Button>
                                 )}
-                            </div>
-                            {canManage && (
-                                <div className="flex flex-none items-center gap-1">
-                                    {level.is_leaf && (
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            title={t(
-                                                'organization.storage.move_documents_tooltip',
-                                            )}
-                                            onClick={() => onMove(node)}
-                                        >
-                                            <ArrowRightLeftIcon className="size-3.5" />
-                                        </Button>
-                                    )}
+                                {canManage && level.is_leaf && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        title={t(
+                                            'organization.storage.move_documents_tooltip',
+                                        )}
+                                        onClick={() => onMove(node)}
+                                    >
+                                        <ArrowRightLeftIcon className="size-3.5" />
+                                    </Button>
+                                )}
+                                {canManage && (
                                     <Button
                                         variant="ghost"
                                         size="icon"
@@ -866,8 +881,8 @@ function TreeRows({
                                     >
                                         <Trash2Icon className="size-3.5" />
                                     </Button>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                         {hasChildren && (
                             <TreeRows
