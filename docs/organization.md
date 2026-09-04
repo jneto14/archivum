@@ -127,14 +127,21 @@ OrganizationNode            the leaf the document is filed at
 1. If a rule names a preferred value at this level, use that node — creating it
    if this is the first document to be filed there.
 2. If the preferred node is full, or there is no rule, use the first sibling
-   that still has room below it.
+   that still has room.
 3. If none has room, create a new node at this level.
 
-"Room below it" means the child level has not reached its capacity under that
-node. Capacity is what makes `001-A` fill up and `001-B` open.
+"Room" is read at the level of whatever the node holds. An intermediate node has
+room while its child level has not reached its capacity under it — that is what
+makes `001-A` fill up and `001-B` open. A leaf node holds documents rather than
+nodes, so it has room while it holds fewer documents than its own level's
+capacity. A leaf level with no capacity configured has no known room, so every
+document opens a fresh leaf, one document per position.
 
-The result is a suggestion. The document show page offers it; the user files the
-document wherever they like.
+The result is a suggestion. `FindAvailableLocation::preview()` answers the same
+question without writing anything, which is what the document show page calls: a
+recommended location that does not exist yet is offered as a path, and is only
+created once the user picks it. The user files the document wherever they like —
+the picker also lists every existing location, not just the suggested ones.
 
 ## Location history
 

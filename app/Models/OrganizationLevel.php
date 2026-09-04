@@ -169,8 +169,22 @@ class OrganizationLevel extends Model
      */
     public function nextValueForParent(?OrganizationNode $parent): string
     {
-        $position = $this->siblingCountUnder($parent) + 1;
+        return $this->valueForPosition($this->siblingCountUnder($parent) + 1);
+    }
 
+    /**
+     * Generate the value a node would take at the given 1-based position among its siblings,
+     * based on this level's value strategy. Used directly when the parent does not exist yet
+     * and so has no siblings to count (see FindAvailableLocation::preview()).
+     *
+     * @param int $position The 1-based position among siblings.
+     *
+     * @return string The generated value.
+     *
+     * @throws LogicException If this level's value_strategy is Manual, since Manual values must be supplied explicitly and cannot be auto-generated.
+     */
+    public function valueForPosition(int $position): string
+    {
         return match ($this->value_strategy) {
             NodeValueStrategy::Sequential => mb_str_pad((string) $position, 3, '0', STR_PAD_LEFT),
             NodeValueStrategy::Alphabetical => $this->numberToLetters($position),

@@ -70,6 +70,22 @@ class MoveDocumentTest extends TestCase
         $this->assertStringContainsString('-A-', $document->currentLocation->node->path());
     }
 
+    public function test_filing_by_scheme_opens_the_suggested_location_when_it_does_not_exist_yet()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        [$document, $scheme] = $this->createDocumentAndScheme($workspace, $admin);
+
+        // What the show page posts when the user picks a recommendation the
+        // suggestion deliberately did not create.
+        $response = $this->actingAs($admin->user)->post(route('documents.move', $document), [
+            'scheme_id' => $scheme->id,
+        ]);
+
+        $response->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('001', $document->currentLocation->node->path());
+    }
+
     public function test_moving_twice_builds_history_with_current_location_as_the_latest()
     {
         $workspace = Workspace::factory()->create();

@@ -11,6 +11,7 @@ use App\Actions\Organization\CreateScheme;
 use App\Actions\Organization\SuggestDocumentLocations;
 use App\Enums\NodeValueStrategy;
 use App\Models\DocumentType;
+use App\Models\OrganizationNode;
 use App\Models\OrganizationScheme;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
@@ -38,6 +39,35 @@ class SuggestDocumentLocationsTest extends TestCase
         $this->assertCount(1, $suggestions);
         $this->assertTrue($suggestions[0]['recommended']);
         $this->assertSame(0, $suggestions[0]['documentsCount']);
+        // Nothing has been filed here yet, so the recommendation is a location
+        // that does not exist: offered as a path, with no node behind it.
+        $this->assertNull($suggestions[0]['node']['id']);
+        $this->assertSame('001', $suggestions[0]['node']['path']);
+        $this->assertSame(0, OrganizationNode::query()->count());
+    }
+
+    public function test_the_recommendation_is_an_existing_node_when_one_has_room()
+    {
+        $workspace = Workspace::factory()->create();
+        $creator = WorkspaceUser::factory()->for($workspace)->create();
+        $type = DocumentType::factory()->for($workspace)->create(['key' => 'invoice']);
+
+        $scheme = app(CreateScheme::class)->handle($workspace, 'Scheme', [
+            ['name' => 'Box', 'key' => 'box', 'value_strategy' => NodeValueStrategy::Sequential, 'capacity' => 3],
+        ]);
+        $box = app(CreateOrganizationNode::class)->handle($scheme->levels->first(), null, '001');
+
+        $existingDocument = app(CreateDocument::class)->handle($workspace, $creator->user, $type, 'Existing', null, null);
+        app(MoveDocument::class)->handle($existingDocument, $box);
+
+        $document = app(CreateDocument::class)->handle($workspace, $creator->user, $type, 'New', null, null);
+
+        $suggestions = app(SuggestDocumentLocations::class)->handle($document, $scheme);
+
+        $this->assertTrue($suggestions[0]['recommended']);
+        $this->assertSame($box->id, $suggestions[0]['node']['id']);
+        $this->assertSame(1, $suggestions[0]['documentsCount']);
+        $this->assertSame(3, $suggestions[0]['capacity']);
     }
 
     public function test_alternatives_exclude_nodes_at_capacity()

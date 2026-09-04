@@ -26,6 +26,29 @@ class CreateOrganizationNode
      */
     public function handle(OrganizationLevel $level, ?OrganizationNode $parent, ?string $value = null): OrganizationNode
     {
+        return OrganizationNode::query()->create([
+            'level_id' => $level->id,
+            'parent_id' => $parent?->id,
+            'value' => $this->resolveValue($level, $parent, $value),
+        ]);
+    }
+
+    /**
+     * Work out the value a node created by handle() would take, running every check
+     * handle() runs, without writing anything. Callers that only want to know where a
+     * document *would* be filed use this to avoid persisting a node they may not need
+     * (see FindAvailableLocation::preview()).
+     *
+     * @param OrganizationLevel $level The level the node would belong to.
+     * @param OrganizationNode|null $parent The parent node, or null when $level is the scheme's root level.
+     * @param string|null $value The requested value; if null, it is derived from $level's value strategy (unless the strategy is Manual).
+     *
+     * @return string The value the new node would be created with.
+     *
+     * @throws ValidationException If $parent is inconsistent with $level's position in the scheme, $level has reached capacity under $parent, $value is null under a Manual value strategy, or the resulting value is not unique among siblings.
+     */
+    public function resolveValue(OrganizationLevel $level, ?OrganizationNode $parent, ?string $value = null): string
+    {
         $this->assertParentConsistency($level, $parent);
 
         if ($level->capacityReached($parent)) {
@@ -46,11 +69,7 @@ class CreateOrganizationNode
 
         $this->assertValueIsUnique($level, $parent, $value);
 
-        return OrganizationNode::query()->create([
-            'level_id' => $level->id,
-            'parent_id' => $parent?->id,
-            'value' => $value,
-        ]);
+        return $value;
     }
 
     /**
