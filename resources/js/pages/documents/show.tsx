@@ -21,7 +21,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { useDateFormatter } from '@/hooks/use-date-formatter';
 import { useTranslation } from '@/hooks/use-translation';
-import { formatBytes } from '@/lib/utils';
+import { formatBytes, randomId } from '@/lib/utils';
 import {
     destroy as attachmentDestroy,
     show as attachmentShow,
@@ -157,7 +157,7 @@ export default function DocumentShow({
         if (picked.length > 0) {
             setQueue((current) => [
                 ...current,
-                ...picked.map((file) => ({ id: crypto.randomUUID(), file })),
+                ...picked.map((file) => ({ id: randomId(), file })),
             ]);
             setUploadError(undefined);
         }

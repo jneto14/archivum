@@ -31,6 +31,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useTranslation } from '@/hooks/use-translation';
+import { randomId } from '@/lib/utils';
 import {
     edit as documentEdit,
     index as documentsIndex,
@@ -132,7 +133,7 @@ export default function DocumentForm({
     const addMetadataPair = () =>
         setMetadataPairs([
             ...metadataPairs,
-            { id: `added:${crypto.randomUUID()}`, key: '', value: '' },
+            { id: `added:${randomId()}`, key: '', value: '' },
         ]);
     const removeMetadataPair = (index: number) =>
         setMetadataPairs(metadataPairs.filter((_, i) => i !== index));

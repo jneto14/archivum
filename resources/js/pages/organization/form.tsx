@@ -22,6 +22,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useTranslation } from '@/hooks/use-translation';
+import { randomId } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import { show as schemeShow } from '@/routes/organization/schemes';
 import levelActions from '@/routes/organization/schemes/levels';
@@ -131,7 +132,7 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
         form.setData('levels', [
             ...form.data.levels,
             {
-                id: crypto.randomUUID(),
+                id: randomId(),
                 name: '',
                 key: '',
                 capacity: '',
