@@ -124,6 +124,21 @@ class OrganizationLevel extends Model
     }
 
     /**
+     * Determine whether this is the topmost level of its scheme — the one whose nodes have
+     * no parent. Asked relatively rather than by comparing against a fixed position number,
+     * since a scheme's levels are only guaranteed to be ordered, not to start at 1.
+     *
+     * @return bool True if no level in this scheme sits above this one.
+     */
+    public function isRoot(): bool
+    {
+        return !static::query()
+            ->where('scheme_id', $this->scheme_id)
+            ->where('position', '<', $this->position)
+            ->exists();
+    }
+
+    /**
      * Count the existing nodes of this level that share the given parent node.
      *
      * @param OrganizationNode|null $parent The parent node to count direct children under, or null to count root-level nodes of this level (those with no parent).

@@ -11,6 +11,7 @@ use App\Actions\Organization\CreateScheme;
 use App\Enums\NodeValueStrategy;
 use App\Enums\WorkspaceRole;
 use App\Models\DocumentType;
+use App\Models\OrganizationLevel;
 use App\Models\OrganizationScheme;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
@@ -35,6 +36,28 @@ class OrganizationNodeTest extends TestCase
 
         $response->assertRedirect();
         $this->assertDatabaseHas('organization_nodes', ['level_id' => $level->id, 'value' => '001']);
+    }
+
+    public function test_nodes_can_be_created_in_a_scheme_whose_levels_do_not_start_at_position_one()
+    {
+        $workspace = Workspace::factory()->create();
+        $scheme = OrganizationScheme::factory()->for($workspace)->create();
+
+        // The demo seeder numbered its levels from zero, which left the top two
+        // levels of that archive unable to take nodes at all: the root was not
+        // recognised as the root, and the level below it was.
+        $room = OrganizationLevel::factory()->for($scheme, 'scheme')->create([
+            'name' => 'Room', 'key' => 'room', 'position' => 0, 'value_strategy' => NodeValueStrategy::Manual,
+        ]);
+        $cabinet = OrganizationLevel::factory()->for($scheme, 'scheme')->create([
+            'name' => 'Cabinet', 'key' => 'cabinet', 'position' => 1, 'value_strategy' => NodeValueStrategy::Alphabetical,
+        ]);
+
+        $action = app(CreateOrganizationNode::class);
+        $roomNode = $action->handle($room, null, 'Floor 1');
+        $cabinetNode = $action->handle($cabinet, $roomNode);
+
+        $this->assertSame('Floor 1-A', $cabinetNode->path());
     }
 
     public function test_path_accessor_joins_values_from_root_to_leaf()

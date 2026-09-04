@@ -82,7 +82,7 @@ class CreateOrganizationNode
      */
     private function assertParentConsistency(OrganizationLevel $level, ?OrganizationNode $parent): void
     {
-        if ($level->position === 1) {
+        if ($level->isRoot()) {
             if ($parent !== null) {
                 throw ValidationException::withMessages([
                     'parent_id' => __('organization.root_node_cannot_have_parent'),
