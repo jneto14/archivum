@@ -1,5 +1,5 @@
 import { Link, router, setLayoutProps, useForm } from '@inertiajs/react';
-import { CopyIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import { CheckIcon, CopyIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useClipboard } from '@/hooks/use-clipboard';
 import { useIsDemo } from '@/hooks/use-demo';
 import { useTranslation } from '@/hooks/use-translation';
 import {
@@ -74,6 +75,7 @@ export default function WorkspaceSettings({
 }: Props) {
     const t = useTranslation();
     const isDemo = useIsDemo();
+    const [copiedText, copy] = useClipboard();
 
     const [renameOpen, setRenameOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
@@ -666,12 +668,13 @@ export default function WorkspaceSettings({
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() =>
-                                revealedToken &&
-                                navigator.clipboard.writeText(revealedToken)
-                            }
+                            onClick={() => revealedToken && copy(revealedToken)}
                         >
-                            <CopyIcon />
+                            {copiedText === revealedToken ? (
+                                <CheckIcon />
+                            ) : (
+                                <CopyIcon />
+                            )}
                         </Button>
                     </div>
                     <DialogFooter>
