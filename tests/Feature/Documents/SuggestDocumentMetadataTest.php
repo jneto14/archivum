@@ -13,6 +13,7 @@ use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
+use ReflectionMethod;
 use Tests\TestCase;
 
 /**
@@ -84,7 +85,9 @@ class SuggestDocumentMetadataTest extends TestCase
         $this->assertSame(
             $expected,
             $suggestions[$kind] ?? null,
-            "Read from \"{$text}\": " . json_encode($suggestions),
+            "Read from \"{$text}\": " . json_encode($suggestions)
+                . ' | labels: ' . json_encode($this->labelsFor($kind))
+                . ' | locales: ' . json_encode(array_keys(config('archivum.locales'))),
         );
     }
 
@@ -274,6 +277,20 @@ class SuggestDocumentMetadataTest extends TestCase
     public function test_a_document_with_nothing_extracted_suggests_nothing()
     {
         $this->assertSame([], app(SuggestDocumentMetadata::class)->handle($this->documentWithText('')));
+    }
+
+    /**
+     * The label vocabulary the reader compiled for a kind.
+     *
+     * @param string $kind The kind whose labels are wanted.
+     *
+     * @return array<int, string> The labels, or a note when the kind has none.
+     */
+    private function labelsFor(string $kind): array
+    {
+        $method = new ReflectionMethod(SuggestDocumentMetadata::class, 'labelsFor');
+
+        return $method->invoke(app(SuggestDocumentMetadata::class), $kind);
     }
 
     /**
