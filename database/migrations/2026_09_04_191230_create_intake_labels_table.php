@@ -24,9 +24,11 @@ return new class() extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('workspace_id')->constrained()->cascadeOnDelete();
 
-            // Only the label-driven kinds are ever stored here: a date and an
-            // amount are recognised by their shape, so vocabulary would sit
-            // unread. See SuggestDocumentMetadata.
+            // A metadata key, normalised — the key *is* the kind, because the
+            // archive has already named what it files. Not an enum and not a
+            // list in the code: nobody knows whether the next installation
+            // holds invoices, policies or building permits. See
+            // IntakeVocabulary.
             $table->string('kind');
 
             // Folded the same way the page is before the two are compared, so

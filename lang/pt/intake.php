@@ -11,6 +11,13 @@ declare(strict_types=1);
 
 return [
 
+    'names' => [
+        'document_date' => 'Data do documento',
+        'amount' => 'Valor',
+        'tax_id' => 'Número de contribuinte',
+        'vehicle_registration' => 'Matrícula',
+    ],
+
     'labels' => [
         'tax_id' => [
             'NIF',

@@ -94,7 +94,13 @@ class SuggestDocumentMetadataTest extends TestCase
     public static function foreignDocuments(): array
     {
         return [
-            'a spaced British VAT number' => ['VAT registration 501 234 567', 'tax_id', '501234567'],
+            // As the page wrote it, spacing and all. Stripping separators was
+            // a rule the tax-number reader carried and the plate reader did
+            // not, and with the kinds no longer written down in the code there
+            // is nobody left to hold an opinion about one kind's punctuation.
+            // A user can delete a space; they cannot put back a dash that a
+            // policy number needed.
+            'a spaced British VAT number' => ['VAT registration 501 234 567', 'tax_id', '501 234 567'],
             'a Spanish VAT number with a letter in it' => ['VAT number ESB12345678', 'tax_id', 'ESB12345678'],
             'an Irish VAT number ending in a letter' => ['VAT no. IE1234567T', 'tax_id', 'IE1234567T'],
             'a British plate' => ['Registration number AB12 CDE', 'vehicle_registration', 'AB12 CDE'],
@@ -114,7 +120,7 @@ class SuggestDocumentMetadataTest extends TestCase
             INVOICE No. 2026/0184
             TEXT));
 
-        $this->assertSame('501234567', $suggestions['tax_id']);
+        $this->assertSame('501 234 567', $suggestions['tax_id']);
     }
 
     public function test_a_label_cannot_reach_across_words_to_claim_a_number()
@@ -182,7 +188,7 @@ class SuggestDocumentMetadataTest extends TestCase
         // The total, not a line item and not the subtotal.
         $this->assertSame('315.00', $suggestions['amount']);
         // Labelled, so the spacing and the country's format do not matter.
-        $this->assertSame('501234567', $suggestions['tax_id']);
+        $this->assertSame('501 234 567', $suggestions['tax_id']);
     }
 
     public function test_a_date_written_in_portuguese_is_read_too()

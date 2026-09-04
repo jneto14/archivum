@@ -19,10 +19,29 @@ declare(strict_types=1);
 return [
 
     /*
+    | What to call each of these when showing it to somebody — on the review
+    | queue, and in the list of words a workspace has adopted.
+    |
+    | Only the kinds this file seeds have a name here. Every other kind is a
+    | metadata key somebody typed, and is shown as they spelled it: there is no
+    | list of kinds in the code to give names to. See IntakeVocabulary.
+    */
+    'names' => [
+        'document_date' => 'Document date',
+        'amount' => 'Amount',
+        'tax_id' => 'Tax number',
+        'vehicle_registration' => 'Vehicle registration',
+    ],
+
+    /*
     | Words that introduce a value on the page — "VAT registration 501 234 567".
     | The label is what makes a value recognisable without knowing the country's
     | format for it, so this is where recall comes from. Keep them specific:
     | a word that appears in ordinary prose will match ordinary prose.
+    |
+    | The keys here are also the kinds a new archive can read before it has
+    | learned anything of its own — without them it would read nothing until
+    | somebody had filled the same field in by hand several times.
     */
     'labels' => [
         'tax_id' => [
