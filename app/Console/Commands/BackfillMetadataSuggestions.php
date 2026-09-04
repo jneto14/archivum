@@ -40,12 +40,10 @@ class BackfillMetadataSuggestions extends Command
             ->when(!$this->option('all'), fn ($query) => $query->whereNull('metadata_suggestions'))
             ->chunkById(100, function (Collection $documents) use ($suggest, &$found, &$read): void {
                 foreach ($documents as $document) {
-                    $findings = $suggest->extract($document->ocr_text);
-
-                    $document->recordMetadataSuggestions($findings);
+                    $suggest->record($document);
 
                     $read++;
-                    $found += count($findings);
+                    $found += count($document->metadata_suggestions ?? []);
                 }
             });
 

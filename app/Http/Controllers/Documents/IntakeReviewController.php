@@ -53,16 +53,30 @@ class IntakeReviewController extends Controller
         $suggestions = $documents
             ->getCollection()
             ->map(fn (Document $document): array => [
-                'id' => $document->id,
-                'title' => $document->title,
-                'document_type' => $document->documentType?->name,
+                'document' => $document,
                 'suggestions' => $suggest->handle($document),
             ])
-            // A document whose fields were all filled in by hand between
-            // extraction and now has nothing left to confirm. It is cleaned up
-            // on its next edit; until then it must not be listed with an empty
-            // body.
-            ->filter(fn (array $row): bool => $row['suggestions'] !== [])
+            // A document whose fields were filled in between being read and
+            // now has nothing left to confirm. Findings are pruned as they are
+            // stored, so this is drift rather than the normal case — but the
+            // sidebar counts the stored ones in SQL and would otherwise keep
+            // pointing at a row that is not here. Clearing it as we pass
+            // settles both, and only ever for a row that is already stale.
+            ->reject(function (array $row): bool {
+                if ($row['suggestions'] !== []) {
+                    return false;
+                }
+
+                $row['document']->recordMetadataSuggestions([]);
+
+                return true;
+            })
+            ->map(fn (array $row): array => [
+                'id' => $row['document']->id,
+                'title' => $row['document']->title,
+                'document_type' => $row['document']->documentType?->name,
+                'suggestions' => $row['suggestions'],
+            ])
             ->values()
             ->all();
 

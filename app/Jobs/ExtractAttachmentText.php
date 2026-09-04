@@ -130,7 +130,9 @@ class ExtractAttachmentText implements ShouldQueue
         // Read from the document's mirror rather than this attachment's text:
         // a document is often several pages, and the date is on the one that
         // happens to be extracted last as readily as the first.
-        $document?->recordMetadataSuggestions($suggest->extract($document->ocr_text));
+        if ($document !== null) {
+            $suggest->record($document);
+        }
 
         $this->task->markCompleted([
             'filename' => $this->attachment->filename,

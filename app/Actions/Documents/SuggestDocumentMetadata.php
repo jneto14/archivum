@@ -118,9 +118,53 @@ class SuggestDocumentMetadata
     {
         // Falls back to reading the text where nothing was stored, which is
         // every document extracted before the column existed. Those simply do
-        // not appear in the review queue until they are extracted again.
-        $findings = $document->metadata_suggestions ?? $this->extract($document->ocr_text);
+        // not appear in the review queue until they are read again.
+        return $this->resolve($document, $document->metadata_suggestions ?? $this->extract($document->ocr_text));
+    }
 
+    /**
+     * Read $document's text and store what is still worth suggesting.
+     *
+     * The pruning matters: `metadata_suggestions` is what the sidebar counts,
+     * and it counts in SQL because it is asked on every request. Storing a
+     * finding for a field that already has a value in it makes that count say
+     * one thing while the review queue — which resolves properly — shows
+     * another, and a badge that points at an empty page is worse than no badge.
+     *
+     * @param Document $document The document to read.
+     *
+     * @return void No return value; saves the document as a side effect.
+     */
+    public function record(Document $document): void
+    {
+        $findings = $this->extract($document->ocr_text);
+
+        $waiting = array_map(
+            static fn (array $suggestion): string => $suggestion['kind'],
+            $this->resolve($document, $findings),
+        );
+
+        $document->recordMetadataSuggestions(array_values(array_filter(
+            $findings,
+            static fn (array $finding): bool => in_array($finding['kind'], $waiting, true),
+        )));
+    }
+
+    /**
+     * Work out which field each finding belongs in, and drop the ones whose
+     * field is no longer empty.
+     *
+     * Kept apart from the findings themselves because both answers change after
+     * extraction ran: the document's type gains keys, and its fields get filled
+     * in by hand.
+     *
+     * @param Document $document The document the findings belong to.
+     * @param array<int, array{kind: string, value: string}> $findings What the text was found to contain.
+     *
+     * @return list<array{kind: string, key: string, value: string}> The findings still worth offering.
+     */
+    private function resolve(Document $document, array $findings): array
+    {
         if ($findings === []) {
             return [];
         }

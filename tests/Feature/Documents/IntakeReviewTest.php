@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Documents;
 
+use App\Actions\Documents\CountIntakeReview;
 use App\Actions\Documents\CreateDocument;
+use App\Actions\Documents\SuggestDocumentMetadata;
 use App\Enums\WorkspaceRole;
 use App\Models\Document;
 use App\Models\DocumentAttachment;
@@ -72,6 +74,45 @@ class IntakeReviewTest extends TestCase
             ->get(route('documents.review', $workspace))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('documents', []));
+    }
+
+    public function test_the_badge_never_points_at_a_row_the_queue_does_not_show()
+    {
+        $workspace = $this->workspace();
+        $document = $this->reviewable($workspace, 'Scan sem titulo');
+
+        // Filled in behind the queue's back — how the real one drifted: a
+        // backfill re-read a document whose fields were already complete.
+        $document->forceFill([
+            'document_date' => '2026-01-05',
+            'metadata' => ['amount' => '999,99 EUR'],
+        ])->save();
+
+        $this->actingAs($this->member($workspace))
+            ->get(route('documents.review', $workspace))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('documents', []));
+
+        $this->assertSame(
+            0,
+            app(CountIntakeReview::class)->handle($workspace),
+            'A badge counting a row the page filters out sends people to an empty queue.',
+        );
+    }
+
+    public function test_reading_a_document_stores_nothing_for_a_field_already_filled()
+    {
+        $workspace = $this->workspace();
+        $document = $this->reviewable($workspace, 'Scan sem titulo');
+
+        $document->forceFill(['document_date' => '2026-01-05'])->save();
+
+        app(SuggestDocumentMetadata::class)->record($document);
+
+        $kinds = array_column($document->refresh()->metadata_suggestions ?? [], 'kind');
+
+        $this->assertNotContains('document_date', $kinds);
+        $this->assertContains('amount', $kinds);
     }
 
     public function test_an_outsider_cannot_open_the_queue()
