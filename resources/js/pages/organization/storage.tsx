@@ -7,7 +7,6 @@ import {
     ListTreeIcon,
     PlusIcon,
     Trash2Icon,
-    XIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
@@ -32,6 +31,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useDateFormatter } from '@/hooks/use-date-formatter';
@@ -120,7 +127,7 @@ export default function OrganizationStorage({
     const [moveSource, setMoveSource] = useState<StorageNode | null>(null);
     const [moveTargetId, setMoveTargetId] = useState('');
     // The location whose contents are open. Held here rather than read off
-    // `nodeDocuments`, so the panel can show a skeleton for the location just
+    // `nodeDocuments`, so the sheet can show a skeleton for the location just
     // asked for while the previous one's documents are still the loaded prop.
     const [openNode, setOpenNode] = useState<StorageNode | null>(null);
 
@@ -192,7 +199,7 @@ export default function OrganizationStorage({
         );
     };
 
-    // Null while the panel is waiting: either nothing has come back yet, or
+    // Null while the sheet is waiting: either nothing has come back yet, or
     // what did belongs to the location that was open before this one.
     const loadedDocuments =
         nodeDocuments && openNode && nodeDocuments.node.id === openNode.id
@@ -381,54 +388,33 @@ export default function OrganizationStorage({
                         </div>
                     </Panel>
                 )}
+            </PageContainer>
 
-                {openNode && (
-                    <Panel>
-                        <PanelHeader>
-                            <span className="min-w-0 truncate font-mono text-sm font-semibold">
-                                {openNode.path}
-                            </span>
-                            <div className="flex shrink-0 items-center gap-1">
-                                {loadedDocuments &&
-                                    loadedDocuments.total > 0 &&
-                                    workspace && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            asChild
-                                        >
-                                            <Link
-                                                href={documentsIndex.url(
-                                                    workspace.id,
-                                                    {
-                                                        query: {
-                                                            node_id:
-                                                                openNode.id,
-                                                        },
-                                                    },
-                                                )}
-                                            >
-                                                {t(
-                                                    'organization.storage.see_all_documents',
-                                                    {
-                                                        count: loadedDocuments.total,
-                                                    },
-                                                )}
-                                            </Link>
-                                        </Button>
-                                    )}
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    title={t(
-                                        'organization.storage.close_documents',
-                                    )}
-                                    onClick={() => setOpenNode(null)}
-                                >
-                                    <XIcon className="size-3.5" />
-                                </Button>
-                            </div>
-                        </PanelHeader>
+            {/* A side sheet rather than a panel under the tree: an archive of
+                any size pushes that panel past the fold, so opening a location
+                meant scrolling away from the location you opened. */}
+            <Sheet
+                open={openNode !== null}
+                onOpenChange={(open) => !open && setOpenNode(null)}
+            >
+                <SheetContent side="right" className="w-full sm:max-w-md">
+                    <SheetHeader className="border-b">
+                        <SheetTitle className="font-mono">
+                            {openNode?.path}
+                        </SheetTitle>
+                        <SheetDescription>
+                            {loadedDocuments === null
+                                ? t('organization.storage.loading_documents')
+                                : t(
+                                      loadedDocuments.total === 1
+                                          ? 'organization.storage.documents_count_one'
+                                          : 'organization.storage.documents_count_other',
+                                      { count: loadedDocuments.total },
+                                  )}
+                        </SheetDescription>
+                    </SheetHeader>
+
+                    <div className="min-h-0 flex-1 overflow-y-auto">
                         {loadedDocuments === null ? (
                             <div className="space-y-2 p-4">
                                 <Skeleton className="h-6 w-full" />
@@ -444,33 +430,58 @@ export default function OrganizationStorage({
                                 {loadedDocuments.documents.map((document) => (
                                     <li
                                         key={document.id}
-                                        className="flex flex-wrap items-center gap-2 border-b px-4 py-2.5 last:border-b-0"
+                                        className="border-b px-4 py-2.5 last:border-b-0"
                                     >
                                         <Link
                                             href={documentShow.url(document.id)}
-                                            className="min-w-0 flex-1 truncate text-sm hover:underline"
+                                            className="block truncate text-sm hover:underline"
                                         >
                                             {document.title}
                                         </Link>
-                                        {document.document_type && (
-                                            <span className="shrink-0 text-xs text-muted-foreground">
-                                                {document.document_type}
-                                            </span>
-                                        )}
-                                        {document.document_date && (
-                                            <span className="shrink-0 text-xs text-muted-foreground">
-                                                {formatDate(
-                                                    document.document_date,
-                                                )}
-                                            </span>
-                                        )}
+                                        <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                                            {document.document_type && (
+                                                <span>
+                                                    {document.document_type}
+                                                </span>
+                                            )}
+                                            {document.document_date && (
+                                                <span>
+                                                    {formatDate(
+                                                        document.document_date,
+                                                    )}
+                                                </span>
+                                            )}
+                                        </div>
                                     </li>
                                 ))}
                             </ul>
                         )}
-                    </Panel>
-                )}
-            </PageContainer>
+                    </div>
+
+                    {loadedDocuments !== null &&
+                        loadedDocuments.total >
+                            loadedDocuments.documents.length &&
+                        workspace &&
+                        openNode && (
+                            <SheetFooter className="border-t">
+                                <Button variant="outline" asChild>
+                                    <Link
+                                        href={documentsIndex.url(workspace.id, {
+                                            query: {
+                                                node_id: openNode.id,
+                                            },
+                                        })}
+                                    >
+                                        {t(
+                                            'organization.storage.see_all_documents',
+                                            { count: loadedDocuments.total },
+                                        )}
+                                    </Link>
+                                </Button>
+                            </SheetFooter>
+                        )}
+                </SheetContent>
+            </Sheet>
 
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
                 <DialogContent>

@@ -380,6 +380,7 @@ export default {
     'organization.storage.show_documents_tooltip': 'Show the documents here',
     'organization.storage.see_all_documents': 'See all :count',
     'organization.storage.close_documents': 'Close',
+    'organization.storage.loading_documents': 'Looking inside…',
     'organization.storage.no_documents_here': 'Nothing is filed here yet.',
     'organization.storage.target_no_room_hint': '(not enough room)',
     'organization.storage.move_button': 'Move',

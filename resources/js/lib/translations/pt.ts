@@ -391,6 +391,7 @@ export default {
         'Ver os documentos aqui arquivados',
     'organization.storage.see_all_documents': 'Ver todos (:count)',
     'organization.storage.close_documents': 'Fechar',
+    'organization.storage.loading_documents': 'A ver o que está aqui…',
     'organization.storage.no_documents_here':
         'Ainda não está aqui nada arquivado.',
     'organization.storage.target_no_room_hint': '(sem espaço suficiente)',
