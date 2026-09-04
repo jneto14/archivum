@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Workspaces;
 use App\Enums\IntakeLabelStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Workspaces\UpdateIntakeLabelRequest;
+use App\Jobs\RereadWorkspaceSuggestions;
 use App\Models\IntakeLabel;
 use App\Models\Workspace;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -22,6 +23,11 @@ class IntakeLabelController extends Controller
      * rejecting it, which stops the reader using it *and* stops the next mining
      * run offering it back. Deleting the row would do the first and undo the
      * second, so nothing here deletes.
+     *
+     * Either answer changes how every document already in the archive should
+     * have been read, so the archive is read again in the background. Without
+     * that, accepting a word only ever applied to documents filed afterwards —
+     * see RereadWorkspaceSuggestions.
      *
      * @param UpdateIntakeLabelRequest $request The validated decision.
      * @param Workspace $workspace The workspace whose vocabulary this is.
@@ -45,6 +51,8 @@ class IntakeLabelController extends Controller
         $intakeLabel->update([
             'status' => IntakeLabelStatus::from((string) $request->validated('status')),
         ]);
+
+        RereadWorkspaceSuggestions::dispatch($workspace);
 
         return back();
     }

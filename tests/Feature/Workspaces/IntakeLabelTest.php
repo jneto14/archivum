@@ -6,10 +6,14 @@ namespace Tests\Feature\Workspaces;
 
 use App\Enums\IntakeLabelStatus;
 use App\Enums\WorkspaceRole;
+use App\Jobs\RereadWorkspaceSuggestions;
+use App\Models\Document;
+use App\Models\DocumentType;
 use App\Models\IntakeLabel;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -23,28 +27,57 @@ class IntakeLabelTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_an_admin_is_shown_the_candidates_and_the_labels_in_use()
+    /**
+     * Settings holds the standing list and the way off it. The unanswered ones
+     * are a queue of work and live on the review page, which is the only screen
+     * with a badge pointing at it.
+     */
+    public function test_the_settings_page_lists_the_labels_in_use_and_nothing_else()
     {
         $workspace = Workspace::factory()->create();
         $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
 
-        IntakeLabel::factory()->for($workspace)->create(['label' => 'steuernummer', 'support' => 7]);
-        IntakeLabel::factory()->accepted()->for($workspace)->create(['label' => 'contribuinte']);
+        IntakeLabel::factory()->accepted()->for($workspace)->create([
+            'kind' => 'tax_id',
+            'label' => 'contribuinte',
+        ]);
 
-        // Rejected ones are recorded so mining stops asking, not so anybody
-        // has to read them again.
+        IntakeLabel::factory()->for($workspace)->create(['label' => 'steuernummer', 'support' => 7]);
         IntakeLabel::factory()->rejected()->for($workspace)->create(['label' => 'de']);
 
         $this->actingAs($admin->user)
             ->get(route('workspaces.settings.show', $workspace))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->has('intakeLabels.pending', 1)
-                ->where('intakeLabels.pending.0.label', 'steuernummer')
-                ->where('intakeLabels.pending.0.support', 7)
-                ->has('intakeLabels.accepted', 1)
-                ->where('intakeLabels.accepted.0.label', 'contribuinte'),
+                ->has('intakeLabels', 1)
+                ->where('intakeLabels.0.label', 'contribuinte')
+                // Named in the interface language rather than shown as the
+                // normalised key, which is machinery.
+                ->where('intakeLabels.0.field', 'Tax number'),
             );
+    }
+
+    /**
+     * A learned kind has no name the application ships, so it is shown as the
+     * field this workspace actually spells it — the whole point of the kinds
+     * not being a list in the code.
+     */
+    public function test_a_learned_field_is_named_the_way_the_workspace_writes_it()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+
+        IntakeLabel::factory()->accepted()->for($workspace)->create([
+            'kind' => 'no_apolice',
+            'label' => 'seguro',
+        ]);
+
+        $this->documentFiling($workspace, ['Nº Apólice' => 'AP4471182']);
+
+        $this->actingAs($admin->user)
+            ->get(route('workspaces.settings.show', $workspace))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('intakeLabels.0.field', 'Nº Apólice'));
     }
 
     public function test_an_admin_can_adopt_a_candidate()
@@ -58,6 +91,29 @@ class IntakeLabelTest extends TestCase
             ->assertRedirect();
 
         $this->assertSame(IntakeLabelStatus::Accepted, $label->refresh()->status);
+    }
+
+    /**
+     * The half that was missing. Every document already in the archive stored
+     * what its text was found to contain back when this word meant nothing, and
+     * without a re-read the new label would only ever apply to documents filed
+     * after it — which is the opposite of why anybody accepts one.
+     */
+    public function test_answering_a_label_has_the_archive_read_again()
+    {
+        Queue::fake();
+
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $label = IntakeLabel::factory()->for($workspace)->create();
+
+        $this->actingAs($admin->user)
+            ->patch(route('workspaces.intake-labels.update', [$workspace, $label]), ['status' => 'accepted']);
+
+        Queue::assertPushed(
+            RereadWorkspaceSuggestions::class,
+            fn (RereadWorkspaceSuggestions $job): bool => $job->workspace->is($workspace),
+        );
     }
 
     /**
@@ -124,5 +180,25 @@ class IntakeLabelTest extends TestCase
             ->assertNotFound();
 
         $this->assertSame(IntakeLabelStatus::Pending, $foreign->refresh()->status);
+    }
+
+    /**
+     * Create a document carrying $metadata, so the workspace has a spelling for
+     * whichever keys it uses.
+     *
+     * @param Workspace $workspace The owning workspace.
+     * @param array<string, string> $metadata What somebody filled in on it.
+     *
+     * @return void No return value; persists the document as a side effect.
+     */
+    private function documentFiling(Workspace $workspace, array $metadata): void
+    {
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+
+        Document::factory()->for($workspace)->create([
+            'document_type_id' => DocumentType::factory()->for($workspace)->create()->id,
+            'created_by' => $member->user_id,
+            'metadata' => $metadata,
+        ]);
     }
 }
