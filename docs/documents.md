@@ -91,6 +91,33 @@ rest would leave the user to work out which ones landed.
 Deleting an attachment removes its extracted text from the document's searchable
 mirror, so a removed scan stops being findable by its contents.
 
+### Scanning a page
+
+Two ways in, and which one the **Scan** button offers depends on whether the
+device it is pressed on can open a camera at all. `mediaDevices` is undefined
+outside a secure context, so a phone reached over plain HTTP reports no camera
+however many it has — and that is the honest answer, since there is none this
+page could open.
+
+**With this device's camera.** A live viewfinder inside the app, with the page
+outline drawn over the picture while you aim. Detection runs on a downscaled
+copy of the frame — a guide only has to be roughly right, and at 1080p it would
+be slower than the frames it is describing — while the shutter keeps the frame
+at full resolution. Confirming a page returns to the viewfinder rather than to a
+form, so several pages are shot in a row, and each one joins the same upload
+queue a file chosen from disk does.
+
+**With another device.** The QR pairing flow (`routes/capture.php`): the desktop
+issues a signed, unauthenticated URL, and the phone that scans it uploads
+straight to the document without ever signing in. This is what a phone that is
+not a signed-in client gets, and it is reachable from inside the camera dialog
+for anyone who would rather use their phone than the machine in front of them.
+
+Both paths end in the same review step, which detects the page's corners, lets
+them be dragged, and straightens whatever quad is left behind. What it refuses
+is as load-bearing as what it accepts — see `isImplausibleDocument` and
+[.ai/rules/lib.md](../.ai/rules/lib.md).
+
 ## Location
 
 A document's physical placement is a history of assignments, not a field. The

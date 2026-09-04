@@ -205,6 +205,17 @@ export default {
     'documents.show.preview_fit_width': 'Fit to width',
     'documents.show.preview_page_of': 'Page :current of :total',
     'documents.show.scan_with_phone_button': 'Scan with phone',
+    'documents.show.scan_button': 'Scan',
+    'documents.show.camera_dialog_title': 'Scan a page',
+    'documents.show.camera_dialog_description':
+        'Point the camera at the page. The outline shows what will be kept; each page you confirm is added to the upload list.',
+    'documents.show.camera_unavailable':
+        'This device has no camera available, or access to it was refused. You can scan with another device instead.',
+    'documents.show.camera_capture_button': 'Capture',
+    'documents.show.camera_close_button': 'Done',
+    'documents.show.camera_use_another_device': 'Use another device',
+    'documents.show.camera_captured_one': ':count page ready',
+    'documents.show.camera_captured_other': ':count pages ready',
     'documents.show.capture_dialog_title': 'Scan with your phone',
     'documents.show.capture_dialog_description':
         "Scan this code with your phone's camera. Photos you take there are added to this document as you go.",

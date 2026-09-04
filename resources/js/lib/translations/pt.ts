@@ -209,6 +209,17 @@ export default {
     'documents.show.preview_fit_width': 'Ajustar à largura',
     'documents.show.preview_page_of': 'Página :current de :total',
     'documents.show.scan_with_phone_button': 'Digitalizar com o telemóvel',
+    'documents.show.scan_button': 'Digitalizar',
+    'documents.show.camera_dialog_title': 'Digitalizar uma página',
+    'documents.show.camera_dialog_description':
+        'Aponte a câmara à página. O contorno mostra o que vai ser guardado; cada página que confirmar é acrescentada à lista de carregamento.',
+    'documents.show.camera_unavailable':
+        'Este dispositivo não tem câmara disponível, ou o acesso foi recusado. Pode digitalizar noutro dispositivo.',
+    'documents.show.camera_capture_button': 'Capturar',
+    'documents.show.camera_close_button': 'Concluir',
+    'documents.show.camera_use_another_device': 'Usar outro dispositivo',
+    'documents.show.camera_captured_one': ':count página pronta',
+    'documents.show.camera_captured_other': ':count páginas prontas',
     'documents.show.capture_dialog_title': 'Digitalizar com o telemóvel',
     'documents.show.capture_dialog_description':
         'Digitaliza este código com a câmara do telemóvel. As fotos tiradas lá são adicionadas a este documento à medida que chegam.',
