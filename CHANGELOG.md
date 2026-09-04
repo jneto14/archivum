@@ -11,6 +11,94 @@ release. Read this file before upgrading.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-04
+
+Intake. Everything here is about the two things standing between a piece of
+paper and a filed document: getting it in, and deciding where it physically
+goes.
+
+A phone is a scanner now — paired from the desktop with a QR code, or, once
+Archivum is installed on it, through a live viewfinder that draws the page
+outline before the shutter. What comes back is read rather than merely stored:
+dates, amounts and reference numbers are offered as metadata, and a page that
+is already filed says so. Where it goes is chosen from the whole scheme instead
+of three guesses, capacity is enforced on every path a document can take into a
+location, and a location can be opened to see what is actually inside it —
+including by scanning a QR label printed for it.
+
+Four migrations, which the image runs on start. New settings are all optional
+and documented in `.env.example`.
+
+### Added
+
+#### Capture
+
+- Scan a document with a phone. The desktop shows a QR code; the phone opens a
+  signed one-off page without ever signing in, and photos upload straight to the
+  document. The page's corners are detected and offered for adjustment, and the
+  scan is straightened before it is sent.
+- Archivum installs to a home screen and runs in its own window. The manifest
+  and the service worker are routes rather than files in `public/`, because a
+  manifest naming `scope: "/"` claims the whole domain and a worker may only
+  claim the directory it was served from — both follow an installation served
+  under a path prefix. No page is ever cached, since an archive is not public;
+  the content-hashed asset build is, and a deploy replaces it because the cache
+  is named after the build. Offline, a navigation shows a page carried inside
+  the worker rather than the browser's error page.
+- A live camera scan for a signed-in device, with the page outline drawn over
+  the picture while you aim. Confirming a page returns to the viewfinder, so
+  several pages are shot in a row and go up as one upload. QR pairing stays for
+  the case it was built for: a phone that is not signed in.
+
+#### Intake
+
+- Values suggested for a document's metadata from what its attachment says,
+  recognised by the words in front of them rather than by country-specific
+  formats. Adding a country is translating one language file, not writing code.
+- An attachment whose text matches one already filed is flagged as a possible
+  duplicate. The fingerprint tolerates OCR reading the same page differently
+  twice, which is the case worth catching.
+
+#### Physical storage
+
+- The location picker offers the whole scheme, searchable, beside its
+  suggestions — and the suggestions stop proposing where the document already
+  is, or a location with no room left.
+- A location can be opened to see the documents in it, from the storage page or
+  from a link that names one.
+- Printable QR labels, for the levels worth labelling. Which those are is
+  configured per scheme: a box or a cover earns a label, a slot on a page does
+  not, and an archive with a few hundred positions would otherwise offer a few
+  hundred labels nobody wants. Scanning one opens that location with its
+  contents already showing.
+
+### Changed
+
+- Rows and toolbars built for a wide viewport now collapse on a narrow one
+  instead of keeping their proportions. Page header actions take the line under
+  the title and share it; the storage tree gives up its aligned value column and
+  its fill gauge to keep the row's actions reachable; the tags list moves its
+  meta text to a line of its own. Thresholds come from the container rather than
+  the viewport, because the sidebar moves the content area by 208px without the
+  viewport changing.
+- New optional settings: `CAPTURE_SESSION_TTL_MINUTES` for how long a pairing
+  QR stays valid, and `INTAKE_DUPLICATE_MAX_DISTANCE`,
+  `INTAKE_DUPLICATE_MIN_SHINGLES` and `INTAKE_DATE_ORDER` for reading a page.
+
+### Fixed
+
+- A document could be moved into a location that was already at capacity, and a
+  bulk migration could overfill its target — including two moves racing each
+  other past the same check.
+- On a phone, the scheme form kept five columns and the value-strategy select
+  starved the others until the key field was about ten pixels wide, so a level
+  could not be created there at all. The storage tree had the matching problem
+  with widths rather than columns: its row overflowed and the panel clipped the
+  actions, differently on every row.
+- The demo seeder wrote level positions counting from zero while the application
+  counted from one, so a seeded scheme could not generate a value or offer the
+  right parent.
+
 ## [0.2.1] - 2026-09-03
 
 Attachment preview had been showing nothing since 0.2.0 — for images and PDFs
@@ -237,7 +325,8 @@ The first tagged release. Everything below shipped in it.
 - A brand-new user invited on a single-workspace installation is added with the
   role the admin chose, rather than failing with "already a member".
 
-[Unreleased]: https://github.com/jneto14/archivum/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/jneto14/archivum/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/jneto14/archivum/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/jneto14/archivum/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/jneto14/archivum/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jneto14/archivum/releases/tag/v0.1.0
