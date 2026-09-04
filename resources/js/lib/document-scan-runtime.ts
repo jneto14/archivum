@@ -9,7 +9,7 @@
  */
 import * as openCvNamespace from '@techstark/opencv-js';
 import JScanify from 'jscanify/client';
-import { isSuspiciouslyFullFrame } from '@/lib/document-scan';
+import { isImplausibleDocument } from '@/lib/document-scan';
 import type { DocumentCorners, Scanner } from '@/lib/document-scan';
 
 type Mat = { delete(): void };
@@ -91,9 +91,9 @@ function toFullSizeCanvas(image: HTMLImageElement): HTMLCanvasElement {
  * @param scanner The jscanify instance to detect with.
  * @param image The photo to search.
  *
- * @returns The document's four corners in `image`'s own pixel coordinates,
- * or `null` if nothing convincing was found — including a "detection" that
- * covers the frame.
+ * @returns The document's four corners in `image`'s own pixel coordinates, or
+ * `null` if nothing convincing was found — including a "detection" that covers
+ * the whole frame, or one small enough to be something printed on the page.
  */
 function detectCorners(
     cv: OpenCv,
@@ -135,7 +135,7 @@ function detectCorners(
             bottomRight: bottomRightCorner,
         };
 
-        return isSuspiciouslyFullFrame(
+        return isImplausibleDocument(
             detected,
             image.naturalWidth,
             image.naturalHeight,
