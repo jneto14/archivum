@@ -87,6 +87,20 @@ export function defaultCorners(width: number, height: number): DocumentCorners {
 /** Above this share of the frame, jscanify found the photo's edge, not a document. */
 const SUSPICIOUS_FULL_FRAME_AREA_RATIO = 0.92;
 
+/**
+ * Below this share of the frame, jscanify found something printed on the
+ * document rather than the document.
+ *
+ * Deliberately low. Somebody photographing a page to file it fills most of the
+ * frame with it, so a real page is rarely near this — but the threshold is a
+ * trade either way, and the two directions cost different amounts. Refusing a
+ * real detection means the corners start at their default and the user drags
+ * them, which is the flow anyway. Accepting a false one means a confidently
+ * wrong crop, which has to be noticed before it is confirmed or the document is
+ * filed as a fragment of itself.
+ */
+const SUSPICIOUS_INNER_DETAIL_AREA_RATIO = 0.25;
+
 /** @returns The area of the quadrilateral `corners`, via the shoelace formula. */
 function quadArea(corners: DocumentCorners): number {
     const points = [
@@ -107,21 +121,36 @@ function quadArea(corners: DocumentCorners): number {
 }
 
 /**
+ * Whether a detected quad is too big or too small to be the document.
+ *
+ * jscanify answers "the largest closed shape in this photo", which is not the
+ * same question as "the page". It misses in both directions, and neither miss
+ * announces itself — four clean corners come back either way:
+ *
+ * - Too big: the photo's own border wins, and confirming crops nothing.
+ * - Too small: a box printed on the page — a totals table, a framed payment
+ *   block — has crisper edges than a sheet of paper on a desk does, so it wins
+ *   on area, and confirming files that box instead of the document (ARC-110).
+ *
+ * Refusing here puts the corners back at their default for the user to drag,
+ * which is what a photo with no detection at all already does.
+ *
  * @param corners A detected quad, in the image's own pixel coordinates.
  * @param imageWidth The image's width, in pixels.
  * @param imageHeight The image's height, in pixels.
  *
- * @returns Whether `corners` cover so much of the image that they are more
- * likely the frame than a document within it.
+ * @returns Whether the quad should be refused rather than offered.
  */
-export function isSuspiciouslyFullFrame(
+export function isImplausibleDocument(
     corners: DocumentCorners,
     imageWidth: number,
     imageHeight: number,
 ): boolean {
+    const share = quadArea(corners) / (imageWidth * imageHeight);
+
     return (
-        quadArea(corners) / (imageWidth * imageHeight) >
-        SUSPICIOUS_FULL_FRAME_AREA_RATIO
+        share > SUSPICIOUS_FULL_FRAME_AREA_RATIO ||
+        share < SUSPICIOUS_INNER_DETAIL_AREA_RATIO
     );
 }
 

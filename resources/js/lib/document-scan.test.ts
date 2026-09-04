@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultCorners, isSuspiciouslyFullFrame } from '@/lib/document-scan';
+import { defaultCorners, isImplausibleDocument } from '@/lib/document-scan';
 import type { DocumentCorners } from '@/lib/document-scan';
 
 describe('defaultCorners', () => {
@@ -23,37 +23,49 @@ describe('defaultCorners', () => {
     });
 });
 
-describe('isSuspiciouslyFullFrame', () => {
-    const fullFrame: DocumentCorners = {
-        topLeft: { x: 0, y: 0 },
-        topRight: { x: 1000, y: 0 },
-        bottomLeft: { x: 0, y: 800 },
-        bottomRight: { x: 1000, y: 800 },
-    };
+describe('isImplausibleDocument', () => {
+    /** A quad of the given size, centred in a 1000x800 photo. */
+    function centred(width: number, height: number): DocumentCorners {
+        const left = (1000 - width) / 2;
+        const top = (800 - height) / 2;
 
-    it('flags a quad covering essentially the whole image', () => {
-        // jscanify's "largest contour" heuristic can end up picking the
-        // picture's own outer edge instead of the document within it — a
-        // misdetection that looks confident (four clean corners) while
-        // actually cropping nothing, which is indistinguishable from the
-        // scan feature silently doing nothing at all.
-        expect(isSuspiciouslyFullFrame(fullFrame, 1000, 800)).toBe(true);
-    });
-
-    it('does not flag a quad that leaves a visible margin', () => {
-        const corners = defaultCorners(1000, 800);
-
-        expect(isSuspiciouslyFullFrame(corners, 1000, 800)).toBe(false);
-    });
-
-    it('does not flag a document that legitimately fills most of the frame', () => {
-        const corners: DocumentCorners = {
-            topLeft: { x: 30, y: 30 },
-            topRight: { x: 970, y: 30 },
-            bottomLeft: { x: 30, y: 770 },
-            bottomRight: { x: 970, y: 770 },
+        return {
+            topLeft: { x: left, y: top },
+            topRight: { x: left + width, y: top },
+            bottomLeft: { x: left, y: top + height },
+            bottomRight: { x: left + width, y: top + height },
         };
+    }
 
-        expect(isSuspiciouslyFullFrame(corners, 1000, 800)).toBe(false);
+    it('refuses a quad covering essentially the whole image', () => {
+        // jscanify answers "the largest closed shape", which here is the
+        // photo's own outer edge rather than the document within it — a miss
+        // that looks confident, four clean corners and all, while cropping
+        // nothing at all.
+        expect(isImplausibleDocument(centred(1000, 800), 1000, 800)).toBe(true);
+    });
+
+    it('refuses a quad small enough to be something printed on the page', () => {
+        // The other direction, and the one that reached a user: an invoice
+        // with a bordered totals box in the middle of it. The box has crisper
+        // edges than a sheet of paper on a desk, so it wins on area and the
+        // page gets filed as that box (ARC-110).
+        expect(isImplausibleDocument(centred(300, 200), 1000, 800)).toBe(true);
+    });
+
+    it('accepts a document that legitimately fills most of the frame', () => {
+        expect(isImplausibleDocument(centred(940, 740), 1000, 800)).toBe(false);
+    });
+
+    it('accepts the inset default, so the fallback is never refused in turn', () => {
+        expect(
+            isImplausibleDocument(defaultCorners(1000, 800), 1000, 800),
+        ).toBe(false);
+    });
+
+    it('accepts a page photographed with room around it', () => {
+        // Half the frame: further away than anyone normally holds a phone, and
+        // still a page rather than a detail on one.
+        expect(isImplausibleDocument(centred(700, 570), 1000, 800)).toBe(false);
     });
 });
