@@ -188,8 +188,13 @@ export default {
     'documents.show.no_location_suggestions':
         'Não foram encontradas posições disponíveis para o esquema deste documento.',
     'documents.show.suggested_badge': 'Sugerido',
+    'documents.show.new_location_badge': 'Nova',
     'documents.show.location_suggestion_count_one': ':count documento',
     'documents.show.location_suggestion_count_other': ':count documentos',
+    'documents.show.browse_locations_button': 'Escolher outra localização',
+    'documents.show.search_locations_placeholder': 'Procurar localizações',
+    'documents.show.no_matching_locations':
+        'Nenhuma localização corresponde a essa procura.',
     'documents.show.cancel_button': 'Cancelar',
     'documents.show.preview_button': 'Pré-visualizar',
     'documents.show.preview_not_supported':

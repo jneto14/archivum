@@ -185,8 +185,12 @@ export default {
     'documents.show.no_location_suggestions':
         "No available positions found for this document's scheme.",
     'documents.show.suggested_badge': 'Suggested',
+    'documents.show.new_location_badge': 'New',
     'documents.show.location_suggestion_count_one': ':count document',
     'documents.show.location_suggestion_count_other': ':count documents',
+    'documents.show.browse_locations_button': 'Choose another location',
+    'documents.show.search_locations_placeholder': 'Search locations',
+    'documents.show.no_matching_locations': 'No location matches that search.',
     'documents.show.cancel_button': 'Cancel',
     'documents.show.preview_button': 'Preview',
     'documents.show.preview_not_supported':

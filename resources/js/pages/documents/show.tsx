@@ -18,7 +18,9 @@ import {
     DialogFooter,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useDateFormatter } from '@/hooks/use-date-formatter';
 import { useTranslation } from '@/hooks/use-translation';
 import { formatBytes, randomId } from '@/lib/utils';
@@ -35,10 +37,24 @@ import {
 } from '@/routes/documents';
 
 type LocationSuggestion = {
-    node: { id: string; value: string; path: string };
+    /**
+     * `id` is null when the recommendation is a location that does not exist
+     * yet: suggesting one must not create it, so picking it is what does (the
+     * move is posted with the scheme instead of a node, and the server resolves
+     * the same location again, this time for real).
+     */
+    node: { id: string | null; value: string; path: string };
     documentsCount: number;
     capacity: number | null;
     recommended: boolean;
+};
+
+type Location = {
+    id: string;
+    value: string;
+    path: string;
+    documentsCount: number;
+    capacity: number | null;
 };
 
 type OcrStatus =
@@ -99,7 +115,11 @@ type Props = {
             { id: string; path: string | null; created_at: string }[] | null;
     };
     canFile: boolean;
+    /** The workspace's scheme, used to file into a suggested location that does not exist yet. */
+    schemeId: string | null;
     locationSuggestions: LocationSuggestion[];
+    /** Every location in the scheme, loaded on demand when the picker is opened. */
+    locations?: Location[];
     /** How many values the extracted text has to offer for fields still empty. The values themselves live on the edit form, which is where they can be accepted. */
     metadata_suggestions_count: number;
     active_capture_session: { id: string; photos_count: number } | null;
@@ -108,7 +128,9 @@ type Props = {
 export default function DocumentShow({
     document,
     canFile,
+    schemeId,
     locationSuggestions,
+    locations,
     metadata_suggestions_count: metadataSuggestionsCount,
     active_capture_session: activeCaptureSession,
 }: Props) {
@@ -117,6 +139,10 @@ export default function DocumentShow({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { workspace } = usePage().props;
     const [moveOpen, setMoveOpen] = useState(false);
+    // The picker starts on the suggestions and only reveals the full list when
+    // asked, which is also what triggers loading it.
+    const [browsingLocations, setBrowsingLocations] = useState(false);
+    const [locationQuery, setLocationQuery] = useState('');
     // Always starts closed, even if the page loads with a session already
     // active (a reload mid-pairing, or one left open from an earlier visit)
     // — popping the dialog open on its own, unasked, was more surprising
@@ -198,13 +224,45 @@ export default function DocumentShow({
         );
     };
 
-    const pickLocation = (nodeId: string) => {
-        router.post(
-            moveStore.url(document.id),
-            { node_id: nodeId },
-            { preserveScroll: true, onSuccess: () => setMoveOpen(false) },
-        );
+    const fileDocument = (
+        payload: { node_id: string } | { scheme_id: string },
+    ) => {
+        router.post(moveStore.url(document.id), payload, {
+            preserveScroll: true,
+            onSuccess: () => setMoveOpen(false),
+        });
     };
+
+    /**
+     * File into a suggestion: an existing location by id, or — when the
+     * recommendation is one that has yet to be created — by scheme, letting the
+     * server open it.
+     */
+    const pickSuggestion = (suggestion: LocationSuggestion) => {
+        if (suggestion.node.id !== null) {
+            fileDocument({ node_id: suggestion.node.id });
+
+            return;
+        }
+
+        if (schemeId !== null) {
+            fileDocument({ scheme_id: schemeId });
+        }
+    };
+
+    const openLocationBrowser = () => {
+        setBrowsingLocations(true);
+
+        if (locations === undefined) {
+            router.reload({ only: ['locations'] });
+        }
+    };
+
+    const matchingLocations = (locations ?? []).filter((location) =>
+        location.path
+            .toLowerCase()
+            .includes(locationQuery.trim().toLowerCase()),
+    );
 
     return (
         <>
@@ -632,7 +690,17 @@ export default function DocumentShow({
                 </div>
             </PageContainer>
 
-            <Dialog open={moveOpen} onOpenChange={setMoveOpen}>
+            <Dialog
+                open={moveOpen}
+                onOpenChange={(open) => {
+                    setMoveOpen(open);
+
+                    if (!open) {
+                        setBrowsingLocations(false);
+                        setLocationQuery('');
+                    }
+                }}
+            >
                 <DialogContent>
                     <DialogTitle>
                         {t('documents.show.assign_location_dialog_title')}
@@ -643,66 +711,69 @@ export default function DocumentShow({
                                 {t('documents.show.no_location_suggestions')}
                             </p>
                         )}
-                        {locationSuggestions.map((suggestion) => {
-                            const pct =
-                                suggestion.capacity !== null
-                                    ? Math.round(
-                                          (suggestion.documentsCount /
-                                              suggestion.capacity) *
-                                              100,
-                                      )
-                                    : null;
-
-                            return (
-                                <button
-                                    key={suggestion.node.id}
-                                    type="button"
-                                    onClick={() =>
-                                        pickLocation(suggestion.node.id)
-                                    }
-                                    className="flex w-full items-center gap-3 rounded-md border p-3 text-left hover:bg-accent"
-                                >
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-mono text-sm font-semibold">
-                                                {suggestion.node.path}
-                                            </span>
-                                            {suggestion.recommended && (
-                                                <Badge>
-                                                    {t(
-                                                        'documents.show.suggested_badge',
-                                                    )}
-                                                </Badge>
-                                            )}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {suggestion.documentsCount === 1
-                                                ? t(
-                                                      'documents.show.location_suggestion_count_one',
-                                                      {
-                                                          count: suggestion.documentsCount,
-                                                      },
-                                                  )
-                                                : t(
-                                                      'documents.show.location_suggestion_count_other',
-                                                      {
-                                                          count: suggestion.documentsCount,
-                                                      },
-                                                  )}
-                                            {suggestion.capacity !== null
-                                                ? ` / ${suggestion.capacity}`
-                                                : ''}
-                                        </div>
-                                    </div>
-                                    {pct !== null && (
-                                        <div className="w-24">
-                                            <Progress value={pct} />
-                                        </div>
-                                    )}
-                                </button>
-                            );
-                        })}
+                        {locationSuggestions.map((suggestion) => (
+                            <LocationRow
+                                key={suggestion.node.id ?? suggestion.node.path}
+                                path={suggestion.node.path}
+                                documentsCount={suggestion.documentsCount}
+                                capacity={suggestion.capacity}
+                                recommended={suggestion.recommended}
+                                isNew={suggestion.node.id === null}
+                                onSelect={() => pickSuggestion(suggestion)}
+                            />
+                        ))}
                     </div>
+                    {browsingLocations ? (
+                        <div className="space-y-2">
+                            <Input
+                                value={locationQuery}
+                                onChange={(event) =>
+                                    setLocationQuery(event.target.value)
+                                }
+                                placeholder={t(
+                                    'documents.show.search_locations_placeholder',
+                                )}
+                                autoFocus
+                            />
+                            {locations === undefined ? (
+                                <div className="space-y-2">
+                                    <Skeleton className="h-16 w-full" />
+                                    <Skeleton className="h-16 w-full" />
+                                    <Skeleton className="h-16 w-full" />
+                                </div>
+                            ) : matchingLocations.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                    {t('documents.show.no_matching_locations')}
+                                </p>
+                            ) : (
+                                <div className="max-h-64 space-y-2 overflow-y-auto">
+                                    {matchingLocations.map((location) => (
+                                        <LocationRow
+                                            key={location.id}
+                                            path={location.path}
+                                            documentsCount={
+                                                location.documentsCount
+                                            }
+                                            capacity={location.capacity}
+                                            onSelect={() =>
+                                                fileDocument({
+                                                    node_id: location.id,
+                                                })
+                                            }
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <Button
+                            variant="outline"
+                            onClick={openLocationBrowser}
+                            disabled={!canFile}
+                        >
+                            {t('documents.show.browse_locations_button')}
+                        </Button>
+                    )}
                     <DialogFooter>
                         <DialogClose asChild>
                             <Button variant="ghost">
@@ -726,5 +797,75 @@ export default function DocumentShow({
                 onOpenChange={setCaptureOpen}
             />
         </>
+    );
+}
+
+/**
+ * One pickable location, used both for the suggestions and for the full list.
+ *
+ * A path is user-controlled text sitting next to a fill gauge, so it is the
+ * part that gives: it truncates, the gauge does not.
+ */
+function LocationRow({
+    path,
+    documentsCount,
+    capacity,
+    recommended = false,
+    isNew = false,
+    onSelect,
+}: {
+    path: string;
+    documentsCount: number;
+    capacity: number | null;
+    recommended?: boolean;
+    /** The location does not exist yet and will be created by filing into it. */
+    isNew?: boolean;
+    onSelect: () => void;
+}) {
+    const t = useTranslation();
+    const pct =
+        capacity !== null
+            ? Math.round((documentsCount / capacity) * 100)
+            : null;
+
+    return (
+        <button
+            type="button"
+            onClick={onSelect}
+            className="flex w-full items-center gap-3 rounded-md border p-3 text-left hover:bg-accent"
+        >
+            <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="min-w-0 truncate font-mono text-sm font-semibold">
+                        {path}
+                    </span>
+                    {recommended && (
+                        <Badge className="shrink-0">
+                            {t('documents.show.suggested_badge')}
+                        </Badge>
+                    )}
+                    {isNew && (
+                        <Badge variant="secondary" className="shrink-0">
+                            {t('documents.show.new_location_badge')}
+                        </Badge>
+                    )}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                    {documentsCount === 1
+                        ? t('documents.show.location_suggestion_count_one', {
+                              count: documentsCount,
+                          })
+                        : t('documents.show.location_suggestion_count_other', {
+                              count: documentsCount,
+                          })}
+                    {capacity !== null ? ` / ${capacity}` : ''}
+                </div>
+            </div>
+            {pct !== null && (
+                <div className="w-24 shrink-0">
+                    <Progress value={pct} />
+                </div>
+            )}
+        </button>
     );
 }

@@ -7,15 +7,21 @@ namespace Tests\Feature\Documents;
 use App\Actions\Documents\CreateCaptureSession;
 use App\Actions\Documents\CreateDocument;
 use App\Actions\Documents\UploadAttachment;
+use App\Actions\Organization\CreateOrganizationNode;
 use App\Actions\Organization\CreateScheme;
 use App\Enums\NodeValueStrategy;
 use App\Enums\WorkspaceRole;
+use App\Models\Document;
 use App\Models\DocumentType;
+use App\Models\OrganizationNode;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
+use Inertia\Inertia;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -72,6 +78,102 @@ class DocumentShowTest extends TestCase
                 ->has('locationSuggestions', 1)
                 ->where('locationSuggestions.0.recommended', true),
             );
+    }
+
+    public function test_viewing_a_document_does_not_create_the_location_it_suggests()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $type = DocumentType::factory()->for($workspace)->create(['key' => 'invoice']);
+        $document = app(CreateDocument::class)->handle($workspace, $admin->user, $type, 'Original', null, null);
+
+        app(CreateScheme::class)->handle($workspace, 'Scheme', [
+            ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
+        ]);
+
+        $this->actingAs($admin->user)->get(route('documents.show', $document))->assertOk();
+        $this->actingAs($admin->user)
+            ->get(route('documents.show', $document))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('locationSuggestions.0.node.id', null)
+                ->where('locationSuggestions.0.node.path', '001'),
+            );
+
+        // Looking at a document is a read. Before, each view left a position
+        // behind, so browsing an archive quietly filled it with empty ones.
+        $this->assertSame(0, OrganizationNode::query()->count());
+    }
+
+    public function test_the_full_list_of_locations_is_only_loaded_when_the_picker_asks_for_it()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $type = DocumentType::factory()->for($workspace)->create();
+        $document = app(CreateDocument::class)->handle($workspace, $admin->user, $type, 'Original', null, null);
+
+        $scheme = app(CreateScheme::class)->handle($workspace, 'Scheme', [
+            ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
+        ]);
+        $createNode = app(CreateOrganizationNode::class);
+        $createNode->handle($scheme->levels->first(), null, '002');
+        $createNode->handle($scheme->levels->first(), null, '001');
+
+        $this->actingAs($admin->user)
+            ->get(route('documents.show', $document))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('schemeId', $scheme->id)
+                ->missing('locations'),
+            );
+
+        // A partial reload answers with JSON rather than the page view, which
+        // is why this asserts on the payload instead of assertInertia().
+        $this->partialReload($admin, $document)
+            ->assertOk()
+            ->assertJsonCount(2, 'props.locations')
+            ->assertJsonPath('props.locations.0.path', '001')
+            ->assertJsonPath('props.locations.0.documentsCount', 0)
+            ->assertJsonPath('props.locations.1.path', '002');
+    }
+
+    public function test_a_member_who_cannot_file_gets_no_locations_to_pick_from()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $type = DocumentType::factory()->for($workspace)->create();
+        $document = app(CreateDocument::class)->handle($workspace, $member->user, $type, 'Original', null, null);
+
+        $scheme = app(CreateScheme::class)->handle($workspace, 'Scheme', [
+            ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
+        ]);
+        app(CreateOrganizationNode::class)->handle($scheme->levels->first(), null, '001');
+
+        $this->actingAs($member->user)
+            ->get(route('documents.show', $document))
+            ->assertInertia(fn (Assert $page) => $page->where('schemeId', null));
+
+        $this->partialReload($member, $document)
+            ->assertOk()
+            ->assertJsonPath('props.locations', []);
+    }
+
+    /**
+     * Ask the show page for the `locations` prop alone, the way the picker does.
+     *
+     * @param WorkspaceUser $actor The workspace member making the request.
+     * @param Document $document The document whose page is reloaded.
+     *
+     * @return TestResponse<Response> The partial-reload response.
+     */
+    private function partialReload(WorkspaceUser $actor, Document $document): TestResponse
+    {
+        return $this->actingAs($actor->user)
+            ->withHeaders([
+                'X-Inertia' => 'true',
+                'X-Inertia-Version' => (string) Inertia::getVersion(),
+                'X-Inertia-Partial-Component' => 'documents/show',
+                'X-Inertia-Partial-Data' => 'locations',
+            ])
+            ->get(route('documents.show', $document));
     }
 
     public function test_an_admin_gets_no_suggestions_while_the_workspace_has_no_scheme()
