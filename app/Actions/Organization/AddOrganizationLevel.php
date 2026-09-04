@@ -24,7 +24,7 @@ class AddOrganizationLevel
      * Appending at the end keeps that invariant trivially true.
      *
      * @param OrganizationScheme $scheme The scheme to add the level to.
-     * @param array{name: string, key: string, capacity?: int|null, value_strategy: NodeValueStrategy, display_settings?: array<string, mixed>|null, metadata?: array<string, mixed>|null} $level The new level's attributes.
+     * @param array{name: string, key: string, capacity?: int|null, has_printable_label?: bool, value_strategy: NodeValueStrategy, display_settings?: array<string, mixed>|null, metadata?: array<string, mixed>|null} $level The new level's attributes.
      *
      * @return OrganizationLevel The newly created level.
      *
@@ -43,6 +43,7 @@ class AddOrganizationLevel
             'key' => $level['key'],
             'position' => $position,
             'capacity' => $this->normalizeAlphabeticalCapacity($level['value_strategy'], $level['capacity'] ?? null),
+            'has_printable_label' => $level['has_printable_label'] ?? false,
             'value_strategy' => $level['value_strategy'],
             'display_settings' => $level['display_settings'] ?? null,
             'metadata' => $level['metadata'] ?? null,

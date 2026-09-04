@@ -101,6 +101,45 @@ class OrganizationSchemeLevelTest extends TestCase
         $this->assertDatabaseMissing('organization_levels', ['scheme_id' => $scheme->id, 'key' => 'box']);
     }
 
+    public function test_workspace_admin_can_turn_printable_labels_on_for_an_existing_level()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $scheme = $this->createScheme($workspace);
+        $level = $scheme->levels()->orderBy('position')->first();
+
+        // An archive whose levels already exist is the normal case, so the flag
+        // has to be reachable after the scheme was created, not only during.
+        $this->actingAs($admin->user)->patch(
+            route('organization.schemes.levels.update', [$scheme, $level]),
+            ['has_printable_label' => true],
+        )->assertRedirect();
+
+        $this->assertTrue($level->refresh()->has_printable_label);
+
+        $this->actingAs($admin->user)->patch(
+            route('organization.schemes.levels.update', [$scheme, $level]),
+            ['has_printable_label' => false],
+        )->assertRedirect();
+
+        $this->assertFalse($level->refresh()->has_printable_label);
+    }
+
+    public function test_non_admin_member_cannot_turn_printable_labels_on()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $scheme = $this->createScheme($workspace);
+        $level = $scheme->levels()->orderBy('position')->first();
+
+        $this->actingAs($member->user)->patch(
+            route('organization.schemes.levels.update', [$scheme, $level]),
+            ['has_printable_label' => true],
+        )->assertForbidden();
+
+        $this->assertFalse($level->refresh()->has_printable_label);
+    }
+
     public function test_workspace_admin_can_delete_the_last_level_when_it_has_no_nodes()
     {
         $workspace = Workspace::factory()->create();

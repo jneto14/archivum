@@ -57,6 +57,7 @@ An `OrganizationLevel` is one tier of the hierarchy. It defines:
 | Key | A stable identifier for rules to match on |
 | Position | Its depth within the scheme, counted from the top |
 | Capacity | How much fits: child nodes under one parent, or documents in a leaf |
+| Printable labels | Whether its nodes can be given a printed QR label |
 | Value strategy | How a new node's value is generated |
 | Display settings | Presentation only |
 
@@ -109,6 +110,29 @@ side sheet — the documents filed there, the first twenty of them, with the
 documents index filtered by that node for the rest. The contents are fetched
 when a node is opened rather than shipped with the page, which would mean
 shipping the archive.
+
+## Labels
+
+A node can carry a printed QR label that opens it in Archivum when scanned —
+the storage page with that location's contents already open, so scanning a box
+answers with what is in it.
+
+**Which levels get labels is configuration, not a given.** A label belongs on
+something a person picks up: a box, a cover, a drawer. A position is a slot on a
+page, and an archive with a few hundred of them would otherwise offer a few
+hundred stickers nobody wants. So the level carries the setting, it is off until
+a workspace turns it on, and asking for a label at a level without it is
+refused rather than quietly produced.
+
+Labels print as an HTML sheet — sized in millimetres, laid out for adhesive
+stock, and printed (or saved as PDF) by the browser. The QR images are embedded
+as data URIs so the print dialog never opens ahead of them. A whole level prints
+at once, optionally narrowed to one parent, which is what "the labels for every
+drawer in this cabinet" is.
+
+A level's label setting can be turned on and off at any time, unlike its name,
+key, capacity and value strategy: those are read by nodes that already exist,
+and changing them under those nodes would be a migration rather than an edit.
 
 ## Rules
 

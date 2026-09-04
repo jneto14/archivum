@@ -6,9 +6,11 @@ namespace App\Http\Controllers\Organization;
 
 use App\Actions\Organization\AddOrganizationLevel;
 use App\Actions\Organization\DeleteOrganizationLevel;
+use App\Actions\Organization\UpdateOrganizationLevel;
 use App\Enums\NodeValueStrategy;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Organization\StoreOrganizationLevelRequest;
+use App\Http\Requests\Organization\UpdateOrganizationLevelRequest;
 use App\Models\OrganizationLevel;
 use App\Models\OrganizationScheme;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -39,12 +41,40 @@ class OrganizationLevelController extends Controller
             'name' => (string) $request->validated('name'),
             'key' => (string) $request->validated('key'),
             'capacity' => $request->validated('capacity') !== null ? (int) $request->validated('capacity') : null,
+            'has_printable_label' => (bool) $request->validated('has_printable_label'),
             'value_strategy' => NodeValueStrategy::from((string) $request->validated('value_strategy')),
             'display_settings' => $request->validated('display_settings'),
             'metadata' => $request->validated('metadata'),
         ]);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('organization.level_created')]);
+
+        return back();
+    }
+
+    /**
+     * Update a level of the given scheme — today, only whether its nodes carry
+     * printable labels (see UpdateOrganizationLevel).
+     *
+     * @param UpdateOrganizationLevelRequest $request The incoming request with the validated flag.
+     * @param OrganizationScheme $scheme The scheme the level is expected to belong to.
+     * @param OrganizationLevel $level The level being updated.
+     * @param UpdateOrganizationLevel $action Applies the update.
+     *
+     * @return RedirectResponse Redirect back to the previous page.
+     *
+     * @throws AuthorizationException If the current user cannot update $scheme.
+     * @throws NotFoundHttpException If $level does not belong to $scheme.
+     */
+    public function update(UpdateOrganizationLevelRequest $request, OrganizationScheme $scheme, OrganizationLevel $level, UpdateOrganizationLevel $action): RedirectResponse
+    {
+        $this->authorize('update', $scheme);
+
+        abort_unless($level->scheme_id === $scheme->id, 404);
+
+        $action->handle($level, (bool) $request->validated('has_printable_label'));
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('organization.level_updated')]);
 
         return back();
     }

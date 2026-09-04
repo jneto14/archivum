@@ -6,6 +6,7 @@ import {
     FileTextIcon,
     ListTreeIcon,
     PlusIcon,
+    PrinterIcon,
     Trash2Icon,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -53,6 +54,7 @@ import {
     show as documentShow,
 } from '@/routes/documents';
 import nodeActions from '@/routes/organization/nodes';
+import { labels } from '@/routes/organization/schemes';
 import nodes from '@/routes/organization/schemes/nodes';
 
 type StorageView = 'tree' | 'columns';
@@ -81,6 +83,8 @@ type Level = {
     name: string;
     position: number;
     capacity: number | null;
+    /** Nodes at this level can be given a printed QR label. */
+    has_printable_label: boolean;
     value_strategy: 'manual' | 'sequential' | 'alphabetical';
     is_leaf: boolean;
 };
@@ -102,8 +106,8 @@ type Props = {
     levels: Level[];
     tree: StorageNode[];
     canManage: boolean;
-    /** The contents of the location the user asked to look inside, loaded on demand. */
-    nodeDocuments?: NodeDocuments | null;
+    /** The contents of the location named by `?node=`, if any. */
+    nodeDocuments: NodeDocuments | null;
 };
 
 export default function OrganizationStorage({
@@ -129,7 +133,12 @@ export default function OrganizationStorage({
     // The location whose contents are open. Held here rather than read off
     // `nodeDocuments`, so the sheet can show a skeleton for the location just
     // asked for while the previous one's documents are still the loaded prop.
-    const [openNode, setOpenNode] = useState<StorageNode | null>(null);
+    // Seeded from the prop, which is how scanning a label opens the sheet: the
+    // QR code carries `?node=`, and the page arrives with its contents.
+    const [openNode, setOpenNode] = useState<{
+        id: string;
+        path: string;
+    } | null>(nodeDocuments?.node ?? null);
 
     setLayoutProps({
         breadcrumbs: [{ title: t('organization.storage.title'), href: '#' }],
@@ -206,7 +215,7 @@ export default function OrganizationStorage({
             ? nodeDocuments
             : null;
 
-    const openNodeDocuments = (node: StorageNode) => {
+    const openNodeDocuments = (node: { id: string; path: string }) => {
         setOpenNode(node);
 
         router.reload({ only: ['nodeDocuments'], data: { node: node.id } });
@@ -245,6 +254,28 @@ export default function OrganizationStorage({
                             {t('organization.storage.view_columns')}
                         </ToggleGroupItem>
                     </ToggleGroup>
+                    {levels
+                        .filter((level) => level.has_printable_label)
+                        .map((level) => (
+                            <Button
+                                key={level.id}
+                                variant="outline"
+                                size="sm"
+                                asChild
+                            >
+                                <Link
+                                    href={labels.url(scheme.id, {
+                                        query: { level_id: level.id },
+                                    })}
+                                >
+                                    <PrinterIcon />
+                                    {t(
+                                        'organization.storage.print_level_labels',
+                                        { level: level.name },
+                                    )}
+                                </Link>
+                            </Button>
+                        ))}
                 </PageHeader>
 
                 {view === 'tree' && (
@@ -274,6 +305,7 @@ export default function OrganizationStorage({
                             nodes={tree}
                             depth={0}
                             levels={levels}
+                            schemeId={scheme.id}
                             canManage={canManage}
                             onDelete={deleteNode}
                             onMove={openMove}
@@ -687,6 +719,7 @@ type TreeRowsProps = {
     nodes: StorageNode[];
     depth: number;
     levels: Level[];
+    schemeId: string;
     canManage: boolean;
     onDelete: (node: StorageNode) => void;
     onMove: (node: StorageNode) => void;
@@ -697,6 +730,7 @@ function TreeRows({
     nodes,
     depth,
     levels,
+    schemeId,
     canManage,
     onDelete,
     onMove,
@@ -704,6 +738,7 @@ function TreeRows({
 }: TreeRowsProps) {
     const t = useTranslation();
     const level = levels[depth];
+    const childLevel = levels[depth + 1];
 
     if (!level) {
         return null;
@@ -767,6 +802,45 @@ function TreeRows({
                                         <FileTextIcon className="size-3.5" />
                                     </Button>
                                 )}
+                                {level.has_printable_label && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        title={t(
+                                            'organization.storage.print_label_tooltip',
+                                        )}
+                                        asChild
+                                    >
+                                        <Link
+                                            href={labels.url(schemeId, {
+                                                query: { node_id: node.id },
+                                            })}
+                                        >
+                                            <PrinterIcon className="size-3.5" />
+                                        </Link>
+                                    </Button>
+                                )}
+                                {childLevel?.has_printable_label && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        title={t(
+                                            'organization.storage.print_inside_tooltip',
+                                        )}
+                                        asChild
+                                    >
+                                        <Link
+                                            href={labels.url(schemeId, {
+                                                query: {
+                                                    level_id: childLevel.id,
+                                                    parent_id: node.id,
+                                                },
+                                            })}
+                                        >
+                                            <PrinterIcon className="size-3.5 opacity-60" />
+                                        </Link>
+                                    </Button>
+                                )}
                             </div>
                             {canManage && (
                                 <div className="flex flex-none items-center gap-1">
@@ -800,6 +874,7 @@ function TreeRows({
                                 nodes={node.children}
                                 depth={depth + 1}
                                 levels={levels}
+                                schemeId={schemeId}
                                 canManage={canManage}
                                 onDelete={onDelete}
                                 onMove={onMove}

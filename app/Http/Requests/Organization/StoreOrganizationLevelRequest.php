@@ -21,6 +21,7 @@ class StoreOrganizationLevelRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'key' => ['required', 'string', 'max:255'],
             'capacity' => ['nullable', 'integer', 'min:1'],
+            'has_printable_label' => ['nullable', 'boolean'],
             'value_strategy' => ['required', Rule::enum(NodeValueStrategy::class)],
             'display_settings' => ['nullable', 'array'],
             'metadata' => ['nullable', 'array'],

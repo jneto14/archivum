@@ -43,17 +43,16 @@ class OrganizationStorageController extends Controller
                 'name' => $level->name,
                 'position' => $level->position,
                 'capacity' => $level->capacity,
+                'has_printable_label' => $level->has_printable_label,
                 'value_strategy' => $level->value_strategy->value,
                 'is_leaf' => $level->isLeaf(),
             ])->values()->all(),
             'tree' => $this->buildTree($scheme->levels),
             'canManage' => $scheme->workspace->isManageableBy($request->user()),
-            // Only the location the user asked to look inside, fetched by a
-            // partial reload: shipping every location's contents with the page
-            // would be the whole archive.
-            'nodeDocuments' => Inertia::optional(
-                fn () => $this->nodeDocuments($scheme, $request->query('node')),
-            ),
+            // Only the location named by `?node=`, and null without one: the
+            // panel fetches it by partial reload when a location is opened, and
+            // a label's QR code lands here with it already in the URL.
+            'nodeDocuments' => $this->nodeDocuments($scheme, $request->query('node')),
         ]);
     }
 

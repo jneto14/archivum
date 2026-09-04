@@ -7,6 +7,7 @@ import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -33,6 +34,7 @@ type LevelRow = {
     key: string;
     position: number;
     capacity: number | null;
+    has_printable_label: boolean;
     value_strategy: string;
     has_nodes: boolean;
 };
@@ -44,6 +46,7 @@ type LevelFields = {
     name: string;
     key: string;
     capacity: string;
+    has_printable_label: boolean;
     value_strategy: string;
 };
 
@@ -123,6 +126,7 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                 name: '',
                 key: '',
                 capacity: '',
+                has_printable_label: false,
                 value_strategy: 'sequential',
             },
         ],
@@ -136,6 +140,7 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                 name: '',
                 key: '',
                 capacity: '',
+                has_printable_label: false,
                 value_strategy: 'sequential',
             },
         ]);
@@ -149,7 +154,7 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
     const updateLevel = (
         index: number,
         field: keyof LevelDraft,
-        value: string,
+        value: string | boolean,
     ) =>
         form.setData(
             'levels',
@@ -162,6 +167,7 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
         name: '',
         key: '',
         capacity: '',
+        has_printable_label: false,
         value_strategy: 'sequential',
     });
 
@@ -174,6 +180,7 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
             name: data.name,
             key: data.key,
             capacity: data.capacity.trim() === '' ? null : data.capacity,
+            has_printable_label: data.has_printable_label,
             value_strategy: data.value_strategy,
         }));
         newLevelForm.post(levelActions.store.url(scheme.id), {
@@ -185,6 +192,18 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
     const lastLevel = isEditing
         ? scheme.levels[scheme.levels.length - 1]
         : undefined;
+
+    const toggleLevelLabels = (level: LevelRow, enabled: boolean) => {
+        if (!isEditing) {
+            return;
+        }
+
+        router.patch(
+            levelActions.update.url({ scheme: scheme.id, level: level.id }),
+            { has_printable_label: enabled },
+            { preserveScroll: true },
+        );
+    };
 
     const deleteLevel = (level: LevelRow) => {
         if (!isEditing) {
@@ -213,6 +232,7 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                 name: level.name,
                 key: level.key,
                 capacity: level.capacity.trim() === '' ? null : level.capacity,
+                has_printable_label: level.has_printable_label,
                 value_strategy: level.value_strategy,
             })),
         }));
@@ -335,6 +355,24 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                                           'organization.form.level_capacity_unlimited',
                                                       )}
                                             </span>
+                                            <label className="flex flex-none items-center gap-2 text-xs text-muted-foreground">
+                                                <Checkbox
+                                                    checked={
+                                                        level.has_printable_label
+                                                    }
+                                                    onCheckedChange={(
+                                                        checked,
+                                                    ) =>
+                                                        toggleLevelLabels(
+                                                            level,
+                                                            checked === true,
+                                                        )
+                                                    }
+                                                />
+                                                {t(
+                                                    'organization.form.level_labels_label',
+                                                )}
+                                            </label>
                                             {canDelete ? (
                                                 deleteButton
                                             ) : (
@@ -478,6 +516,23 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                             </SelectContent>
                                         </Select>
                                     </div>
+                                    <label className="flex items-center gap-2 text-sm">
+                                        <Checkbox
+                                            checked={
+                                                newLevelForm.data
+                                                    .has_printable_label
+                                            }
+                                            onCheckedChange={(checked) =>
+                                                newLevelForm.setData(
+                                                    'has_printable_label',
+                                                    checked === true,
+                                                )
+                                            }
+                                        />
+                                        {t(
+                                            'organization.form.level_labels_label',
+                                        )}
+                                    </label>
                                     <Button
                                         type="button"
                                         size="sm"
@@ -627,6 +682,23 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                         >
                                             <Trash2Icon />
                                         </Button>
+                                        <label className="col-span-full flex items-center gap-2 text-sm">
+                                            <Checkbox
+                                                checked={
+                                                    level.has_printable_label
+                                                }
+                                                onCheckedChange={(checked) =>
+                                                    updateLevel(
+                                                        index,
+                                                        'has_printable_label',
+                                                        checked === true,
+                                                    )
+                                                }
+                                            />
+                                            {t(
+                                                'organization.form.level_labels_label',
+                                            )}
+                                        </label>
                                     </div>
                                 ))}
                                 <InputError message={form.errors.levels} />
