@@ -130,9 +130,11 @@ class Document extends Model
      * Record what this document's extracted text was found to contain, so the
      * review queue can find it without re-reading every document.
      *
-     * An empty list is stored as null — "nothing to review" and "not looked at
-     * yet" are the same thing to every reader of this column, and null is what
-     * the queue filters on.
+     * The three states are distinct and all three are needed. Null is "never
+     * read" — which is every document on an installation upgrading into this
+     * feature, and what `archivum:backfill-suggestions` looks for. An empty
+     * list is "read, and there is nothing waiting", whether the text said
+     * nothing or somebody has dealt with it. Anything else is the queue.
      *
      * @param array<int, array{kind: string, value: string}> $findings What the heuristics read out of the text.
      *
@@ -140,7 +142,7 @@ class Document extends Model
      */
     public function recordMetadataSuggestions(array $findings): void
     {
-        $this->forceFill(['metadata_suggestions' => $findings === [] ? null : $findings])->save();
+        $this->forceFill(['metadata_suggestions' => $findings])->save();
     }
 
     /**

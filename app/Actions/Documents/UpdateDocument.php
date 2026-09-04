@@ -41,7 +41,7 @@ class UpdateDocument
 
             $document->tags()->sync($tagIds);
 
-            if ($document->metadata_suggestions !== null && $this->suggest->handle($document) === []) {
+            if (filled($document->metadata_suggestions) && $this->suggest->handle($document) === []) {
                 $document->recordMetadataSuggestions([]);
             }
 

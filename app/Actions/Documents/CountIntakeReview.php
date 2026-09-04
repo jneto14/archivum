@@ -30,7 +30,7 @@ class CountIntakeReview
                 select
                     (
                         select count(*) from documents
-                        where workspace_id = ? and metadata_suggestions is not null
+                        where workspace_id = ? and json_length(metadata_suggestions) > 0
                     ) as suggestions,
                     (
                         select count(*) from document_attachments

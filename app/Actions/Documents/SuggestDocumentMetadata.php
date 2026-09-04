@@ -64,6 +64,30 @@ class SuggestDocumentMetadata
     /** @var int How many recent documents of the same type are read to learn which keys that type actually uses. Enough to see the pattern, bounded so a large archive does not pay for it. */
     private const KEY_SAMPLE_SIZE = 50;
 
+    /**
+     * Month names in both of the application's languages, spelled out and
+     * abbreviated, ASCII-folded and lowercase to match the folded text.
+     *
+     * Real invoices write their date in words at least as often as in digits —
+     * "Date: 14 March 2026" — and a numbers-only pattern reads nothing from them.
+     *
+     * @var array<string, int>
+     */
+    private const MONTHS = [
+        'january' => 1, 'jan' => 1, 'janeiro' => 1,
+        'february' => 2, 'feb' => 2, 'fevereiro' => 2, 'fev' => 2,
+        'march' => 3, 'mar' => 3, 'marco' => 3,
+        'april' => 4, 'apr' => 4, 'abril' => 4, 'abr' => 4,
+        'may' => 5, 'maio' => 5, 'mai' => 5,
+        'june' => 6, 'jun' => 6, 'junho' => 6,
+        'july' => 7, 'jul' => 7, 'julho' => 7,
+        'august' => 8, 'aug' => 8, 'agosto' => 8, 'ago' => 8,
+        'september' => 9, 'sept' => 9, 'sep' => 9, 'setembro' => 9, 'set' => 9,
+        'october' => 10, 'oct' => 10, 'outubro' => 10, 'out' => 10,
+        'november' => 11, 'nov' => 11, 'novembro' => 11,
+        'december' => 12, 'dec' => 12, 'dezembro' => 12, 'dez' => 12,
+    ];
+
     /** @var array<string, list<string>> Keys in use, per "workspace:type" — see keysUsedByType(). */
     private array $keysByType = [];
 
@@ -168,23 +192,65 @@ class SuggestDocumentMetadata
      */
     private function firstDate(string $text): ?string
     {
-        preg_match_all('/\b\d{1,4}[\/.-]\d{1,2}[\/.-]\d{1,4}\b/', $text, $matches);
+        // Folded to ASCII and lowercased so that "Março", "março" and "marco"
+        // are one pattern. Only a date built from the parts is ever returned,
+        // never a substring of this, so folding cannot corrupt the result — and
+        // both passes run over the same string, so their offsets are comparable.
+        $folded = Str::ascii(mb_strtolower($text));
 
-        foreach ($matches[0] as $candidate) {
-            $parts = (array) preg_split('#[/.-]#', $candidate);
+        $candidates = [];
 
-            if (count($parts) !== 3) {
-                continue;
-            }
+        // 14/03/2026, 14-03-2026, 2026-03-14.
+        preg_match_all(
+            '/(?<!\d)\d{1,4}[\/.-]\d{1,2}[\/.-]\d{1,4}(?!\d)/',
+            $folded,
+            $numeric,
+            PREG_OFFSET_CAPTURE,
+        );
 
-            // A four-digit first part is a year, and the date is already the
-            // way round it will be stored; anything else is day-first.
-            [$year, $month, $day] = mb_strlen((string) $parts[0]) === 4
-                ? [(int) $parts[0], (int) $parts[1], (int) $parts[2]]
-                : [(int) $parts[2], (int) $parts[1], (int) $parts[0]];
+        foreach ($numeric[0] as [$value, $offset]) {
+            $candidates[$offset] = $this->parseNumericDate($value);
+        }
 
-            if (checkdate($month, $day, $year)) {
-                return sprintf('%04d-%02d-%02d', $year, $month, $day);
+        $months = $this->monthPattern();
+
+        // 14 March 2026, 14 de marco de 2026.
+        preg_match_all(
+            '/(\d{1,2})\h+(?:de\h+)?(' . $months . ')\.?,?\h+(?:de\h+)?(\d{4})/',
+            $folded,
+            $dayFirst,
+            PREG_OFFSET_CAPTURE | PREG_SET_ORDER,
+        );
+
+        foreach ($dayFirst as $match) {
+            $candidates[$match[0][1]] = $this->buildDate(
+                (int) $match[3][0],
+                self::MONTHS[$match[2][0]],
+                (int) $match[1][0],
+            );
+        }
+
+        // March 14, 2026.
+        preg_match_all(
+            '/(' . $months . ')\.?\h+(\d{1,2})(?:st|nd|rd|th)?,?\h+(\d{4})/',
+            $folded,
+            $monthFirst,
+            PREG_OFFSET_CAPTURE | PREG_SET_ORDER,
+        );
+
+        foreach ($monthFirst as $match) {
+            $candidates[$match[0][1]] = $this->buildDate(
+                (int) $match[3][0],
+                self::MONTHS[$match[1][0]],
+                (int) $match[2][0],
+            );
+        }
+
+        ksort($candidates);
+
+        foreach ($candidates as $date) {
+            if ($date !== null) {
+                return $date;
             }
         }
 
@@ -192,24 +258,81 @@ class SuggestDocumentMetadata
     }
 
     /**
-     * The largest currency amount in the text.
+     * The month names, longest first so that `mar` cannot match the front of
+     * `march` and leave the rest of the word behind.
      *
-     * Largest because the number a reader wants off an invoice is its total,
+     * @return string An alternation for use inside a larger pattern.
+     */
+    private function monthPattern(): string
+    {
+        $names = array_keys(self::MONTHS);
+
+        usort($names, static fn (string $first, string $second): int => mb_strlen($second) <=> mb_strlen($first));
+
+        return implode('|', $names);
+    }
+
+    /**
+     * Read a date written entirely in digits.
+     *
+     * @param string $candidate The matched text, e.g. `14/03/2026`.
+     *
+     * @return string|null The date as `Y-m-d`, or null if those numbers are not one.
+     */
+    private function parseNumericDate(string $candidate): ?string
+    {
+        $parts = (array) preg_split('#[/.-]#', $candidate);
+
+        if (count($parts) !== 3) {
+            return null;
+        }
+
+        // A four-digit first part is a year, and the date is already the way
+        // round it will be stored; anything else is day-first.
+        return mb_strlen((string) $parts[0]) === 4
+            ? $this->buildDate((int) $parts[0], (int) $parts[1], (int) $parts[2])
+            : $this->buildDate((int) $parts[2], (int) $parts[1], (int) $parts[0]);
+    }
+
+    /**
+     * @param int $year The year.
+     * @param int $month The month.
+     * @param int $day The day.
+     *
+     * @return string|null The date as `Y-m-d`, or null if it is not a real one.
+     */
+    private function buildDate(int $year, int $month, int $day): ?string
+    {
+        return checkdate($month, $day, $year)
+            ? sprintf('%04d-%02d-%02d', $year, $month, $day)
+            : null;
+    }
+
+    /**
+     * The largest money-shaped number in the text.
+     *
+     * Two decimal places is the whole test, and requiring a currency marker
+     * beside it was too strict to be useful: on a real invoice the amounts sit
+     * in a column under a heading, and OCR flattens the table into a list of
+     * bare numbers with the currency nowhere near them. A number written to
+     * exactly two decimals is money in almost every document this archive
+     * holds; a quantity or an invoice number is not written that way.
+     *
+     * Largest, because the number a reader wants off an invoice is its total,
      * and the total is by construction no smaller than the lines above it.
      *
      * @param string $text The extracted text.
      *
-     * @return string|null The amount as a plain decimal, or null if the text holds no amount next to a currency marker.
+     * @return string|null The amount as a plain decimal, or null if the text holds no money-shaped number.
      */
     private function largestAmount(string $text): ?string
     {
-        // Horizontal space only, and no `u` flag: OCR output is not guaranteed
-        // to be valid UTF-8, and a `u` pattern silently matches nothing at all
-        // against a subject that isn't. The euro sign matches as bytes either way.
-        $number = '\d[\d.,\h]*\d|\d';
-
+        // The lookarounds keep a date out of this: without them `14.03.2026`
+        // offers up `14.03`. No `u` flag, because OCR output is not guaranteed
+        // to be valid UTF-8 and a `u` pattern silently matches nothing at all
+        // against a subject that is not.
         preg_match_all(
-            '/(?:€|EUR\b|euros?\b)\h*(?:' . $number . ')|(?:' . $number . ')\h*(?:€|EUR\b|euros?\b)/i',
+            '/(?<![\d.,])\d{1,3}(?:[.,\h]\d{3})*[.,]\d{2}(?![.,]?\d)/',
             $text,
             $matches,
         );
@@ -263,36 +386,69 @@ class SuggestDocumentMetadata
     }
 
     /**
-     * The first Portuguese tax number in the text.
+     * The first tax number in the text.
      *
-     * The check digit is verified, which is what makes this usable at all: nine
-     * digits on their own also describe order numbers, phone numbers and
-     * customer references, and roughly ten in eleven of those fail the check.
+     * Two ways in, because there are two kinds of document. One says what the
+     * number is — "VAT registration 501 234 567", "NIF: 501442600" — and a
+     * label is proof enough on its own, whichever country's format follows it
+     * and however it is spaced. The other just prints the digits, and there the
+     * Portuguese check digit is what separates a tax number from an order
+     * number, a phone number or a customer reference.
      *
      * @param string $text The extracted text.
      *
-     * @return string|null The nine digits, or null if the text holds no valid one.
+     * @return string|null The digits, or null if the text holds no tax number.
      */
     private function taxId(string $text): ?string
     {
-        preg_match_all('/\b(?:PT\s*)?(\d{9})\b/i', $text, $matches);
+        $folded = Str::ascii(mb_strtolower($text));
+
+        $labelled = preg_match(
+            '/\b(?:nif|nipc|vat|contribuinte|tax\h*(?:id|number))\b[^\n\d]{0,20}(\d[\d\h.]{6,14}\d)/',
+            $folded,
+            $match,
+        );
+
+        if ($labelled === 1) {
+            $digits = (string) preg_replace('/\D/', '', $match[1]);
+
+            if (mb_strlen($digits) >= 9 && mb_strlen($digits) <= 12) {
+                return $digits;
+            }
+        }
+
+        preg_match_all('/\b(?:pt\h*)?(\d{9})\b/', $folded, $matches);
 
         foreach ($matches[1] as $candidate) {
-            $sum = 0;
-
-            for ($position = 0; $position < 8; $position++) {
-                $sum += (int) $candidate[$position] * (9 - $position);
-            }
-
-            $remainder = $sum % 11;
-            $checkDigit = $remainder < 2 ? 0 : 11 - $remainder;
-
-            if ($checkDigit === (int) $candidate[8]) {
+            if ($this->isPortugueseTaxNumber($candidate)) {
                 return $candidate;
             }
         }
 
         return null;
+    }
+
+    /**
+     * Whether nine digits carry a valid Portuguese check digit.
+     *
+     * Roughly ten in eleven arbitrary nine-digit numbers fail this, which is
+     * what makes an unlabelled match worth offering at all.
+     *
+     * @param string $candidate Exactly nine digits.
+     *
+     * @return bool True if the ninth digit checks out against the first eight.
+     */
+    private function isPortugueseTaxNumber(string $candidate): bool
+    {
+        $sum = 0;
+
+        for ($position = 0; $position < 8; $position++) {
+            $sum += (int) $candidate[$position] * (9 - $position);
+        }
+
+        $remainder = $sum % 11;
+
+        return ($remainder < 2 ? 0 : 11 - $remainder) === (int) $candidate[8];
     }
 
     /**

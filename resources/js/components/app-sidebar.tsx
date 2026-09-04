@@ -87,18 +87,16 @@ export function AppSidebar() {
             disabled: !workspace,
             badge: documentsCount,
         },
-        // Hidden when there is nothing waiting: this is a queue, and an
-        // always-present entry that is empty most of the time stops being read.
-        ...(workspace && intakeReviewCount
-            ? ([
-                  {
-                      title: t('nav.review'),
-                      href: documentsReview.url(workspace.id),
-                      icon: ClipboardCheck,
-                      badge: intakeReviewCount,
-                  },
-              ] as NavItem[])
-            : []),
+        // Always listed, badge or no badge. Hiding it while empty made the
+        // feature impossible to find at all — and left no way to tell "nothing
+        // is waiting" apart from "this is broken".
+        {
+            title: t('nav.review'),
+            href: workspace ? documentsReview.url(workspace.id) : '#',
+            icon: ClipboardCheck,
+            disabled: !workspace,
+            badge: intakeReviewCount ? intakeReviewCount : undefined,
+        },
         {
             title: t('nav.physical_storage'),
             href: organizationSchemeId

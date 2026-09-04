@@ -39,7 +39,10 @@ class IntakeReviewController extends Controller
 
         $documents = Document::query()
             ->where('workspace_id', $workspace->id)
-            ->whereNotNull('metadata_suggestions')
+            // Length rather than "not null": an empty list is a document that
+            // has been read and has nothing waiting, which is not the same as
+            // one nothing has read yet. See Document::recordMetadataSuggestions().
+            ->whereRaw('json_length(metadata_suggestions) > 0')
             ->with('documentType')
             ->latest('updated_at')
             ->paginate(15)

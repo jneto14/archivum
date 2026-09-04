@@ -99,7 +99,7 @@ class IntakeReviewTest extends TestCase
 
         $this->assertSame('2026-08-20', $document->document_date?->toDateString());
         $this->assertSame('1250.50', $document->metadata['amount'] ?? null);
-        $this->assertNull($document->metadata_suggestions, 'A reviewed document must leave the queue.');
+        $this->assertSame([], $document->metadata_suggestions, 'A reviewed document must leave the queue.');
     }
 
     public function test_accepting_one_kind_leaves_the_others_unwritten()
@@ -130,7 +130,8 @@ class IntakeReviewTest extends TestCase
 
         $this->assertNull($document->document_date);
         $this->assertNull($document->metadata);
-        $this->assertNull(
+        $this->assertSame(
+            [],
             $document->metadata_suggestions,
             '"Nothing here" is an answer, and a row that comes back tomorrow has not accepted it.',
         );

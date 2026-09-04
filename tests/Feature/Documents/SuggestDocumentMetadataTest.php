@@ -64,10 +64,79 @@ class SuggestDocumentMetadataTest extends TestCase
         );
     }
 
-    public function test_an_amount_without_a_currency_beside_it_is_not_an_amount()
+    /**
+     * A real invoice, as tesseract actually returns one: the date written out
+     * in words, the table flattened into a column of bare numbers with the
+     * currency nowhere near them, and the tax number spaced into groups.
+     *
+     * Every one of those defeated the first version of these heuristics, which
+     * read precisely nothing from this page.
+     */
+    public function test_it_reads_an_invoice_as_ocr_actually_returns_one()
+    {
+        $suggestions = $this->suggestionsFor($this->documentWithText(<<<'TEXT'
+            NORTHGATE STATIONERY LTD
+            118 Flower Street, Manchester M1 4QB
+            VAT registration 501 234 567
+            INVOICE No. 2026/0184
+            Date: 14 March 2026
+            Due: 13 April 2026
+            Customer: City Archive
+            Description
+            A4 archive boxes
+            Card dividers
+            Adhesive labels
+            Subtotal
+            VAT at 20%
+            Total due
+            Qty
+            Amount
+            40
+            184.00
+            120
+            66.00
+            10
+            12.50
+            262.50
+            52.50
+            315.00
+            TEXT));
+
+        // The issue date, not the due date below it.
+        $this->assertSame('2026-03-14', $suggestions['document_date']);
+        // The total, not a line item and not the subtotal.
+        $this->assertSame('315.00', $suggestions['amount']);
+        // Labelled, so the spacing and the country's format do not matter.
+        $this->assertSame('501234567', $suggestions['tax_id']);
+    }
+
+    public function test_a_date_written_in_portuguese_is_read_too()
     {
         $suggestions = $this->suggestionsFor(
-            $this->documentWithText('Contrato 1.250,50 registado sob o numero 4471 em 20/08/2026.'),
+            $this->documentWithText('Recibo emitido a 14 de março de 2026 pelos servicos prestados.'),
+        );
+
+        $this->assertSame('2026-03-14', $suggestions['document_date']);
+    }
+
+    public function test_a_date_is_not_mistaken_for_an_amount()
+    {
+        $suggestions = $this->suggestionsFor(
+            $this->documentWithText('Contrato assinado a 14.03.2026 sob o numero 4471.'),
+        );
+
+        $this->assertArrayNotHasKey(
+            'amount',
+            $suggestions,
+            'Without the lookarounds, "14.03.2026" offers up 14.03 as a total.',
+        );
+        $this->assertSame('2026-03-14', $suggestions['document_date']);
+    }
+
+    public function test_a_number_written_without_decimals_is_not_money()
+    {
+        $suggestions = $this->suggestionsFor(
+            $this->documentWithText('Encomenda 4471 de 120 caixas, entregue a 20/08/2026.'),
         );
 
         $this->assertArrayNotHasKey('amount', $suggestions);
