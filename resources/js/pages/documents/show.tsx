@@ -755,6 +755,10 @@ export default function DocumentShow({
                                                 location.documentsCount
                                             }
                                             capacity={location.capacity}
+                                            isCurrent={
+                                                location.path ===
+                                                document.current_location
+                                            }
                                             onSelect={() =>
                                                 fileDocument({
                                                     node_id: location.id,
@@ -812,6 +816,7 @@ function LocationRow({
     capacity,
     recommended = false,
     isNew = false,
+    isCurrent = false,
     onSelect,
 }: {
     path: string;
@@ -820,6 +825,8 @@ function LocationRow({
     recommended?: boolean;
     /** The location does not exist yet and will be created by filing into it. */
     isNew?: boolean;
+    /** Where the document already is: shown for orientation, but filing into it would do nothing. */
+    isCurrent?: boolean;
     onSelect: () => void;
 }) {
     const t = useTranslation();
@@ -832,7 +839,8 @@ function LocationRow({
         <button
             type="button"
             onClick={onSelect}
-            className="flex w-full items-center gap-3 rounded-md border p-3 text-left hover:bg-accent"
+            disabled={isCurrent}
+            className="flex w-full items-center gap-3 rounded-md border p-3 text-left hover:bg-accent disabled:cursor-default disabled:opacity-60 disabled:hover:bg-transparent"
         >
             <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -847,6 +855,11 @@ function LocationRow({
                     {isNew && (
                         <Badge variant="secondary" className="shrink-0">
                             {t('documents.show.new_location_badge')}
+                        </Badge>
+                    )}
+                    {isCurrent && (
+                        <Badge variant="outline" className="shrink-0">
+                            {t('documents.show.current_location_badge')}
                         </Badge>
                     )}
                 </div>

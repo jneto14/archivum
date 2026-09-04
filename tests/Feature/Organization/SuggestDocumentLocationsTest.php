@@ -92,6 +92,31 @@ class SuggestDocumentLocationsTest extends TestCase
         $this->assertFalse(collect($suggestions)->contains(fn ($s) => $s['node']['id'] === $fullNode->id));
     }
 
+    public function test_the_location_a_document_is_already_in_is_never_suggested()
+    {
+        $workspace = Workspace::factory()->create();
+        $creator = WorkspaceUser::factory()->for($workspace)->create();
+        $type = DocumentType::factory()->for($workspace)->create(['key' => 'invoice']);
+
+        $scheme = app(CreateScheme::class)->handle($workspace, 'Scheme', [
+            ['name' => 'Box', 'key' => 'box', 'value_strategy' => NodeValueStrategy::Sequential, 'capacity' => 5],
+        ]);
+        $level = $scheme->levels->first();
+        $createNode = app(CreateOrganizationNode::class);
+        $filedIn = $createNode->handle($level, null, '001');
+        $createNode->handle($level, null, '002');
+
+        $document = app(CreateDocument::class)->handle($workspace, $creator->user, $type, 'Filed', null, null);
+        app(MoveDocument::class)->handle($document, $filedIn);
+
+        $suggestions = app(SuggestDocumentLocations::class)->handle($document->refresh(), $scheme);
+
+        // 001 has room, so it is where the rules resolve to — but the document
+        // is in it, and offering to move it there is offering to do nothing.
+        $this->assertFalse(collect($suggestions)->contains(fn ($s) => $s['node']['id'] === $filedIn->id));
+        $this->assertNotEmpty($suggestions);
+    }
+
     public function test_scheme_with_no_levels_throws()
     {
         $workspace = Workspace::factory()->create();

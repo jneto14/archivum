@@ -189,6 +189,7 @@ export default {
         'Não foram encontradas posições disponíveis para o esquema deste documento.',
     'documents.show.suggested_badge': 'Sugerido',
     'documents.show.new_location_badge': 'Nova',
+    'documents.show.current_location_badge': 'Atual',
     'documents.show.location_suggestion_count_one': ':count documento',
     'documents.show.location_suggestion_count_other': ':count documentos',
     'documents.show.browse_locations_button': 'Escolher outra localização',

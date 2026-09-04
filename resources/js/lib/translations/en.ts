@@ -186,6 +186,7 @@ export default {
         "No available positions found for this document's scheme.",
     'documents.show.suggested_badge': 'Suggested',
     'documents.show.new_location_badge': 'New',
+    'documents.show.current_location_badge': 'Current',
     'documents.show.location_suggestion_count_one': ':count document',
     'documents.show.location_suggestion_count_other': ':count documents',
     'documents.show.browse_locations_button': 'Choose another location',

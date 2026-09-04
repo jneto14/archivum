@@ -30,6 +30,10 @@ class SuggestDocumentLocations
      * Suggesting is a read: when the recommendation is a location that does not exist
      * yet, it comes back with a null id and is only created once the user picks it.
      *
+     * Where the document already sits is never suggested. For a document filed by the
+     * rules, that is exactly where FindAvailableLocation resolves to, and offering to
+     * move it there is offering to do nothing.
+     *
      * @param Document $document The document being filed; its document type feeds the rule-matching criteria.
      * @param OrganizationScheme $scheme The scheme to suggest a leaf-level position within.
      * @param int $limit Maximum number of suggestions to return, including the recommended one.
@@ -46,12 +50,20 @@ class SuggestDocumentLocations
             throw new LogicException('Cannot suggest a location for a scheme with no levels.');
         }
 
+        $currentNodeId = $document->currentLocation?->organization_node_id;
+
         $recommended = $this->recommend($document, $scheme);
         $recommendedNode = $recommended['node'] ?? null;
+
+        if ($recommendedNode !== null && $recommendedNode->id === $currentNodeId) {
+            $recommended = null;
+            $recommendedNode = null;
+        }
 
         $alternatives = OrganizationNode::query()
             ->where('level_id', $leafLevel->id)
             ->when($recommendedNode !== null, fn ($query) => $query->whereKeyNot($recommendedNode->id))
+            ->when($currentNodeId !== null, fn ($query) => $query->whereKeyNot($currentNodeId))
             ->get();
 
         $counts = $this->countFiledDocuments->forNodes(
