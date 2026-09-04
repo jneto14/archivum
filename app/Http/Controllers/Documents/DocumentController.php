@@ -19,6 +19,7 @@ use App\Http\Requests\Documents\UpdateDocumentRequest;
 use App\Http\Resources\DocumentResource;
 use App\Models\Document;
 use App\Models\DocumentType;
+use App\Models\OrganizationNode;
 use App\Models\OrganizationScheme;
 use App\Models\Tag;
 use App\Models\Workspace;
@@ -53,6 +54,7 @@ class DocumentController extends Controller
             'tag_ids' => $request->validated('tag_ids') ?? [],
             'from' => $request->validated('from'),
             'to' => $request->validated('to'),
+            'node_id' => $request->validated('node_id'),
         ];
 
         $mode = SearchMode::tryFrom((string) $request->validated('mode')) ?? SearchMode::Exact;
@@ -62,6 +64,10 @@ class DocumentController extends Controller
         return Inertia::render('documents/index', [
             'documents' => DocumentResource::collection($results),
             'filters' => [...$filters, 'q' => $request->validated('q'), 'mode' => $mode->value],
+            // The location filter is set by following a link from the archive,
+            // so the list has to name what it is filtered by: an id alone would
+            // leave the user looking at a subset with nothing saying which.
+            'filteredLocation' => $this->filteredLocation($workspace, $filters['node_id']),
             'documentTypes' => $this->workspaceDocumentTypes($workspace),
             'tags' => $this->workspaceTags($workspace),
         ]);
@@ -298,6 +304,27 @@ class DocumentController extends Controller
             ->whereIn('id', $tagIds)
             ->pluck('id')
             ->all();
+    }
+
+    /**
+     * Name the location a listing is filtered by, for the chip that says so and clears it.
+     *
+     * @param Workspace $workspace The workspace the node must belong to.
+     * @param string|null $nodeId The node the listing is filtered by, if any.
+     *
+     * @return array{id: string, path: string}|null The location's id and full path, or null when the listing is not filtered by one, or the node is not this workspace's.
+     */
+    private function filteredLocation(Workspace $workspace, ?string $nodeId): ?array
+    {
+        if ($nodeId === null) {
+            return null;
+        }
+
+        $node = OrganizationNode::query()
+            ->whereHas('level.scheme', fn ($query) => $query->where('workspace_id', $workspace->id))
+            ->find($nodeId);
+
+        return $node === null ? null : ['id' => $node->id, 'path' => $node->path()];
     }
 
     /**

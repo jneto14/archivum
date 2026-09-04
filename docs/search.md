@@ -65,11 +65,19 @@ where it belongs:
 Search:  BMW 320d
 Filters: type = Invoice
          year = 2026
+         location = 001-A
 ```
 
 Filter state lives in the URL, so a filtered view can be linked, bookmarked and
 reloaded. The documents index is paginated with numbered pages for the same
 reason — a position in a large result set should survive a refresh.
+
+The location filter is what the physical archive links into, and it reads the
+tree rather than one node: filtering by a cabinet answers with the documents on
+every shelf below it. It matches a document's *current* location, so one that
+used to be there and has since been moved on does not come back. A node from
+another workspace matches nothing, rather than being dropped — dropping it would
+answer "what is in that location" with the whole archive.
 
 ## Cost
 

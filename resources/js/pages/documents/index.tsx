@@ -75,7 +75,11 @@ type Props = {
         tag_ids: string[];
         from: string | null;
         to: string | null;
+        /** Set by following a location's link from the physical archive. */
+        node_id: string | null;
     };
+    /** The location `filters.node_id` names, resolved for display. */
+    filteredLocation: { id: string; path: string } | null;
     documentTypes: { id: string; name: string }[];
     tags: { id: string; name: string }[];
 };
@@ -97,6 +101,7 @@ function readStoredLayout(): Layout {
 export default function DocumentIndex({
     documents,
     filters,
+    filteredLocation,
     documentTypes,
     tags,
 }: Props) {
@@ -304,6 +309,25 @@ export default function DocumentIndex({
                         />
                     </div>
                 </div>
+
+                {filteredLocation && (
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                            {t('documents.index.filtered_by_location')}
+                        </span>
+                        <Badge variant="secondary" className="font-mono">
+                            {filteredLocation.path}
+                        </Badge>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="shrink-0"
+                            onClick={() => applyFilters({ node_id: null })}
+                        >
+                            {t('documents.index.clear_location_filter')}
+                        </Button>
+                    </div>
+                )}
 
                 {documents.data.length === 0 && (
                     <EmptyState

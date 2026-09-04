@@ -72,6 +72,8 @@ export default {
     'documents.index.filter_all_types': 'Todos os tipos',
     'documents.index.filter_tag_placeholder': 'Etiqueta',
     'documents.index.filter_all_tags': 'Todas as etiquetas',
+    'documents.index.filtered_by_location': 'Arquivados em',
+    'documents.index.clear_location_filter': 'Mostrar todas as localizações',
     'demo.banner':
         'Esta é uma demonstração pública. Tudo é apagado e reposto a :datetime.',
     'demo.credentials': 'Conta de demonstração',
@@ -385,6 +387,13 @@ export default {
         'Coloca em fila uma tarefa em segundo plano que move todos os documentos atualmente arquivados neste local para o local selecionado.',
     'organization.storage.target_location_label': 'Local de destino',
     'organization.storage.select_location_placeholder': 'Seleciona um local',
+    'organization.storage.show_documents_tooltip':
+        'Ver os documentos aqui arquivados',
+    'organization.storage.see_all_documents': 'Ver todos (:count)',
+    'organization.storage.close_documents': 'Fechar',
+    'organization.storage.loading_documents': 'A ver o que está aqui…',
+    'organization.storage.no_documents_here':
+        'Ainda não está aqui nada arquivado.',
     'organization.storage.target_no_room_hint': '(sem espaço suficiente)',
     'organization.storage.move_button': 'Mover',
     'organization.storage.move_documents_tooltip': 'Mover documentos',

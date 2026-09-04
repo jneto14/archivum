@@ -102,6 +102,10 @@ workspace to pick from instead. A suggested location that does not exist yet is
 only created once it is picked, so looking at a document leaves no empty
 positions behind, and a location that is full is refused rather than offered.
 
+The index reads the same relationship from the other end: it can be filtered by
+location, which is how the physical archive links through to what is on a
+shelf. See [search.md](search.md).
+
 ## Activity
 
 Important operations are recorded through `spatie/laravel-activitylog`, scoped

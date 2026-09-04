@@ -104,6 +104,12 @@ on the queue, tracked as a `Task`. A migration whose target cannot hold every
 document being moved is refused whole, before any of it happens: filling the
 target and stopping partway would leave the documents split across both nodes.
 
+The storage page says how full each node is and opens what is inside it in a
+side sheet — the documents filed there, the first twenty of them, with the
+documents index filtered by that node for the rest. The contents are fetched
+when a node is opened rather than shipped with the page, which would mean
+shipping the archive.
+
 ## Rules
 
 Rules say where a document *should preferably* go.

@@ -1,8 +1,9 @@
-import { Head, router, setLayoutProps, usePage } from '@inertiajs/react';
+import { Head, Link, router, setLayoutProps, usePage } from '@inertiajs/react';
 import {
     ArrowRightLeftIcon,
     ChevronRightIcon,
     Columns3Icon,
+    FileTextIcon,
     ListTreeIcon,
     PlusIcon,
     Trash2Icon,
@@ -30,13 +31,27 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { useDateFormatter } from '@/hooks/use-date-formatter';
 import { useTranslation } from '@/hooks/use-translation';
 import {
     countNodes,
     firstEmptyDepth,
     nodesAtDepth,
 } from '@/lib/organization-tree';
+import {
+    index as documentsIndex,
+    show as documentShow,
+} from '@/routes/documents';
 import nodeActions from '@/routes/organization/nodes';
 import nodes from '@/routes/organization/schemes/nodes';
 
@@ -70,11 +85,25 @@ type Level = {
     is_leaf: boolean;
 };
 
+type NodeDocuments = {
+    node: { id: string; path: string };
+    documents: {
+        id: string;
+        title: string;
+        document_type: string | null;
+        document_date: string | null;
+    }[];
+    /** Everything filed there, which may be more than `documents` lists. */
+    total: number;
+};
+
 type Props = {
     scheme: { id: string; name: string };
     levels: Level[];
     tree: StorageNode[];
     canManage: boolean;
+    /** The contents of the location the user asked to look inside, loaded on demand. */
+    nodeDocuments?: NodeDocuments | null;
 };
 
 export default function OrganizationStorage({
@@ -82,9 +111,11 @@ export default function OrganizationStorage({
     levels,
     tree,
     canManage,
+    nodeDocuments,
 }: Props) {
     const t = useTranslation();
-    const { errors } = usePage().props;
+    const { formatDate } = useDateFormatter();
+    const { errors, workspace } = usePage().props;
     const [view, setView] = useState<StorageView>('tree');
     const [columnSelection, setColumnSelection] = useState<StorageNode[]>([]);
 
@@ -95,6 +126,10 @@ export default function OrganizationStorage({
 
     const [moveSource, setMoveSource] = useState<StorageNode | null>(null);
     const [moveTargetId, setMoveTargetId] = useState('');
+    // The location whose contents are open. Held here rather than read off
+    // `nodeDocuments`, so the sheet can show a skeleton for the location just
+    // asked for while the previous one's documents are still the loaded prop.
+    const [openNode, setOpenNode] = useState<StorageNode | null>(null);
 
     setLayoutProps({
         breadcrumbs: [{ title: t('organization.storage.title'), href: '#' }],
@@ -164,6 +199,19 @@ export default function OrganizationStorage({
         );
     };
 
+    // Null while the sheet is waiting: either nothing has come back yet, or
+    // what did belongs to the location that was open before this one.
+    const loadedDocuments =
+        nodeDocuments && openNode && nodeDocuments.node.id === openNode.id
+            ? nodeDocuments
+            : null;
+
+    const openNodeDocuments = (node: StorageNode) => {
+        setOpenNode(node);
+
+        router.reload({ only: ['nodeDocuments'], data: { node: node.id } });
+    };
+
     const selectColumn = (depth: number, node: StorageNode) => {
         setColumnSelection([...columnSelection.slice(0, depth), node]);
     };
@@ -229,6 +277,7 @@ export default function OrganizationStorage({
                             canManage={canManage}
                             onDelete={deleteNode}
                             onMove={openMove}
+                            onShowDocuments={openNodeDocuments}
                         />
                     </Panel>
                 )}
@@ -271,9 +320,15 @@ export default function OrganizationStorage({
 
                                             if (isLastColumn) {
                                                 return (
-                                                    <div
+                                                    <button
                                                         key={node.id}
-                                                        className="space-y-1.5 border-b px-4 py-2.5"
+                                                        type="button"
+                                                        onClick={() =>
+                                                            openNodeDocuments(
+                                                                node,
+                                                            )
+                                                        }
+                                                        className="flex w-full flex-col gap-1.5 border-b px-4 py-2.5 text-left hover:bg-muted"
                                                     >
                                                         <div className="flex items-center justify-between gap-2">
                                                             <span className="font-mono text-sm font-medium">
@@ -294,7 +349,7 @@ export default function OrganizationStorage({
                                                                 value={pct}
                                                             />
                                                         )}
-                                                    </div>
+                                                    </button>
                                                 );
                                             }
 
@@ -334,6 +389,99 @@ export default function OrganizationStorage({
                     </Panel>
                 )}
             </PageContainer>
+
+            {/* A side sheet rather than a panel under the tree: an archive of
+                any size pushes that panel past the fold, so opening a location
+                meant scrolling away from the location you opened. */}
+            <Sheet
+                open={openNode !== null}
+                onOpenChange={(open) => !open && setOpenNode(null)}
+            >
+                <SheetContent side="right" className="w-full sm:max-w-md">
+                    <SheetHeader className="border-b">
+                        <SheetTitle className="font-mono">
+                            {openNode?.path}
+                        </SheetTitle>
+                        <SheetDescription>
+                            {loadedDocuments === null
+                                ? t('organization.storage.loading_documents')
+                                : t(
+                                      loadedDocuments.total === 1
+                                          ? 'organization.storage.documents_count_one'
+                                          : 'organization.storage.documents_count_other',
+                                      { count: loadedDocuments.total },
+                                  )}
+                        </SheetDescription>
+                    </SheetHeader>
+
+                    <div className="min-h-0 flex-1 overflow-y-auto">
+                        {loadedDocuments === null ? (
+                            <div className="space-y-2 p-4">
+                                <Skeleton className="h-6 w-full" />
+                                <Skeleton className="h-6 w-full" />
+                                <Skeleton className="h-6 w-2/3" />
+                            </div>
+                        ) : loadedDocuments.documents.length === 0 ? (
+                            <p className="p-4 text-sm text-muted-foreground">
+                                {t('organization.storage.no_documents_here')}
+                            </p>
+                        ) : (
+                            <ul>
+                                {loadedDocuments.documents.map((document) => (
+                                    <li
+                                        key={document.id}
+                                        className="border-b px-4 py-2.5 last:border-b-0"
+                                    >
+                                        <Link
+                                            href={documentShow.url(document.id)}
+                                            className="block truncate text-sm hover:underline"
+                                        >
+                                            {document.title}
+                                        </Link>
+                                        <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                                            {document.document_type && (
+                                                <span>
+                                                    {document.document_type}
+                                                </span>
+                                            )}
+                                            {document.document_date && (
+                                                <span>
+                                                    {formatDate(
+                                                        document.document_date,
+                                                    )}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+
+                    {loadedDocuments !== null &&
+                        loadedDocuments.total >
+                            loadedDocuments.documents.length &&
+                        workspace &&
+                        openNode && (
+                            <SheetFooter className="border-t">
+                                <Button variant="outline" asChild>
+                                    <Link
+                                        href={documentsIndex.url(workspace.id, {
+                                            query: {
+                                                node_id: openNode.id,
+                                            },
+                                        })}
+                                    >
+                                        {t(
+                                            'organization.storage.see_all_documents',
+                                            { count: loadedDocuments.total },
+                                        )}
+                                    </Link>
+                                </Button>
+                            </SheetFooter>
+                        )}
+                </SheetContent>
+            </Sheet>
 
             <Dialog open={addOpen} onOpenChange={setAddOpen}>
                 <DialogContent>
@@ -542,6 +690,7 @@ type TreeRowsProps = {
     canManage: boolean;
     onDelete: (node: StorageNode) => void;
     onMove: (node: StorageNode) => void;
+    onShowDocuments: (node: StorageNode) => void;
 };
 
 function TreeRows({
@@ -551,6 +700,7 @@ function TreeRows({
     canManage,
     onDelete,
     onMove,
+    onShowDocuments,
 }: TreeRowsProps) {
     const t = useTranslation();
     const level = levels[depth];
@@ -604,6 +754,20 @@ function TreeRows({
                                     <Progress value={pct} />
                                 </div>
                             )}
+                            <div className="flex flex-none items-center gap-1">
+                                {level.is_leaf && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        title={t(
+                                            'organization.storage.show_documents_tooltip',
+                                        )}
+                                        onClick={() => onShowDocuments(node)}
+                                    >
+                                        <FileTextIcon className="size-3.5" />
+                                    </Button>
+                                )}
+                            </div>
                             {canManage && (
                                 <div className="flex flex-none items-center gap-1">
                                     {level.is_leaf && (
@@ -639,6 +803,7 @@ function TreeRows({
                                 canManage={canManage}
                                 onDelete={onDelete}
                                 onMove={onMove}
+                                onShowDocuments={onShowDocuments}
                             />
                         )}
                     </div>

@@ -6,6 +6,7 @@ namespace App\Actions\Documents;
 
 use App\Enums\SearchMode;
 use App\Models\Document;
+use App\Models\OrganizationNode;
 use App\Models\Tag;
 use App\Models\Workspace;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -33,7 +34,7 @@ class SearchDocuments
      *
      * @param Workspace $workspace The workspace results are restricted to.
      * @param string|null $query Free-text search term; null/empty matches all.
-     * @param array{document_type_id?: string|null, tag_ids?: array<int, string>, from?: string|null, to?: string|null} $filters Structured filters: document type, tag IDs, and document date range.
+     * @param array{document_type_id?: string|null, tag_ids?: array<int, string>, from?: string|null, to?: string|null, node_id?: string|null} $filters Structured filters: document type, tag IDs, document date range, and physical location.
      * @param SearchMode $mode How $query is matched; see the enum.
      *
      * @return LengthAwarePaginator<int, Document> A paginated (15 per page) list of matching documents, eager-loaded with type, tags, current location, and creator.
@@ -45,6 +46,7 @@ class SearchDocuments
         SearchMode $mode = SearchMode::Exact,
     ): LengthAwarePaginator {
         $tagIds = $this->scopedTagIds($workspace, $filters['tag_ids'] ?? []);
+        $nodeIds = $this->scopedNodeIds($workspace, $filters['node_id'] ?? null);
         $terms = $mode === SearchMode::Broad ? $this->terms($query) : [];
 
         $paginator = Document::search($mode === SearchMode::Broad ? '' : ($query ?? ''))
@@ -86,6 +88,16 @@ class SearchDocuments
                 ->when(
                     $tagIds !== [],
                     fn (Builder $q) => $q->whereHas('tags', fn (Builder $tags) => $tags->whereIn('tags.id', $tagIds)),
+                )
+                // Where a document *is*, not where it has been: currentLocation
+                // is the latest of its assignments, so a document that used to
+                // sit here and was moved on does not come back.
+                ->when(
+                    $nodeIds !== null,
+                    fn (Builder $q) => $q->whereHas(
+                        'currentLocation',
+                        fn (Builder $location) => $location->whereIn('organization_node_id', $nodeIds ?? []),
+                    ),
                 )
                 ->with(['documentType', 'tags', 'currentLocation.node', 'creator']))
             ->paginate(15);
@@ -160,6 +172,49 @@ class SearchDocuments
         $terms = preg_split('/[^\p{L}\p{N}]+/u', $query ?? '', -1, PREG_SPLIT_NO_EMPTY);
 
         return array_slice($terms === false ? [] : $terms, 0, 8);
+    }
+
+    /**
+     * Resolve the location filter into the node ids a matching document may be filed at:
+     * the node itself and everything below it, so filtering by a cabinet answers with the
+     * documents on all of its shelves.
+     *
+     * A node outside the workspace resolves to an empty set rather than being dropped:
+     * dropping it would answer "the documents in that location" with the whole archive.
+     *
+     * @param Workspace $workspace The workspace the node must belong to.
+     * @param string|null $nodeId The requested location, or null when not filtering by one.
+     *
+     * @return array<int, string>|null The node ids to match against, or null when not filtering by location.
+     */
+    private function scopedNodeIds(Workspace $workspace, ?string $nodeId): ?array
+    {
+        if ($nodeId === null) {
+            return null;
+        }
+
+        $nodes = OrganizationNode::query()
+            ->whereHas('level.scheme', fn (Builder $query) => $query->where('workspace_id', $workspace->id))
+            ->get(['id', 'parent_id']);
+
+        if ($nodes->doesntContain('id', $nodeId)) {
+            return [];
+        }
+
+        $ids = [$nodeId];
+        $frontier = [$nodeId];
+
+        while ($frontier !== []) {
+            $children = $nodes
+                ->filter(fn (OrganizationNode $node) => in_array($node->parent_id, $frontier, true))
+                ->pluck('id')
+                ->all();
+
+            $ids = [...$ids, ...$children];
+            $frontier = $children;
+        }
+
+        return $ids;
     }
 
     /**

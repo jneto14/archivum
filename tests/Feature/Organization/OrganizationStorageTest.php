@@ -11,10 +11,15 @@ use App\Actions\Organization\CreateScheme;
 use App\Actions\Organization\DeleteOrganizationLevel;
 use App\Enums\NodeValueStrategy;
 use App\Enums\WorkspaceRole;
+use App\Models\Document;
 use App\Models\DocumentType;
+use App\Models\OrganizationScheme;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Response;
+use Illuminate\Testing\TestResponse;
+use Inertia\Inertia;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -49,6 +54,76 @@ class OrganizationStorageTest extends TestCase
                 ->has('tree.0.children', 1)
                 ->where('canManage', false),
             );
+    }
+
+    public function test_a_locations_contents_are_only_loaded_when_asked_for()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $scheme = app(CreateScheme::class)->handle($workspace, 'Traditional Archive', [
+            ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
+        ]);
+        $node = app(CreateOrganizationNode::class)->handle($scheme->levels->first(), null, '001');
+
+        $filed = Document::factory()->for($workspace)->create(['title' => 'On the shelf']);
+        app(MoveDocument::class)->handle($filed, $node);
+        Document::factory()->for($workspace)->create(['title' => 'Filed nowhere']);
+
+        $this->actingAs($member->user)
+            ->get(route('organization.schemes.storage', $scheme))
+            ->assertInertia(fn (Assert $page) => $page->missing('nodeDocuments'));
+
+        $this->partialReload($member, $scheme, $node->id)
+            ->assertOk()
+            ->assertJsonPath('props.nodeDocuments.node.path', '001')
+            ->assertJsonPath('props.nodeDocuments.total', 1)
+            ->assertJsonCount(1, 'props.nodeDocuments.documents')
+            ->assertJsonPath('props.nodeDocuments.documents.0.id', $filed->id);
+    }
+
+    public function test_a_location_from_another_scheme_has_no_contents_to_show()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $scheme = app(CreateScheme::class)->handle($workspace, 'Traditional Archive', [
+            ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
+        ]);
+
+        $foreignScheme = app(CreateScheme::class)->handle(Workspace::factory()->create(), 'Foreign', [
+            ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
+        ]);
+        $foreignNode = app(CreateOrganizationNode::class)->handle($foreignScheme->levels->first(), null, '001');
+
+        // The page is loaded first, as the panel's own reload always is: the
+        // asset version the partial reload has to send is settled by then.
+        $this->actingAs($member->user)
+            ->get(route('organization.schemes.storage', $scheme))
+            ->assertOk();
+
+        $this->partialReload($member, $scheme, $foreignNode->id)
+            ->assertOk()
+            ->assertJsonPath('props.nodeDocuments', null);
+    }
+
+    /**
+     * Ask the storage page for one location's contents, the way the panel does.
+     *
+     * @param WorkspaceUser $actor The workspace member making the request.
+     * @param OrganizationScheme $scheme The scheme whose page is reloaded.
+     * @param string $nodeId The location to look inside.
+     *
+     * @return TestResponse<Response> The partial-reload response.
+     */
+    private function partialReload(WorkspaceUser $actor, OrganizationScheme $scheme, string $nodeId): TestResponse
+    {
+        return $this->actingAs($actor->user)
+            ->withHeaders([
+                'X-Inertia' => 'true',
+                'X-Inertia-Version' => (string) Inertia::getVersion(),
+                'X-Inertia-Partial-Component' => 'organization/storage',
+                'X-Inertia-Partial-Data' => 'nodeDocuments',
+            ])
+            ->get(route('organization.schemes.storage', ['scheme' => $scheme, 'node' => $nodeId]));
     }
 
     public function test_outsider_cannot_browse_the_node_tree()
