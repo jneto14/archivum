@@ -326,9 +326,92 @@ build correct.
 resolved against the document rather than the stylesheet. They go through
 `asset()` instead — see `App\Support\FontStyles`.
 
+**The manifest and the service worker.** Both are routes rather than files in
+`public/`, so their URLs are built at runtime like every other one. See
+[Installing as an app](#installing-as-an-app).
+
 The cost is that the route modules are loaded eagerly rather than split per
 page: about 12 KB gzipped on the first load, paid whether or not a prefix is
 set. That is the price of one image working under any prefix.
+
+## Installing as an app
+
+Archivum can be installed to a home screen or a desktop and run in its own
+window, without the browser's address bar and tabs. Nothing has to be enabled:
+a browser offers it once the page is served over HTTPS.
+
+Two routes make that work, and both are routes rather than static files in
+`public/` for the same reason the JavaScript route URLs are rewritten in the
+browser — one build, any address.
+
+| Route | Serves |
+| --- | --- |
+| `GET /manifest.webmanifest` | Name, icons, colours, and the app's `start_url` and `scope` |
+| `GET /sw.js` | The service worker |
+
+Both are outside `auth`. A manifest behind the login redirects, the browser
+reads HTML where it expected JSON, and the install option silently never
+appears.
+
+**Under a path prefix this is not cosmetic.** A manifest naming `scope: "/"`
+tells the browser the app is the whole domain, and a service worker may only
+claim the directory it was served from — so where these two come from decides
+what an installed app covers and where it launches. Serving them from the root
+of the installation, with every URL inside them absolute, is what keeps two
+installations on one host from swallowing each other.
+
+### What the service worker caches
+
+Almost nothing, on purpose.
+
+**Pages are never cached.** An archive is not public, and nothing behind the
+login may end up in a cache that outlives the session that fetched it. Every
+navigation goes to the network; Inertia's own requests are XHR, so they are not
+even seen. The one thing offline changes is what a failed navigation shows: a
+small offline page carried inside the worker itself, rather than the browser's
+error page — which, in a window with no address bar, is a dead end.
+
+**Built assets are cached and reused.** Everything under the build directory
+carries a content hash in its filename, so a cached copy cannot turn out to be
+the wrong version of itself.
+
+**A deploy is picked up.** The cache is named after the asset manifest's hash,
+which the worker carries as a literal. A new build is therefore a different
+worker: the browser installs it, and its `activate` handler deletes the previous
+build's cache on the way through. Since no page is ever cached, there is no way
+for a stale document to meet a fresh asset version.
+
+The worker is registered in every environment, not only production builds. It
+caches nothing the Vite dev server serves — those assets are on another origin —
+so leaving it registered costs nothing, and a browser that installed it once
+keeps being handed the current script instead of holding on to whichever build
+it happened to get.
+
+Icons live in `public/` (`icon-192.png`, `icon-512.png` and a maskable
+`icon-maskable-512.png`, whose artwork sits inside the safe circle Android
+crops to). iOS reads none of the manifest's display settings and is still
+configured through the `apple-*` meta tags and `apple-touch-icon.png`.
+
+### Screenshots
+
+`public/screenshot-*.webp` is what Chrome shows in its install dialog: the
+document list, the physical storage tree and a document, each captured twice —
+once on a desktop (`form_factor: wide`) and once on a phone. Without one for the
+form factor doing the installing, that dialog falls back to a one-line prompt,
+and Chrome says so in the console.
+
+Their dimensions and media type are read from the files, so a replacement can be
+captured at whatever size and in whatever format is convenient. Chrome's own
+limits still apply, and a file that breaks one is dropped as if it were not
+there:
+
+- between 320px and 3840px on each side;
+- the longer side no more than 2.3x the shorter;
+- screenshots sharing a form factor share an aspect ratio — a mismatch drops
+  every screenshot of that form factor, not just the odd one.
+
+`PwaTest` holds all three, so a replacement that would have been silently
+ignored fails the suite instead.
 
 ## Demo mode
 

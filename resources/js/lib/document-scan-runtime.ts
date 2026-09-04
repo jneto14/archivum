@@ -9,8 +9,8 @@
  */
 import * as openCvNamespace from '@techstark/opencv-js';
 import JScanify from 'jscanify/client';
-import { isImplausibleDocument } from '@/lib/document-scan';
-import type { DocumentCorners, Scanner } from '@/lib/document-scan';
+import { intrinsicSize, isImplausibleDocument } from '@/lib/document-scan';
+import type { DocumentCorners, ScanImage, Scanner } from '@/lib/document-scan';
 
 type Mat = { delete(): void };
 
@@ -71,11 +71,18 @@ function initializeOpenCv(): Promise<OpenCv> {
  * OpenCV.js reads an `<img>` at its layout size, so it must be handed a
  * canvas instead to get coordinates in the photo's real pixels.
  *
- * @param image The photo to copy.
+ * A canvas is already in its own pixels and is returned untouched — which is
+ * what the live viewfinder hands in, one frame at a time.
+ *
+ * @param image The photo or frame to copy.
  *
  * @returns A canvas holding `image` at full resolution.
  */
-function toFullSizeCanvas(image: HTMLImageElement): HTMLCanvasElement {
+function toFullSizeCanvas(image: ScanImage): HTMLCanvasElement {
+    if (image instanceof HTMLCanvasElement) {
+        return image;
+    }
+
     const canvas = document.createElement('canvas');
     canvas.width = image.naturalWidth;
     canvas.height = image.naturalHeight;
@@ -98,8 +105,9 @@ function toFullSizeCanvas(image: HTMLImageElement): HTMLCanvasElement {
 function detectCorners(
     cv: OpenCv,
     scanner: JScanify,
-    image: HTMLImageElement,
+    image: ScanImage,
 ): DocumentCorners | null {
+    const { width, height } = intrinsicSize(image);
     const img = cv.imread(toFullSizeCanvas(image));
 
     try {
@@ -135,13 +143,7 @@ function detectCorners(
             bottomRight: bottomRightCorner,
         };
 
-        return isImplausibleDocument(
-            detected,
-            image.naturalWidth,
-            image.naturalHeight,
-        )
-            ? null
-            : detected;
+        return isImplausibleDocument(detected, width, height) ? null : detected;
     } finally {
         img.delete();
     }
@@ -162,7 +164,7 @@ function detectCorners(
  */
 function warp(
     scanner: JScanify,
-    image: HTMLImageElement,
+    image: ScanImage,
     corners: DocumentCorners,
     outputWidth: number,
     outputHeight: number,

@@ -243,6 +243,52 @@ class ReverseProxyTest extends TestCase
     }
 
     /**
+     * A manifest is what a browser reads to decide the app can be installed and
+     * where the app *is*. Every URL in it is absolute here, so an installation
+     * under a path never claims — or launches at — the root of the host it
+     * shares. A `scope` of `/` on a host running two of these would have the
+     * first install swallow the second.
+     */
+    public function test_the_manifest_places_the_app_under_the_path_it_is_served_from()
+    {
+        $this->rebootWith(['APP_URL' => 'https://example.test/archivum']);
+
+        $manifest = $this->get('http://app:8080/manifest.webmanifest')->assertOk();
+
+        $manifest->assertJsonPath('scope', 'https://example.test/archivum/')
+            ->assertJsonPath('start_url', 'https://example.test/archivum/')
+            ->assertJsonPath('id', 'https://example.test/archivum/')
+            ->assertJsonPath('icons.0.src', 'https://example.test/archivum/icon-192.png');
+    }
+
+    /**
+     * The page has to point at the manifest under the prefix too — a
+     * root-relative href would be fetched from the wrong host root, and the
+     * install option simply never appears.
+     */
+    public function test_the_page_links_the_manifest_and_the_worker_under_the_prefix()
+    {
+        $this->rebootWith(['APP_URL' => 'https://example.test/archivum']);
+
+        $this->get('http://app:8080/login')
+            ->assertSee('href="https://example.test/archivum/manifest.webmanifest"', false);
+    }
+
+    /**
+     * The one thing the worker caches is the asset build, matched by the URL
+     * it is served from. Under a prefix that is where the built files actually
+     * are; a root-relative literal would match nothing, and every asset would
+     * quietly go to the network on every load.
+     */
+    public function test_the_worker_caches_the_build_where_the_build_is_served_from()
+    {
+        $this->rebootWith(['APP_URL' => 'https://example.test/archivum']);
+
+        $this->get('http://app:8080/sw.js')
+            ->assertSee('https://example.test/archivum/build/', false);
+    }
+
+    /**
      * Two things ride on the application knowing which request was really
      * secure and who really sent it: whether the session cookie is marked
      * Secure, and whether `throttle:6,1` on the login and password routes

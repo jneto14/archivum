@@ -3,6 +3,7 @@ import { DownloadIcon, EyeIcon, Trash2Icon, XIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import AttachmentController from '@/actions/App/Http/Controllers/Documents/AttachmentController';
+import { DocumentCameraDialog } from '@/components/document-camera-dialog';
 import { DocumentCaptureDialog } from '@/components/document-capture-dialog';
 import { DocumentPreviewDialog } from '@/components/document-preview-dialog';
 import InputError from '@/components/input-error';
@@ -21,6 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useCameraAccess } from '@/hooks/use-camera-access';
 import { useDateFormatter } from '@/hooks/use-date-formatter';
 import { useTranslation } from '@/hooks/use-translation';
 import { formatBytes, randomId } from '@/lib/utils';
@@ -150,6 +152,13 @@ export default function DocumentShow({
     // starting a redundant one, since DocumentCaptureDialog only creates a
     // new session when it opens with none active.
     const [captureOpen, setCaptureOpen] = useState(false);
+    const [cameraOpen, setCameraOpen] = useState(false);
+    // Decides which scan this button offers: the camera in your hand, or a QR
+    // code to bring another device to it. When it is the QR because there was
+    // no camera to open, that dialog says so rather than leaving the user to
+    // wonder why the scanner never appeared.
+    const cameraAccess = useCameraAccess();
+    const cameraAvailable = cameraAccess === 'available';
     // Each queued file carries an id rather than being identified by its
     // position. Rows are removed one at a time, and keying them by index made
     // React reuse a removed row's DOM for the row that moved up into its
@@ -378,33 +387,50 @@ export default function DocumentShow({
                             </CardContent>
                         </Card>
 
-                        <Card>
+                        <Card className="@container/attachments">
                             <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
                                 <CardTitle>
                                     {t('documents.show.attachments_title')}
                                 </CardTitle>
-                                <div className="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-1">
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        multiple
-                                        className="sr-only"
-                                        onChange={queueFiles}
-                                    />
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    multiple
+                                    className="sr-only"
+                                    onChange={queueFiles}
+                                />
+                                {/* Narrow, these stack full width under the
+                                    title rather than wrapping into pills of
+                                    different widths against the right edge. One
+                                    per row, not two: "Digitalizar com o
+                                    telemóvel" does not fit half of a phone, and
+                                    a button does not wrap its own label — it
+                                    overflows its border instead.
+
+                                    The card's own width decides, not the
+                                    viewport's: the sidebar moves this by 208px
+                                    without the viewport changing at all. */}
+                                <div className="grid w-full grid-cols-1 gap-2 @lg/attachments:flex @lg/attachments:w-auto @lg/attachments:min-w-0 @lg/attachments:flex-1 @lg/attachments:flex-wrap @lg/attachments:items-center @lg/attachments:justify-end">
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="shrink-0"
-                                        onClick={() => setCaptureOpen(true)}
+                                        className="@lg/attachments:shrink-0"
+                                        onClick={() =>
+                                            cameraAvailable
+                                                ? setCameraOpen(true)
+                                                : setCaptureOpen(true)
+                                        }
                                     >
-                                        {t(
-                                            'documents.show.scan_with_phone_button',
-                                        )}
+                                        {cameraAvailable
+                                            ? t('documents.show.scan_button')
+                                            : t(
+                                                  'documents.show.scan_with_phone_button',
+                                              )}
                                     </Button>
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="shrink-0"
+                                        className="@lg/attachments:shrink-0"
                                         onClick={() =>
                                             fileInputRef.current?.click()
                                         }
@@ -415,7 +441,7 @@ export default function DocumentShow({
                                     </Button>
                                     <Button
                                         size="sm"
-                                        className="shrink-0"
+                                        className="@lg/attachments:shrink-0"
                                         onClick={uploadAttachments}
                                         disabled={queue.length === 0}
                                     >
@@ -802,8 +828,25 @@ export default function DocumentShow({
             <DocumentCaptureDialog
                 documentId={document.id}
                 activeSession={activeCaptureSession}
+                cameraAccess={cameraAccess}
                 open={captureOpen}
                 onOpenChange={setCaptureOpen}
+            />
+
+            {/* A scan taken here lands in the same queue a chosen file does, so
+                a page shot with the camera and a PDF picked from disk go up
+                together in one upload. */}
+            <DocumentCameraDialog
+                open={cameraOpen}
+                onOpenChange={setCameraOpen}
+                onCaptured={(file) => {
+                    setQueue((current) => [
+                        ...current,
+                        { id: randomId(), file },
+                    ]);
+                    setUploadError(undefined);
+                }}
+                onUseAnotherDevice={() => setCaptureOpen(true)}
             />
         </>
     );
