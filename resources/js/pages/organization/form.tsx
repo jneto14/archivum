@@ -132,6 +132,20 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
         ],
     });
 
+    /**
+     * A message about one level, keyed the way Laravel returns it.
+     *
+     * `levels.*.name` and its siblings come back as `levels.0.name`, and the
+     * form's error type only knows the top-level fields — so a submitted
+     * scheme with a blank level name failed with nothing shown anywhere. The
+     * message belongs on the row it is about; a banner or a toast could only
+     * say that some level was wrong.
+     */
+    const levelError = (index: number, field: string): string | undefined =>
+        (form.errors as Record<string, string | undefined>)[
+            `levels.${index}.${field}`
+        ];
+
     const addLevel = () =>
         form.setData('levels', [
             ...form.data.levels,
@@ -581,6 +595,12 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                                     )
                                                 }
                                             />
+                                            <InputError
+                                                message={levelError(
+                                                    index,
+                                                    'name',
+                                                )}
+                                            />
                                         </div>
                                         <div className="grid gap-2">
                                             <Label>
@@ -600,6 +620,12 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                                         event.target.value,
                                                     )
                                                 }
+                                            />
+                                            <InputError
+                                                message={levelError(
+                                                    index,
+                                                    'key',
+                                                )}
                                             />
                                         </div>
                                         <div className="grid gap-2">
@@ -632,6 +658,12 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                                         event.target.value,
                                                     )
                                                 }
+                                            />
+                                            <InputError
+                                                message={levelError(
+                                                    index,
+                                                    'capacity',
+                                                )}
                                             />
                                         </div>
                                         <div className="grid gap-2">
@@ -670,6 +702,12 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                                     )}
                                                 </SelectContent>
                                             </Select>
+                                            <InputError
+                                                message={levelError(
+                                                    index,
+                                                    'value_strategy',
+                                                )}
+                                            />
                                         </div>
                                         <Button
                                             type="button"

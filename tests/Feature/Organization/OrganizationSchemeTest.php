@@ -40,7 +40,16 @@ class OrganizationSchemeTest extends TestCase
         $this->assertSame([1, 2, 3], $scheme->levels()->pluck('position')->all());
     }
 
-    public function test_duplicate_level_keys_are_rejected()
+    /**
+     * Keyed to the level it is about, because that is what the form reads.
+     *
+     * This used to assert only that *some* error was raised, which is how it
+     * passed while the message was shown nowhere: a rule on `levels.*.key`
+     * comes back as `levels.1.key`, and the scheme form rendered errors for
+     * its top-level fields only. Submitting a scheme with two levels sharing a
+     * key failed in silence.
+     */
+    public function test_duplicate_level_keys_are_rejected_against_the_offending_level()
     {
         $workspace = Workspace::factory()->create();
         $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
@@ -53,8 +62,26 @@ class OrganizationSchemeTest extends TestCase
             ],
         ]);
 
-        $response->assertSessionHasErrors();
+        $response->assertSessionHasErrors('levels.1.key');
         $this->assertDatabaseMissing('organization_schemes', ['name' => 'Traditional Archive']);
+    }
+
+    /**
+     * The same contract for the field somebody is most likely to leave empty.
+     */
+    public function test_a_level_without_a_name_is_rejected_against_that_level()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+
+        $this->actingAs($admin->user)
+            ->post(route('organization.schemes.store', $workspace), [
+                'name' => 'Traditional Archive',
+                'levels' => [
+                    ['name' => '', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential->value],
+                ],
+            ])
+            ->assertSessionHasErrors('levels.0.name');
     }
 
     public function test_a_second_scheme_cannot_be_created_in_a_workspace_that_already_has_one()
