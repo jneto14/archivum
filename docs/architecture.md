@@ -120,6 +120,28 @@ Layout, spacing and colour conventions are in `.ai/rules/` — `pages.md`,
 `layouts.md`, `components.md` and `css.md`. They exist because none of it is
 caught by CI.
 
+### Ordering a listing
+
+Every listing — documents, tasks, activity, members, document types, tags,
+workspaces, the review queue — can be reordered, and the choice travels in the
+query string so a sorted page can be linked and returned to.
+
+`App\Support\TableSort` does the server half. A controller declares the columns
+its screen offers, resolves the request against that whitelist, and passes the
+resolved order to the page as a `sort` prop. Nothing user-supplied reaches
+`orderBy`, and a key outside the whitelist falls back to the listing's default
+rather than raising. Every order ends in a tiebreaker: `paginate()` asks a fresh
+question per page, so an order that leaves ties lets a row appear on two pages or
+on none.
+
+`resources/js/components/sortable-table.tsx` does the other half. A page declares
+its columns once and passes them to both controls, so they cannot drift apart:
+`SortableTableHead` for the clickable column heads, and `SortMenu` for a menu
+carrying the same list. The menu is rendered at every width, not below a
+breakpoint — a table scrolls sideways on a phone, so its heads are off-screen
+exactly where they are hardest to reach, and the documents card layout has no
+heads at all.
+
 ## Repository layout
 
 ```text

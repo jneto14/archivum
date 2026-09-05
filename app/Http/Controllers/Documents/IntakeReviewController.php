@@ -11,9 +11,11 @@ use App\Models\Document;
 use App\Models\DocumentAttachment;
 use App\Models\IntakeLabel;
 use App\Models\Workspace;
+use App\Support\TableSort;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -41,6 +43,14 @@ class IntakeReviewController extends Controller
     {
         $this->authorize('viewAny', [Document::class, $workspace]);
 
+        $sort = TableSort::fromRequest($request, [
+            'title' => 'documents.title',
+            'updated_at' => 'documents.updated_at',
+            // How much is waiting on each, by the same expression the listing
+            // already filters on.
+            'waiting' => DB::raw('json_length(metadata_suggestions)'),
+        ], 'updated_at', 'desc');
+
         $documents = Document::query()
             ->where('workspace_id', $workspace->id)
             // Length rather than "not null": an empty list is a document that
@@ -48,7 +58,7 @@ class IntakeReviewController extends Controller
             // one nothing has read yet. See Document::recordMetadataSuggestions().
             ->whereRaw('json_length(metadata_suggestions) > 0')
             ->with('documentType')
-            ->latest('updated_at')
+            ->tap(fn (Builder $query) => $sort->apply($query, 'documents.id'))
             ->paginate(15)
             ->withQueryString();
 
@@ -86,6 +96,7 @@ class IntakeReviewController extends Controller
 
         return Inertia::render('documents/review', [
             'workspaceId' => $workspace->id,
+            'sort' => $sort->toArray(),
             'documents' => $suggestions,
             'pagination' => [
                 'prev' => $documents->previousPageUrl(),

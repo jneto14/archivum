@@ -6,6 +6,7 @@ namespace Tests\Feature\Documents;
 
 use App\Actions\Documents\CreateDocument;
 use App\Enums\WorkspaceRole;
+use App\Models\Document;
 use App\Models\DocumentType;
 use App\Models\Tag;
 use App\Models\Workspace;
@@ -178,5 +179,52 @@ class TagTest extends TestCase
         $this->actingAs($outsider->user)
             ->delete(route('tags.destroy', $tag))
             ->assertForbidden();
+    }
+
+    /**
+     * By when each was last used, which used to be fetched in a second query
+     * and merged in afterwards — a value assembled after the query cannot be
+     * ordered by, so it now comes from the query itself.
+     */
+    public function test_tags_can_be_ordered_by_when_they_were_last_used()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $stale = Tag::factory()->for($workspace)->create(['name' => 'Aardvark']);
+        $fresh = Tag::factory()->for($workspace)->create(['name' => 'Zebra']);
+
+        $older = Document::factory()->for($workspace)->create();
+        $older->tags()->attach($stale, ['created_at' => now()->subMonth(), 'updated_at' => now()->subMonth()]);
+
+        $newer = Document::factory()->for($workspace)->create();
+        $newer->tags()->attach($fresh, ['created_at' => now(), 'updated_at' => now()]);
+
+        $this->actingAs($member->user)
+            ->get(route('tags.index', [
+                'workspace' => $workspace,
+                'sort' => 'last_used_at',
+                'direction' => 'desc',
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('sort.key', 'last_used_at')
+                ->where('tags.0.name', 'Zebra')
+                ->where('tags.1.name', 'Aardvark'),
+            );
+    }
+
+    public function test_a_tag_that_has_never_been_used_still_reports_no_last_use()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        Tag::factory()->for($workspace)->create(['name' => 'Unused']);
+
+        $this->actingAs($member->user)
+            ->get(route('tags.index', $workspace))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('tags.0.name', 'Unused')
+                ->where('tags.0.last_used_at', null),
+            );
     }
 }

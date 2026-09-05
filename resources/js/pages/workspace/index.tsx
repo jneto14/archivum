@@ -5,6 +5,12 @@ import InputError from '@/components/input-error';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
 import { Panel } from '@/components/panel';
+import {
+    SortableTableHead,
+    SortMenu,
+    tableSort,
+} from '@/components/sortable-table';
+import type { SortState } from '@/components/sortable-table';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -34,14 +40,32 @@ import { show as workspaceSettingsShow } from '@/routes/workspaces/settings';
 import type { WorkspaceSummary } from '@/types';
 
 type Props = {
+    sort: SortState;
     workspaces: WorkspaceSummary[];
 };
 
-export default function WorkspaceIndex({ workspaces: allWorkspaces }: Props) {
+export default function WorkspaceIndex({
+    sort,
+    workspaces: allWorkspaces,
+}: Props) {
     const t = useTranslation();
     const isDemo = useIsDemo();
     const [createOpen, setCreateOpen] = useState(false);
     const form = useForm({ name: '' });
+
+    const sorting = tableSort(index.url(), sort, [
+        { key: 'name', label: t('workspace.index.name_header') },
+        {
+            key: 'users_count',
+            label: t('workspace.index.members_header'),
+            descendingFirst: true,
+        },
+        {
+            key: 'created_at',
+            label: t('workspace.index.created_header'),
+            descendingFirst: true,
+        },
+    ]);
 
     setLayoutProps({
         breadcrumbs: [
@@ -84,6 +108,7 @@ export default function WorkspaceIndex({ workspaces: allWorkspaces }: Props) {
                     title={t('workspace.index.heading')}
                     description={t('workspace.index.description')}
                 >
+                    <SortMenu sorting={sorting} />
                     {/*
                      * Left out on a demo: the route refuses it, nothing
                      * bounds how many a visitor could create, and each one
@@ -161,15 +186,24 @@ export default function WorkspaceIndex({ workspaces: allWorkspaces }: Props) {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>
+                                <SortableTableHead
+                                    sortKey="name"
+                                    sorting={sorting}
+                                >
                                     {t('workspace.index.name_header')}
-                                </TableHead>
-                                <TableHead>
+                                </SortableTableHead>
+                                <SortableTableHead
+                                    sortKey="users_count"
+                                    sorting={sorting}
+                                >
                                     {t('workspace.index.members_header')}
-                                </TableHead>
-                                <TableHead>
+                                </SortableTableHead>
+                                <SortableTableHead
+                                    sortKey="created_at"
+                                    sorting={sorting}
+                                >
                                     {t('workspace.index.created_header')}
-                                </TableHead>
+                                </SortableTableHead>
                                 <TableHead className="w-24" />
                             </TableRow>
                         </TableHeader>

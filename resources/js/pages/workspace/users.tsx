@@ -10,6 +10,12 @@ import InputError from '@/components/input-error';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
 import { Panel } from '@/components/panel';
+import {
+    SortableTableHead,
+    SortMenu,
+    tableSort,
+} from '@/components/sortable-table';
+import type { SortState } from '@/components/sortable-table';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -48,15 +54,27 @@ type Member = {
 
 type Props = {
     workspace: { id: string; name: string };
+    sort: SortState;
     members: Member[];
 };
 
-export default function WorkspaceUsers({ workspace, members }: Props) {
+export default function WorkspaceUsers({ workspace, sort, members }: Props) {
     const t = useTranslation();
     const { errors } = usePage().props;
     const [inviteOpen, setInviteOpen] = useState(false);
     const [removeTarget, setRemoveTarget] = useState<Member | null>(null);
     const form = useForm({ email: '', name: '', role: 'user' });
+
+    const sorting = tableSort(index.url(workspace.id), sort, [
+        { key: 'name', label: t('workspace.users.member_header') },
+        { key: 'email', label: t('workspace.users.email_label') },
+        { key: 'role', label: t('workspace.users.role_label') },
+        {
+            key: 'created_at',
+            label: t('workspace.users.joined_header'),
+            descendingFirst: true,
+        },
+    ]);
 
     setLayoutProps({
         breadcrumbs: [
@@ -120,6 +138,7 @@ export default function WorkspaceUsers({ workspace, members }: Props) {
                               })
                     }
                 >
+                    <SortMenu sorting={sorting} />
                     <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
                         <DialogTrigger asChild>
                             <Button size="sm">
@@ -225,15 +244,24 @@ export default function WorkspaceUsers({ workspace, members }: Props) {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>
+                                <SortableTableHead
+                                    sortKey="name"
+                                    sorting={sorting}
+                                >
                                     {t('workspace.users.member_header')}
-                                </TableHead>
-                                <TableHead>
+                                </SortableTableHead>
+                                <SortableTableHead
+                                    sortKey="email"
+                                    sorting={sorting}
+                                >
                                     {t('workspace.users.email_label')}
-                                </TableHead>
-                                <TableHead>
+                                </SortableTableHead>
+                                <SortableTableHead
+                                    sortKey="role"
+                                    sorting={sorting}
+                                >
                                     {t('workspace.users.role_label')}
-                                </TableHead>
+                                </SortableTableHead>
                                 <TableHead className="w-9" />
                             </TableRow>
                         </TableHeader>

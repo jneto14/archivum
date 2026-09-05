@@ -6,6 +6,7 @@ namespace Tests\Feature\Documents;
 
 use App\Actions\Documents\CreateDocument;
 use App\Enums\WorkspaceRole;
+use App\Models\Document;
 use App\Models\DocumentType;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
@@ -139,5 +140,32 @@ class DocumentTypeTest extends TestCase
         $response = $this->actingAs($member->user)->delete(route('document-types.destroy', $type));
 
         $response->assertForbidden();
+    }
+
+    /**
+     * By how much each holds, which is a count rather than a stored column.
+     */
+    public function test_types_can_be_ordered_by_how_many_documents_they_hold()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $busy = DocumentType::factory()->for($workspace)->create(['name' => 'Zebra']);
+        $quiet = DocumentType::factory()->for($workspace)->create(['name' => 'Aardvark']);
+
+        Document::factory()->for($workspace)->for($busy, 'documentType')->count(3)->create();
+        Document::factory()->for($workspace)->for($quiet, 'documentType')->create();
+
+        $this->actingAs($member->user)
+            ->get(route('document-types.index', [
+                'workspace' => $workspace,
+                'sort' => 'documents_count',
+                'direction' => 'desc',
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('sort.key', 'documents_count')
+                ->where('documentTypes.0.name', 'Zebra')
+                ->where('documentTypes.1.name', 'Aardvark'),
+            );
     }
 }

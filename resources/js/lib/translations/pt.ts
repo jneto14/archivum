@@ -31,6 +31,11 @@ export default {
     'pagination.next': 'Seguinte',
     'pagination.go_to_page': 'Ir para a página :page',
 
+    'sort.by': 'Ordenado por :column',
+    'sort.label': 'Ordenar por',
+    'sort.ascending': 'Crescente',
+    'sort.descending': 'Decrescente',
+
     'nav.group_archive': 'Arquivo',
     'nav.group_configuration': 'Configuração',
     'nav.dashboard': 'Dashboard',
@@ -89,6 +94,7 @@ export default {
     'documents.index.column_type': 'Tipo',
     'documents.index.column_date': 'Data',
     'documents.index.column_location': 'Localização física',
+    'documents.index.sort_registered': 'Data de registo',
     'documents.index.unfiled': 'Por arquivar',
 
     'documents.form.breadcrumb_documents': 'Documentos',
@@ -143,6 +149,9 @@ export default {
     'documents.review.empty_description':
         'Os detalhes lidos de uma digitalização aparecem aqui assim que o texto for extraído.',
     'documents.review.suggestions_title': 'Detalhes sugeridos',
+    'documents.review.sort_title': 'Título',
+    'documents.review.sort_updated': 'Última atualização',
+    'documents.review.sort_waiting': 'Quantidade por confirmar',
     'documents.review.document_date_label': 'Data do documento',
     'documents.review.apply_button': 'Aplicar (:count)',
     'documents.review.skip_button': 'Não é nada disto',
@@ -451,6 +460,9 @@ export default {
     'tags.index.documents_count_other': ':count documentos',
     'tags.index.last_used_label': 'usada pela última vez',
     'tags.index.last_used_never': 'nunca',
+    'tags.index.sort_name': 'Nome',
+    'tags.index.sort_documents': 'Documentos',
+    'tags.index.sort_last_used': 'Última utilização',
     'tags.index.show_documents_button': 'Ver documentos',
     'tags.index.rename_action': 'Renomear etiqueta',
     'tags.index.delete_action': 'Eliminar etiqueta',
@@ -489,6 +501,7 @@ export default {
     'workspace.users.cancel_button': 'Cancelar',
     'workspace.users.invite_submit': 'Convidar',
     'workspace.users.member_header': 'Membro',
+    'workspace.users.joined_header': 'Entrou em',
     'workspace.users.remove_button': 'Remover',
     'workspace.users.remove_dialog_title': 'Remover este membro?',
     'workspace.users.remove_dialog_description':

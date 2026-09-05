@@ -11,7 +11,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Workspaces\StoreWorkspaceRequest;
 use App\Http\Requests\Workspaces\UpdateWorkspaceRequest;
 use App\Models\Workspace;
+use App\Support\TableSort;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -35,10 +37,17 @@ class WorkspaceController extends Controller
         abort_unless(config('archivum.multi_workspace_enabled'), 404);
         abort_unless($request->user()->is_platform_admin, 403);
 
+        $sort = TableSort::fromRequest($request, [
+            'name' => 'workspaces.name',
+            'users_count' => 'users_count',
+            'created_at' => 'workspaces.created_at',
+        ], 'name');
+
         return Inertia::render('workspace/index', [
+            'sort' => $sort->toArray(),
             'workspaces' => Workspace::query()
                 ->withCount('users')
-                ->orderBy('name')
+                ->tap(fn (Builder $query) => $sort->apply($query, 'workspaces.id'))
                 ->get()
                 ->map(fn (Workspace $workspace) => [
                     'id' => $workspace->id,

@@ -23,6 +23,7 @@ use App\Models\OrganizationNode;
 use App\Models\OrganizationScheme;
 use App\Models\Tag;
 use App\Models\Workspace;
+use App\Support\TableSort;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -59,11 +60,19 @@ class DocumentController extends Controller
 
         $mode = SearchMode::tryFrom((string) $request->validated('mode')) ?? SearchMode::Exact;
 
-        $results = $action->handle($workspace, $request->validated('q'), $filters, $mode);
+        $sort = TableSort::fromRequest(
+            $request,
+            SearchDocuments::sortColumns(),
+            SearchDocuments::DEFAULT_SORT,
+            SearchDocuments::DEFAULT_DIRECTION,
+        );
+
+        $results = $action->handle($workspace, $request->validated('q'), $filters, $mode, $sort);
 
         return Inertia::render('documents/index', [
             'documents' => DocumentResource::collection($results),
             'filters' => [...$filters, 'q' => $request->validated('q'), 'mode' => $mode->value],
+            'sort' => $sort->toArray(),
             // The location filter is set by following a link from the archive,
             // so the list has to name what it is filtered by: an id alone would
             // leave the user looking at a subset with nothing saying which.

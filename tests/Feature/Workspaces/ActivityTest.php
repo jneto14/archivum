@@ -197,4 +197,55 @@ class ActivityTest extends TestCase
 
         $this->assertSame($admin->user->id, $activity->causer_id);
     }
+
+    public function test_the_feed_can_be_ordered_by_what_happened()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $document = Document::factory()->for($workspace)->create(['title' => 'Invoice #1']);
+        $document->update(['title' => 'Invoice #2']);
+
+        $this->actingAs($admin->user)
+            ->get(route('workspaces.activity.index', [
+                'workspace' => $workspace,
+                'sort' => 'event',
+                'direction' => 'desc',
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('sort.key', 'event')
+                // Creating the workspace and its membership logs its own
+                // entries, so the feed holds several `created` rows and exactly
+                // one `updated`. Descending puts it first.
+                ->where('activities.data.0.event', 'updated')
+                ->where('activities.data.1.event', 'created'),
+            );
+    }
+
+    /**
+     * The paginator has to carry the choice, or turning the page silently
+     * reverts the feed to its default order.
+     */
+    public function test_the_chosen_order_survives_a_page_turn()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        Document::factory()->for($workspace)->count(30)->create();
+
+        $this->actingAs($admin->user)
+            ->get(route('workspaces.activity.index', [
+                'workspace' => $workspace,
+                'sort' => 'causer',
+                'direction' => 'asc',
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where(
+                    'activities.next_page_url',
+                    fn (?string $next) => $next !== null
+                        && str_contains($next, 'sort=causer')
+                        && str_contains($next, 'direction=asc'),
+                ),
+            );
+    }
 }

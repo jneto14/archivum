@@ -10,8 +10,11 @@ use App\Http\Requests\Documents\UpdateTagRequest;
 use App\Models\DocumentTag;
 use App\Models\Tag;
 use App\Models\Workspace;
+use App\Support\TableSort;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,36 +24,48 @@ class TagController extends Controller
     /**
      * List the tags defined in the given workspace.
      *
+     * @param Request $request The incoming request, read for the chosen order.
      * @param Workspace $workspace The workspace whose tags are listed.
      *
      * @return Response The rendered tags page.
      *
      * @throws AuthorizationException If the current user isn't a member of $workspace.
      */
-    public function index(Workspace $workspace): Response
+    public function index(Request $request, Workspace $workspace): Response
     {
         $this->authorize('viewAny', [Tag::class, $workspace]);
+
+        $sort = TableSort::fromRequest($request, [
+            'name' => 'tags.name',
+            'documents_count' => 'documents_count',
+            'last_used_at' => 'last_used_at',
+        ], 'name');
 
         $tags = Tag::query()
             ->where('workspace_id', $workspace->id)
             ->withCount('documents')
-            ->orderBy('name')
+            // Selected rather than fetched separately and merged in PHP, which
+            // is how it used to work: a value assembled after the query cannot
+            // be ordered by, and this is one of the three things the list offers
+            // to sort on. It also spends one query fewer.
+            ->addSelect(['last_used_at' => DocumentTag::query()
+                ->selectRaw('max(created_at)')
+                ->whereColumn('tag_id', 'tags.id'),
+            ])
+            ->tap(fn (Builder $query) => $sort->apply($query, 'tags.id'))
             ->get();
-
-        $lastUsedAt = DocumentTag::query()
-            ->whereIn('tag_id', $tags->pluck('id'))
-            ->selectRaw('tag_id, MAX(created_at) as last_used_at')
-            ->groupBy('tag_id')
-            ->pluck('last_used_at', 'tag_id');
 
         return Inertia::render('tags/index', [
             'workspace' => ['id' => $workspace->id, 'name' => $workspace->name],
+            'sort' => $sort->toArray(),
             'tags' => $tags->map(fn (Tag $tag) => [
                 'id' => $tag->id,
                 'name' => $tag->name,
                 'documents_count' => $tag->documents_count,
-                'last_used_at' => ($value = $lastUsedAt->get($tag->id)) !== null
-                    ? Carbon::parse($value)->toISOString()
+                // Read off the query rather than the model: the column is
+                // selected by this listing and is not part of a tag.
+                'last_used_at' => ($lastUsed = $tag->getAttribute('last_used_at')) !== null
+                    ? Carbon::parse($lastUsed)->toISOString()
                     : null,
             ])->values()->all(),
         ]);

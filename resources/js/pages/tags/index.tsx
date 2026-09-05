@@ -5,6 +5,8 @@ import { EmptyState } from '@/components/empty-state';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
 import { Panel } from '@/components/panel';
+import { SortMenu, tableSort } from '@/components/sortable-table';
+import type { SortState } from '@/components/sortable-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,16 +31,33 @@ type TagRow = {
 
 type Props = {
     workspace: { id: string; name: string };
+    sort: SortState;
     tags: TagRow[];
 };
 
-export default function TagIndex({ workspace, tags }: Props) {
+export default function TagIndex({ workspace, sort, tags }: Props) {
     const t = useTranslation();
     const { formatDate } = useDateFormatter();
     const [newName, setNewName] = useState('');
     const [renamingId, setRenamingId] = useState<string | null>(null);
     const [renameValue, setRenameValue] = useState('');
     const [removeTarget, setRemoveTarget] = useState<TagRow | null>(null);
+
+    // A list of rows rather than a table, so the menu is the whole control:
+    // there is no column head here to click.
+    const sorting = tableSort(index.url(workspace.id), sort, [
+        { key: 'name', label: t('tags.index.sort_name') },
+        {
+            key: 'documents_count',
+            label: t('tags.index.sort_documents'),
+            descendingFirst: true,
+        },
+        {
+            key: 'last_used_at',
+            label: t('tags.index.sort_last_used'),
+            descendingFirst: true,
+        },
+    ]);
 
     setLayoutProps({
         breadcrumbs: [
@@ -98,7 +117,9 @@ export default function TagIndex({ workspace, tags }: Props) {
                 <PageHeader
                     title={t('tags.index.title')}
                     description={t('tags.index.description')}
-                />
+                >
+                    {tags.length > 0 && <SortMenu sorting={sorting} />}
+                </PageHeader>
 
                 <div className="flex flex-wrap gap-2.5">
                     <Input

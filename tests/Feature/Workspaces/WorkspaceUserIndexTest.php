@@ -53,4 +53,27 @@ class WorkspaceUserIndexTest extends TestCase
             ->get(route('workspaces.users.index', $workspace))
             ->assertForbidden();
     }
+
+    /**
+     * By name, which is on `users` rather than on the membership — the list is
+     * ordered by something it does not itself hold.
+     */
+    public function test_members_can_be_ordered_by_name()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $admin->user->update(['name' => 'Zoe']);
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $member->user->update(['name' => 'Ana']);
+
+        $this->actingAs($admin->user)
+            ->get(route('workspaces.users.index', ['workspace' => $workspace, 'sort' => 'name', 'direction' => 'asc']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('sort.key', 'name')
+                ->where('sort.direction', 'asc')
+                ->where('members.0.name', 'Ana')
+                ->where('members.1.name', 'Zoe'),
+            );
+    }
 }

@@ -9,13 +9,48 @@ use App\Models\Document;
 use App\Models\OrganizationNode;
 use App\Models\Tag;
 use App\Models\Workspace;
+use App\Support\TableSort;
+use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator as ConcreteLengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class SearchDocuments
 {
+    /** Most recently registered first: the listing is a work queue before it is a catalogue. */
+    public const DEFAULT_SORT = 'created_at';
+
+    public const DEFAULT_DIRECTION = 'desc';
+
+    /**
+     * The orders this listing offers, keyed as the interface names them.
+     *
+     * A document's location is not among them: it is the latest of its
+     * assignments, resolved through a node's ancestors into a path assembled in
+     * PHP, and no single column holds it.
+     *
+     * The type's name comes from a correlated subquery rather than a join, as it
+     * does on every other listing that sorts by a related record. A join here
+     * would have to be selected around: `document_types` also carries a
+     * `workspace_id`, which the Scout workspace scoping references unqualified,
+     * and `SELECT *` over a join hydrates the model from whichever `id` the
+     * driver hands over last. Neither trap is visible at the call site, and both
+     * are avoided by not joining.
+     *
+     * @return array<string, string|Expression> Sort key to the SQL it orders by.
+     */
+    public static function sortColumns(): array
+    {
+        return [
+            'title' => 'documents.title',
+            'document_date' => 'documents.document_date',
+            'type' => DB::raw('(select name from document_types where document_types.id = documents.document_type_id)'),
+            'created_at' => 'documents.created_at',
+        ];
+    }
+
     /**
      * Search Documents within a Workspace, combining free-text search over the
      * title and the text extracted from attachments with structured relational
@@ -36,6 +71,7 @@ class SearchDocuments
      * @param string|null $query Free-text search term; null/empty matches all.
      * @param array{document_type_id?: string|null, tag_ids?: array<int, string>, from?: string|null, to?: string|null, node_id?: string|null} $filters Structured filters: document type, tag IDs, document date range, and physical location.
      * @param SearchMode $mode How $query is matched; see the enum.
+     * @param TableSort|null $sort The order to return results in; the default order when null.
      *
      * @return LengthAwarePaginator<int, Document> A paginated (15 per page) list of matching documents, eager-loaded with type, tags, current location, and creator.
      */
@@ -44,10 +80,12 @@ class SearchDocuments
         ?string $query,
         array $filters,
         SearchMode $mode = SearchMode::Exact,
+        ?TableSort $sort = null,
     ): LengthAwarePaginator {
         $tagIds = $this->scopedTagIds($workspace, $filters['tag_ids'] ?? []);
         $nodeIds = $this->scopedNodeIds($workspace, $filters['node_id'] ?? null);
         $terms = $mode === SearchMode::Broad ? $this->terms($query) : [];
+        $sort ??= self::defaultSort();
 
         $paginator = Document::search($mode === SearchMode::Broad ? '' : ($query ?? ''))
             ->where('workspace_id', $workspace->id)
@@ -99,6 +137,15 @@ class SearchDocuments
                         fn (Builder $location) => $location->whereIn('organization_node_id', $nodeIds ?? []),
                     ),
                 )
+                // This query used to reach the database with no ORDER BY at all.
+                // Scout's database engine appends one — but only for a model
+                // with no full-text columns (`DatabaseEngine::paginateUsingDatabase`),
+                // and `Document` declares `#[SearchUsingFullText(['ocr_text'])]`,
+                // so that line never ran. Pagination over an unordered query
+                // lets a document appear on two pages or on none, because each
+                // page is a fresh query with a different OFFSET and nothing
+                // obliges the database to arrange them the same way twice.
+                ->tap(fn (Builder $q) => $sort->apply($q, 'documents.id'))
                 ->with(['documentType', 'tags', 'currentLocation.node', 'creator']))
             ->paginate(15);
 
@@ -113,6 +160,16 @@ class SearchDocuments
         }
 
         return $paginator->withQueryString();
+    }
+
+    /**
+     * The order this listing takes when the caller has not asked for one.
+     *
+     * @return TableSort Most recently registered first, ties settled by id.
+     */
+    public static function defaultSort(): TableSort
+    {
+        return TableSort::of(self::sortColumns(), self::DEFAULT_SORT, self::DEFAULT_DIRECTION);
     }
 
     /**

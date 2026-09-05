@@ -9,7 +9,9 @@ use App\Http\Requests\Documents\StoreDocumentTypeRequest;
 use App\Http\Requests\Documents\UpdateDocumentTypeRequest;
 use App\Models\DocumentType;
 use App\Models\Workspace;
+use App\Support\TableSort;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -21,7 +23,7 @@ class DocumentTypeController extends Controller
     /**
      * List the document types configured in the given workspace.
      *
-     * @param Request $request The incoming request, used to resolve the acting user.
+     * @param Request $request The incoming request, used to resolve the acting user and the chosen order.
      * @param Workspace $workspace The workspace whose document types are listed.
      *
      * @return Response The rendered document types page.
@@ -32,14 +34,21 @@ class DocumentTypeController extends Controller
     {
         $this->authorize('viewAny', [DocumentType::class, $workspace]);
 
+        $sort = TableSort::fromRequest($request, [
+            'name' => 'document_types.name',
+            'key' => 'document_types.key',
+            'documents_count' => 'documents_count',
+        ], 'name');
+
         $types = DocumentType::query()
             ->where('workspace_id', $workspace->id)
             ->withCount('documents')
-            ->orderBy('name')
+            ->tap(fn (Builder $query) => $sort->apply($query, 'document_types.id'))
             ->get();
 
         return Inertia::render('document-types/index', [
             'workspace' => ['id' => $workspace->id, 'name' => $workspace->name],
+            'sort' => $sort->toArray(),
             'documentTypes' => $types->map(fn (DocumentType $type) => [
                 'id' => $type->id,
                 'name' => $type->name,

@@ -30,6 +30,11 @@ export default {
     'pagination.next': 'Next',
     'pagination.go_to_page': 'Go to page :page',
 
+    'sort.by': 'Sorted by :column',
+    'sort.label': 'Sort by',
+    'sort.ascending': 'Ascending',
+    'sort.descending': 'Descending',
+
     'nav.group_archive': 'Archive',
     'nav.group_configuration': 'Configuration',
     'nav.dashboard': 'Dashboard',
@@ -87,6 +92,7 @@ export default {
     'documents.index.column_type': 'Type',
     'documents.index.column_date': 'Date',
     'documents.index.column_location': 'Physical location',
+    'documents.index.sort_registered': 'When it was registered',
     'documents.index.unfiled': 'Unfiled',
 
     'documents.form.breadcrumb_documents': 'Documents',
@@ -141,6 +147,9 @@ export default {
     'documents.review.empty_description':
         'Details read from a scan show up here once its text has been extracted.',
     'documents.review.suggestions_title': 'Suggested details',
+    'documents.review.sort_title': 'Title',
+    'documents.review.sort_updated': 'Last updated',
+    'documents.review.sort_waiting': 'How much is waiting',
     'documents.review.document_date_label': 'Document date',
     'documents.review.apply_button': 'Apply (:count)',
     'documents.review.skip_button': 'Nothing here',
@@ -438,6 +447,9 @@ export default {
     'tags.index.documents_count_other': ':count documents',
     'tags.index.last_used_label': 'last used',
     'tags.index.last_used_never': 'never',
+    'tags.index.sort_name': 'Name',
+    'tags.index.sort_documents': 'Documents',
+    'tags.index.sort_last_used': 'Last used',
     'tags.index.show_documents_button': 'Show documents',
     'tags.index.rename_action': 'Rename tag',
     'tags.index.delete_action': 'Delete tag',
@@ -476,6 +488,7 @@ export default {
     'workspace.users.cancel_button': 'Cancel',
     'workspace.users.invite_submit': 'Invite',
     'workspace.users.member_header': 'Member',
+    'workspace.users.joined_header': 'Joined',
     'workspace.users.remove_button': 'Remove',
     'workspace.users.remove_dialog_title': 'Remove this member?',
     'workspace.users.remove_dialog_description':

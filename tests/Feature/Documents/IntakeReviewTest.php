@@ -47,6 +47,22 @@ class IntakeReviewTest extends TestCase
             );
     }
 
+    public function test_the_queue_can_be_ordered_by_title()
+    {
+        $workspace = $this->workspace();
+        $this->reviewable($workspace, 'Zebra');
+        $this->reviewable($workspace, 'Aardvark');
+
+        $this->actingAs($this->member($workspace))
+            ->get(route('documents.review', ['workspace' => $workspace, 'sort' => 'title', 'direction' => 'asc']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('sort.key', 'title')
+                ->where('documents.0.title', 'Aardvark')
+                ->where('documents.1.title', 'Zebra'),
+            );
+    }
+
     public function test_another_workspaces_documents_are_never_listed()
     {
         $workspace = $this->workspace();
