@@ -11,6 +11,37 @@ release. Read this file before upgrading.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-05
+
+Two things 0.3.0 shipped broken, both found the moment it ran somewhere with
+real HTTPS. If Archivum is served under a path prefix, the first of these is the
+reason to take this release.
+
+### Fixed
+
+- **Every signed link failed on an installation served under a path prefix.**
+  The QR link a phone follows to scan a page, and the export download link sent
+  by email, both came back 403 — deterministically, not intermittently. URLs are
+  generated from `APP_URL`, so the signature covered
+  `https://example.com/archivum/capture/…`; the proxy strips that prefix before
+  forwarding, which it must for any route to match, so the application verified
+  `https://example.com/capture/…` and the two never agreed. Signed links are now
+  signed and validated over the path alone, which is the same on both sides
+  wherever the installation sits. Nothing to change in a configuration.
+- **A desktop was offered the camera scan.** The scan button opened a viewfinder
+  on a PC, where it should offer the QR pairing — a webcam bolted to a monitor
+  is not something you hold over a sheet of paper. Whether `getUserMedia` exists
+  was being read as whether this is a device you can aim, and every desktop
+  browser over HTTPS answers yes to the first. A phone and a tablet get the
+  viewfinder; everything else is told, in its own words, that scanning here
+  means using a device you can hold.
+
+### Changed
+
+- The deployment recipe sets `client_max_body_size`. nginx defaults it to 1MB
+  and answers 413 before the application sees the request, so a photograph from
+  a phone failed with nothing in the logs to say why.
+
 ## [0.3.0] - 2026-09-05
 
 Mostly about getting a document off a desk and into the archive. It can be
@@ -342,7 +373,8 @@ The first tagged release. Everything below shipped in it.
 - A brand-new user invited on a single-workspace installation is added with the
   role the admin chose, rather than failing with "already a member".
 
-[Unreleased]: https://github.com/jneto14/archivum/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/jneto14/archivum/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/jneto14/archivum/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/jneto14/archivum/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/jneto14/archivum/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/jneto14/archivum/compare/v0.1.0...v0.2.0
