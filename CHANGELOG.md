@@ -11,6 +11,111 @@ release. Read this file before upgrading.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-05
+
+Mostly about getting a document off a desk and into the archive. It can be
+photographed with the phone already in your pocket, read for the details
+somebody would otherwise retype, and filed against a shelf carrying a printed
+label that leads back to it. Archivum also installs as an app.
+
+### Added
+
+#### Capture
+
+- Scan a document with the phone in your hand. The desktop shows a QR code, the
+  phone opens a bare full-screen page from it and photographs the pages, and the
+  document page fills in as they arrive. The pairing is a short-lived signed URL
+  rather than a stored secret, and there is nothing to install on the phone.
+- Archivum installs to a home screen and runs standalone, with an offline page
+  of its own rather than the browser's error page — a dead end in a window with
+  no address bar. No page is ever cached, because an archive is not public; only
+  built assets are, and their filenames carry a content hash, so a cached copy
+  cannot be the wrong version of itself.
+- A live camera scan from the installed app: the page's edges are found in the
+  frame and the crop is confirmed before anything is filed.
+
+#### Reading a scan
+
+- Details are read out of a scan's text and offered for confirmation rather than
+  typed again — the document's date, an amount, and whatever fields its type
+  uses. They collect in a review queue, because extraction finishes minutes
+  after a document is registered, long after whoever registered it has moved on
+  to the next one.
+- An attachment that is the same file as one already filed is flagged instead of
+  being filed twice.
+- The archive learns the words it files things by. Every time somebody fills in
+  a field the reader missed, both halves are already kept — the extracted text
+  and the value they decided belonged in it — so the words immediately in front
+  of that value can be proposed as a label. An archive that has been running for
+  years can be mined the first time this runs. Candidates wait for a workspace
+  admin: nothing enters the vocabulary unaccepted, a rejection sticks, and
+  accepted labels are scoped to the workspace that accepted them, so a phrase
+  that turns out to be a bad one degrades one archive's readings and nobody
+  else's.
+
+#### The physical archive
+
+- A location can carry a printed QR label that opens its contents when scanned,
+  so a box answers for itself. Which levels get labels is configuration: a label
+  belongs on something a person picks up, not on a slot on a page. Labels print
+  as a sheet sized in millimetres for adhesive stock.
+- The storage page opens what is in a location, in a sheet beside the tree.
+- Documents can be filtered by location, resolved down the tree — filtering by a
+  cabinet answers with every shelf below it — and matched against where a
+  document *is*, so one that used to be there and has moved on does not come
+  back.
+- A document can be filed anywhere in the scheme from the assign dialog, not
+  only into the four suggested positions, with a search box over every location
+  in the workspace.
+
+#### Listings
+
+- Every listing can be reordered: documents, tasks, activity, members, document
+  types, tags, workspaces and the review queue. Clicking a column head sorts by
+  it and clicking again reverses it, a menu carries the same list where there is
+  no head to click, and the choice travels in the URL so a sorted view can be
+  linked and returned to.
+
+### Changed
+
+- The kinds of value a document can hold are no longer written into the reader.
+  A tax number and a vehicle registration used to be named in the code; a kind
+  is now whatever a document type's fields call it, and how a value of that kind
+  looks is derived from the ones already filed.
+- A level's label setting can be changed on an existing scheme rather than only
+  while creating one. Only that setting: a level's name, key, capacity and value
+  strategy are read by nodes that already exist.
+
+### Fixed
+
+- The documents list had no order at all. Scout's database engine supplies one
+  as a fallback, but only for a model with no full-text columns, and documents
+  have one — so the query reached the database with nothing saying how to
+  arrange the rows. Since each page of a paginated result is a separate query,
+  a document could be shown on two pages or on none while somebody clicked
+  through. Every listing now has a default order, and every order ends in a
+  tiebreaker.
+- Twelve refusals were being dropped in silence, including the one that reports
+  a workspace has reached its document limit. A refusal is raised against a
+  field, and a page renders only the fields it has — so a message addressed to
+  something no form shows arrived and was read by nothing. They are shown as
+  error toasts now. Errors about a single level of a scheme, and the four
+  required fields of the rule dialog, were invisible for the same reason and are
+  now shown where they belong.
+- Scan detection cropped to a box printed on the page — a totals table, a framed
+  payment block — and confirming filed the page as a fragment of itself. A
+  printed rectangle has crisp borders and closes cleanly, where a sheet of paper
+  on a desk often does not, so it won on area.
+- Rows laid out for a desktop kept their widths on a phone, in four places. The
+  worst was the scheme form, where five columns held their proportions until the
+  key field was about ten pixels wide, so a level could not be created from a
+  phone at all.
+- Looking at a document no longer creates an empty location. The suggested
+  position was worked out by actually creating it, so merely opening a document
+  left a node behind and browsing an archive quietly filled it.
+- Filing a document reuses a position with room instead of always opening a new
+  one.
+
 ## [0.2.1] - 2026-09-03
 
 Attachment preview had been showing nothing since 0.2.0 — for images and PDFs
@@ -237,7 +342,8 @@ The first tagged release. Everything below shipped in it.
 - A brand-new user invited on a single-workspace installation is added with the
   role the admin chose, rather than failing with "already a member".
 
-[Unreleased]: https://github.com/jneto14/archivum/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/jneto14/archivum/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/jneto14/archivum/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/jneto14/archivum/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/jneto14/archivum/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jneto14/archivum/releases/tag/v0.1.0
