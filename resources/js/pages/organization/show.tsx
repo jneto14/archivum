@@ -1,6 +1,7 @@
-import { Head, router, setLayoutProps } from '@inertiajs/react';
+import { Head, router, setLayoutProps, usePage } from '@inertiajs/react';
 import { PlusIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
+import InputError from '@/components/input-error';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -105,6 +106,13 @@ export default function OrganizationSchemeShow({
         });
         setRuleDialogOpen(true);
     };
+
+    // The rule dialog posts with `router` rather than a form helper, so the
+    // errors come off the page. Without these the two rules the server enforces
+    // here — a target level that cannot hold the rule, a matcher already in use
+    // — refused the write and said nothing, from behind a dialog the page
+    // banner cannot reach.
+    const { errors } = usePage().props;
 
     const submitRule = () => {
         const onSuccess = () => setRuleDialogOpen(false);
@@ -373,6 +381,7 @@ export default function OrganizationSchemeShow({
                                         })
                                     }
                                 />
+                                <InputError message={errors.matcher_value} />
                             </div>
                         </div>
                         <div className="grid gap-2">
@@ -405,6 +414,7 @@ export default function OrganizationSchemeShow({
                                     ))}
                                 </SelectContent>
                             </Select>
+                            <InputError message={errors.target_level_id} />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="preferred_value">

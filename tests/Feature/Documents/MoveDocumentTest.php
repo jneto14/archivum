@@ -16,6 +16,7 @@ use App\Models\DocumentType;
 use App\Models\OrganizationScheme;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
+use App\Support\Refusal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -106,7 +107,7 @@ class MoveDocumentTest extends TestCase
         // picked by id: six documents went into a shelf with room for six.
         $this->actingAs($admin->user)->post(route('documents.move', $document), [
             'node_id' => $shelf->id,
-        ])->assertSessionHasErrors('node_id');
+        ])->assertSessionHasErrors(Refusal::KEY);
 
         $this->assertNull($document->refresh()->currentLocation);
     }

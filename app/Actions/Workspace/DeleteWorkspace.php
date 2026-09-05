@@ -6,6 +6,7 @@ namespace App\Actions\Workspace;
 
 use App\Models\DocumentAttachment;
 use App\Models\Workspace;
+use App\Support\Refusal;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -46,9 +47,7 @@ class DeleteWorkspace
     private function assertNotLastWorkspace(): void
     {
         if (Workspace::query()->count() === 1) {
-            throw ValidationException::withMessages([
-                'workspace' => __('workspace.cannot_delete_last_workspace'),
-            ]);
+            throw Refusal::because(__('workspace.cannot_delete_last_workspace'));
         }
     }
 }

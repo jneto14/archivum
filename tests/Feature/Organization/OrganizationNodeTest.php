@@ -15,6 +15,7 @@ use App\Models\OrganizationLevel;
 use App\Models\OrganizationScheme;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
+use App\Support\Refusal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -163,7 +164,7 @@ class OrganizationNodeTest extends TestCase
 
         $response = $this->actingAs($admin->user)->delete(route('organization.schemes.nodes.destroy', [$scheme, $cover]));
 
-        $response->assertSessionHasErrors('node');
+        $response->assertSessionHasErrors(Refusal::KEY);
         $this->assertDatabaseHas('organization_nodes', ['id' => $cover->id]);
     }
 
@@ -179,7 +180,7 @@ class OrganizationNodeTest extends TestCase
 
         $response = $this->actingAs($admin->user)->delete(route('organization.schemes.nodes.destroy', [$scheme, $node]));
 
-        $response->assertSessionHasErrors('node');
+        $response->assertSessionHasErrors(Refusal::KEY);
         $this->assertDatabaseHas('organization_nodes', ['id' => $node->id]);
     }
 

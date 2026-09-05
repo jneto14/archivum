@@ -6,6 +6,7 @@ namespace App\Actions\Organization;
 
 use App\Models\Document;
 use App\Models\OrganizationNode;
+use App\Support\Refusal;
 use Illuminate\Validation\ValidationException;
 
 class DeleteOrganizationNode
@@ -37,9 +38,7 @@ class DeleteOrganizationNode
     private function assertHasNoChildren(OrganizationNode $node): void
     {
         if ($node->children()->exists()) {
-            throw ValidationException::withMessages([
-                'node' => __('organization.node_has_children'),
-            ]);
+            throw Refusal::because(__('organization.node_has_children'));
         }
     }
 
@@ -57,9 +56,7 @@ class DeleteOrganizationNode
             ->exists();
 
         if ($hasDocuments) {
-            throw ValidationException::withMessages([
-                'node' => __('organization.node_has_documents'),
-            ]);
+            throw Refusal::because(__('organization.node_has_documents'));
         }
     }
 }

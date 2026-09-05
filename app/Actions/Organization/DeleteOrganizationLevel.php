@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Organization;
 
 use App\Models\OrganizationLevel;
+use App\Support\Refusal;
 use Illuminate\Validation\ValidationException;
 
 class DeleteOrganizationLevel
@@ -42,9 +43,7 @@ class DeleteOrganizationLevel
         $maxPosition = (int) $level->scheme->levels()->max('position');
 
         if ($level->position !== $maxPosition) {
-            throw ValidationException::withMessages([
-                'level' => __('organization.level_not_last'),
-            ]);
+            throw Refusal::because(__('organization.level_not_last'));
         }
     }
 
@@ -58,9 +57,7 @@ class DeleteOrganizationLevel
     private function assertHasNoNodes(OrganizationLevel $level): void
     {
         if ($level->nodes()->exists()) {
-            throw ValidationException::withMessages([
-                'level' => __('organization.level_has_nodes'),
-            ]);
+            throw Refusal::because(__('organization.level_has_nodes'));
         }
     }
 }

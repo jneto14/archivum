@@ -12,6 +12,7 @@ use App\Enums\WorkspaceRole;
 use App\Models\OrganizationScheme;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
+use App\Support\Refusal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -176,7 +177,7 @@ class OrganizationSchemeLevelTest extends TestCase
 
         $response = $this->actingAs($admin->user)->delete(route('organization.schemes.levels.destroy', [$scheme, $firstLevel]));
 
-        $response->assertSessionHasErrors('level');
+        $response->assertSessionHasErrors(Refusal::KEY);
         $this->assertDatabaseHas('organization_levels', ['id' => $firstLevel->id]);
     }
 
@@ -195,7 +196,7 @@ class OrganizationSchemeLevelTest extends TestCase
 
         $response = $this->actingAs($admin->user)->delete(route('organization.schemes.levels.destroy', [$scheme, $lastLevel]));
 
-        $response->assertSessionHasErrors('level');
+        $response->assertSessionHasErrors(Refusal::KEY);
         $this->assertDatabaseHas('organization_levels', ['id' => $lastLevel->id]);
     }
 

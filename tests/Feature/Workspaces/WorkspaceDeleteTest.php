@@ -10,6 +10,7 @@ use App\Enums\WorkspaceRole;
 use App\Models\DocumentType;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
+use App\Support\Refusal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -58,7 +59,7 @@ class WorkspaceDeleteTest extends TestCase
 
         $response = $this->actingAs($admin->user)->delete(route('workspaces.destroy', $workspace));
 
-        $response->assertSessionHasErrors('workspace');
+        $response->assertSessionHasErrors(Refusal::KEY);
         $this->assertDatabaseHas('workspaces', ['id' => $workspace->id]);
     }
 }

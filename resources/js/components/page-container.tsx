@@ -1,6 +1,16 @@
+import { usePage } from '@inertiajs/react';
+import { AlertCircleIcon } from 'lucide-react';
 import * as React from 'react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import type { PageWidth } from '@/types';
+
+/**
+ * The key a refused write travels under when it is not about any one field —
+ * a workspace limit, a rule about what may be deleted. Mirrors
+ * `App\Support\Refusal::KEY`.
+ */
+const REFUSAL_KEY = 'general';
 
 /**
  * The one place page width is decided. Pages must not set their own `max-w-*`
@@ -35,6 +45,14 @@ export function PageContainer({
     children,
     ...props
 }: Props) {
+    // Every page goes through here, which is what makes it the one place a
+    // refusal can be shown without each page having to remember to. A
+    // validation error is addressed to a field, and a page renders only the
+    // ones it has an input for — so a message about a workspace limit, which
+    // belongs to no input, used to arrive and be dropped in silence. See
+    // App\Support\Refusal.
+    const refusal = usePage().props.errors?.[REFUSAL_KEY];
+
     return (
         <div
             className={cn(
@@ -44,6 +62,12 @@ export function PageContainer({
             )}
             {...props}
         >
+            {refusal && (
+                <Alert variant="destructive">
+                    <AlertCircleIcon />
+                    <AlertDescription>{refusal}</AlertDescription>
+                </Alert>
+            )}
             {children}
         </div>
     );

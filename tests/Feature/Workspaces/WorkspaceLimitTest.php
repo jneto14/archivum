@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceLimit;
 use App\Models\WorkspaceUser;
+use App\Support\Refusal;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -37,7 +38,17 @@ class WorkspaceLimitTest extends TestCase
         $this->assertFalse($workspace->isMember($newUser));
     }
 
-    public function test_creating_a_document_beyond_the_workspace_document_limit_fails_validation()
+    /**
+     * This test passed while the limit was reached in complete silence, which
+     * is the whole lesson: it proved the message was *raised*, and the message
+     * was keyed to a field — `workspace` — that no form in the application
+     * renders, so nothing ever read it. The write was refused and the person
+     * filing was told nothing.
+     *
+     * It now asserts the key `PageContainer` actually shows. See
+     * App\Support\Refusal and ActionRefusalsAreVisibleTest.
+     */
+    public function test_reaching_the_document_limit_refuses_the_write_and_says_so()
     {
         $workspace = Workspace::factory()->create();
         $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
@@ -50,7 +61,7 @@ class WorkspaceLimitTest extends TestCase
             'title' => 'Should not fit',
         ]);
 
-        $response->assertSessionHasErrors('workspace');
+        $response->assertSessionHasErrors(Refusal::KEY);
         $this->assertDatabaseMissing('documents', ['title' => 'Should not fit']);
     }
 

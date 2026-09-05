@@ -9,6 +9,7 @@ use App\Models\Document;
 use App\Models\DocumentType;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Support\Refusal;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -34,9 +35,7 @@ class CreateDocument
     public function handle(Workspace $workspace, User $creator, DocumentType $type, string $title, ?string $documentDate, ?array $metadata, array $tagIds = []): Document
     {
         if ($workspace->limits?->exceedsDocuments($this->calculateUsage->documents($workspace))) {
-            throw ValidationException::withMessages([
-                'workspace' => __('document.limit_reached'),
-            ]);
+            throw Refusal::because(__('document.limit_reached'));
         }
 
         $document = DB::transaction(function () use ($workspace, $creator, $type, $title, $documentDate, $metadata, $tagIds): Document {

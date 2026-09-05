@@ -8,6 +8,7 @@ use App\Actions\Organization\CountFiledDocuments;
 use App\Models\Document;
 use App\Models\DocumentLocation;
 use App\Models\OrganizationNode;
+use App\Support\Refusal;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -57,9 +58,7 @@ class MoveDocument
     private function assertNodeBelongsToWorkspace(Document $document, OrganizationNode $node): void
     {
         if ($node->level->scheme->workspace_id !== $document->workspace_id) {
-            throw ValidationException::withMessages([
-                'node_id' => __('document.location_workspace_mismatch'),
-            ]);
+            throw Refusal::because(__('document.location_workspace_mismatch'));
         }
     }
 
@@ -94,9 +93,7 @@ class MoveDocument
         }
 
         if ($filed >= $level->capacity) {
-            throw ValidationException::withMessages([
-                'node_id' => __('document.location_full'),
-            ]);
+            throw Refusal::because(__('document.location_full'));
         }
     }
 }
