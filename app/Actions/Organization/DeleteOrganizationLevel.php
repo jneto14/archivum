@@ -6,6 +6,7 @@ namespace App\Actions\Organization;
 
 use App\Models\OrganizationLevel;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 
 class DeleteOrganizationLevel
 {
@@ -42,6 +43,11 @@ class DeleteOrganizationLevel
         $maxPosition = (int) $level->scheme->levels()->max('position');
 
         if ($level->position !== $maxPosition) {
+            // Flashed as well as thrown: the message is addressed to a
+            // field — 'level' — that no page renders, so on its own it
+            // arrives and is dropped. The toast is what is actually seen.
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('organization.level_not_last')]);
+
             throw ValidationException::withMessages([
                 'level' => __('organization.level_not_last'),
             ]);
@@ -58,6 +64,11 @@ class DeleteOrganizationLevel
     private function assertHasNoNodes(OrganizationLevel $level): void
     {
         if ($level->nodes()->exists()) {
+            // Flashed as well as thrown: the message is addressed to a
+            // field — 'level' — that no page renders, so on its own it
+            // arrives and is dropped. The toast is what is actually seen.
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('organization.level_has_nodes')]);
+
             throw ValidationException::withMessages([
                 'level' => __('organization.level_has_nodes'),
             ]);

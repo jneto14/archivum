@@ -7,6 +7,7 @@ namespace App\Actions\Organization;
 use App\Models\Document;
 use App\Models\OrganizationNode;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
 
 class DeleteOrganizationNode
 {
@@ -37,6 +38,11 @@ class DeleteOrganizationNode
     private function assertHasNoChildren(OrganizationNode $node): void
     {
         if ($node->children()->exists()) {
+            // Flashed as well as thrown: the message is addressed to a
+            // field — 'node' — that no page renders, so on its own it
+            // arrives and is dropped. The toast is what is actually seen.
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('organization.node_has_children')]);
+
             throw ValidationException::withMessages([
                 'node' => __('organization.node_has_children'),
             ]);
@@ -57,6 +63,11 @@ class DeleteOrganizationNode
             ->exists();
 
         if ($hasDocuments) {
+            // Flashed as well as thrown: the message is addressed to a
+            // field — 'node' — that no page renders, so on its own it
+            // arrives and is dropped. The toast is what is actually seen.
+            Inertia::flash('toast', ['type' => 'error', 'message' => __('organization.node_has_documents')]);
+
             throw ValidationException::withMessages([
                 'node' => __('organization.node_has_documents'),
             ]);
