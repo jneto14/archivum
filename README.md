@@ -110,7 +110,7 @@ scheduler.
 
 ## Status
 
-**Current release: [0.3.0](CHANGELOG.md).**
+**Current release: [0.3.1](CHANGELOG.md).**
 
 The core domain — workspaces, documents, physical organization, search and text
 extraction — is built, tested and documented. The major version is 0 because
