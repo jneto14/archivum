@@ -235,6 +235,8 @@ export default {
         "This device's own camera is only available over a secure connection (HTTPS), so scanning here means using another device.",
     'documents.show.camera_none_on_this_device':
         'This device offered no camera, so scanning here means using another device.',
+    'documents.show.camera_not_handheld':
+        'Scanning a page here means using a phone or tablet — something you can hold over it.',
     'documents.show.camera_captured_one': ':count page ready',
     'documents.show.camera_captured_other': ':count pages ready',
     'documents.show.capture_dialog_title': 'Scan with your phone',

@@ -239,6 +239,8 @@ export default {
         'A câmara deste dispositivo só está disponível numa ligação segura (HTTPS), por isso digitalizar aqui implica usar outro dispositivo.',
     'documents.show.camera_none_on_this_device':
         'Este dispositivo não disponibilizou nenhuma câmara, por isso digitalizar aqui implica usar outro dispositivo.',
+    'documents.show.camera_not_handheld':
+        'Digitalizar aqui é com um telemóvel ou tablet — algo que possas segurar por cima da folha.',
     'documents.show.camera_captured_one': ':count página pronta',
     'documents.show.camera_captured_other': ':count páginas prontas',
     'documents.show.capture_dialog_title': 'Digitalizar com o telemóvel',

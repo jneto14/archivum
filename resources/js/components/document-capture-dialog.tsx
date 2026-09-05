@@ -10,11 +10,27 @@ import {
 } from '@/components/ui/dialog';
 import type { CameraAccess } from '@/hooks/use-camera-access';
 import { useTranslation } from '@/hooks/use-translation';
+import type { TranslationKey } from '@/lib/translations';
 import {
     cancel as cancelCaptureSession,
     qrCode as captureSessionQrCode,
     store as createCaptureSession,
 } from '@/routes/capture-sessions';
+
+/**
+ * Why this dialog was reached instead of the viewfinder. The reason is not
+ * interchangeable: a browser that refused a camera, a device that has none, and
+ * a desktop that simply is not the right thing to aim at a page are three
+ * different answers, and only one of them is a fault.
+ */
+const CAMERA_REASONS: Record<
+    Exclude<CameraAccess, 'available'>,
+    TranslationKey
+> = {
+    insecure: 'documents.show.camera_needs_secure_connection',
+    unavailable: 'documents.show.camera_none_on_this_device',
+    'not-handheld': 'documents.show.camera_not_handheld',
+};
 
 type ActiveCaptureSession = {
     id: string;
@@ -131,9 +147,7 @@ export function DocumentCaptureDialog({
                     being missing. */}
                 {cameraAccess !== 'available' && (
                     <p className="text-sm text-muted-foreground">
-                        {cameraAccess === 'insecure'
-                            ? t('documents.show.camera_needs_secure_connection')
-                            : t('documents.show.camera_none_on_this_device')}
+                        {t(CAMERA_REASONS[cameraAccess])}
                     </p>
                 )}
 
