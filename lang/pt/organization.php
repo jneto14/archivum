@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 return [
     'levels_required' => 'É necessário pelo menos um nível.',
+    'level_name_required' => 'Dá um nome a este nível.',
+    'level_key_required' => 'Dá uma chave a este nível.',
+    'level_key_duplicate' => 'Já há outro nível com esta chave.',
+    'level_capacity_invalid' => 'A capacidade tem de ser um número inteiro, no mínimo 1.',
+    'level_value_strategy_required' => 'Escolhe como este nível numera as localizações.',
     'duplicate_level_keys' => 'As chaves de nível devem ser únicas dentro de um esquema.',
     'alphabetical_capacity_max' => 'Um nível que usa a estratégia Alfabética não pode ter uma capacidade superior a 26 (A–Z).',
     'level_has_no_labels' => 'Este nível não tem etiquetas imprimíveis.',
