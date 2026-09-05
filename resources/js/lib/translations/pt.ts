@@ -340,6 +340,7 @@ export default {
         'Este nível ainda tem localizações — remove-as primeiro.',
     'organization.form.level_delete_blocked_not_last':
         'Só o último nível pode ser removido.',
+    'organization.form.level_position': 'Nível :position',
     'organization.form.level_name_label': 'Nome',
     'organization.form.level_key_label': 'Chave',
     'organization.form.level_capacity_label': 'Capacidade',

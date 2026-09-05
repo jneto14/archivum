@@ -333,85 +333,101 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                     return (
                                         <div
                                             key={level.id}
-                                            className="flex flex-wrap items-center gap-3 rounded-md border p-3"
+                                            className="space-y-2 rounded-md border p-3"
                                         >
-                                            <span className="flex size-6 flex-none items-center justify-center rounded-md bg-secondary font-mono text-xs font-semibold">
-                                                {level.position}
-                                            </span>
-                                            <span className="min-w-30 flex-1 space-y-0.5">
-                                                <span className="block text-sm font-medium">
-                                                    {level.name}
+                                            {/*
+                                             * A header line, then the details
+                                             * under it. Laid out as one
+                                             * wrapping row, each of these
+                                             * broke at whatever point its own
+                                             * text ran out of room — one level
+                                             * kept everything on one line, the
+                                             * next pushed its checkbox and
+                                             * remove button onto a second, and
+                                             * the list read as ragged.
+                                             */}
+                                            <div className="flex items-center gap-3">
+                                                <span className="flex size-6 flex-none items-center justify-center rounded-md bg-secondary font-mono text-xs font-semibold">
+                                                    {level.position}
                                                 </span>
-                                                <span className="block font-mono text-xs text-muted-foreground">
-                                                    {t(
-                                                        'organization.form.level_key_display',
-                                                        { key: level.key },
-                                                    )}
+                                                <span className="min-w-0 flex-1 space-y-0.5">
+                                                    <span className="block truncate text-sm font-medium">
+                                                        {level.name}
+                                                    </span>
+                                                    <span className="block truncate font-mono text-xs text-muted-foreground">
+                                                        {t(
+                                                            'organization.form.level_key_display',
+                                                            { key: level.key },
+                                                        )}
+                                                    </span>
                                                 </span>
-                                            </span>
-                                            <span className="min-w-0 basis-full text-xs text-muted-foreground @2xl/levels:flex-1 @2xl/levels:basis-auto">
-                                                {
-                                                    strategyDescriptions[
-                                                        level.value_strategy
-                                                    ]
-                                                }
-                                            </span>
-                                            <span className="flex-none text-xs text-muted-foreground">
-                                                {level.capacity !== null
-                                                    ? t(
-                                                          'organization.form.level_capacity_value',
-                                                          {
-                                                              capacity:
-                                                                  level.capacity,
-                                                          },
-                                                      )
-                                                    : t(
-                                                          'organization.form.level_capacity_unlimited',
-                                                      )}
-                                            </span>
-                                            <label className="flex flex-none items-center gap-2 text-xs text-muted-foreground">
-                                                <Checkbox
-                                                    checked={
-                                                        level.has_printable_label
-                                                    }
-                                                    onCheckedChange={(
-                                                        checked,
-                                                    ) =>
-                                                        toggleLevelLabels(
-                                                            level,
-                                                            checked === true,
-                                                        )
-                                                    }
-                                                />
-                                                {t(
-                                                    'organization.form.level_labels_label',
+                                                {canDelete ? (
+                                                    deleteButton
+                                                ) : (
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <span tabIndex={0}>
+                                                                {deleteButton}
+                                                            </span>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            {level.has_nodes
+                                                                ? t(
+                                                                      'organization.form.level_delete_blocked_has_nodes',
+                                                                  )
+                                                                : t(
+                                                                      'organization.form.level_delete_blocked_not_last',
+                                                                  )}
+                                                        </TooltipContent>
+                                                    </Tooltip>
                                                 )}
-                                            </label>
-                                            {canDelete ? (
-                                                deleteButton
-                                            ) : (
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <span tabIndex={0}>
-                                                            {deleteButton}
-                                                        </span>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        {level.has_nodes
-                                                            ? t(
-                                                                  'organization.form.level_delete_blocked_has_nodes',
-                                                              )
-                                                            : t(
-                                                                  'organization.form.level_delete_blocked_not_last',
-                                                              )}
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            )}
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pl-9">
+                                                <span className="min-w-0 text-xs text-muted-foreground">
+                                                    {
+                                                        strategyDescriptions[
+                                                            level.value_strategy
+                                                        ]
+                                                    }
+                                                </span>
+                                                <span className="flex-none text-xs text-muted-foreground">
+                                                    {level.capacity !== null
+                                                        ? t(
+                                                              'organization.form.level_capacity_value',
+                                                              {
+                                                                  capacity:
+                                                                      level.capacity,
+                                                              },
+                                                          )
+                                                        : t(
+                                                              'organization.form.level_capacity_unlimited',
+                                                          )}
+                                                </span>
+                                                <label className="flex flex-none items-center gap-2 text-xs text-muted-foreground">
+                                                    <Checkbox
+                                                        checked={
+                                                            level.has_printable_label
+                                                        }
+                                                        onCheckedChange={(
+                                                            checked,
+                                                        ) =>
+                                                            toggleLevelLabels(
+                                                                level,
+                                                                checked ===
+                                                                    true,
+                                                            )
+                                                        }
+                                                    />
+                                                    {t(
+                                                        'organization.form.level_labels_label',
+                                                    )}
+                                                </label>
+                                            </div>
                                         </div>
                                     );
                                 })}
 
-                                <div className="grid grid-cols-1 items-end gap-3 rounded-md border border-dashed p-3 @lg/levels:grid-cols-2 @2xl/levels:grid-cols-[1fr_1fr_auto_1fr_auto] @2xl/levels:gap-2">
+                                <div className="grid grid-cols-1 items-start gap-3 rounded-md border border-dashed p-3 @lg/levels:grid-cols-2">
                                     <div className="grid gap-2">
                                         <Label>
                                             {t(
@@ -574,154 +590,177 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                 {form.data.levels.map((level, index) => (
                                     <div
                                         key={level.id}
-                                        className="grid grid-cols-1 items-end gap-3 rounded-md border p-3 @lg/levels:grid-cols-2 @2xl/levels:grid-cols-[1fr_1fr_auto_1fr_auto] @2xl/levels:gap-2"
+                                        className="space-y-3 rounded-md border p-3"
                                     >
-                                        <div className="grid gap-2">
-                                            <Label>
+                                        {/*
+                                         * The number and the remove button sit
+                                         * above the fields rather than among
+                                         * them. As a grid child the button
+                                         * took a row of its own with nothing
+                                         * beside it, and the number is what
+                                         * lets a message about this level not
+                                         * have to name it.
+                                         */}
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-xs font-medium text-muted-foreground">
                                                 {t(
-                                                    'organization.form.level_name_label',
+                                                    'organization.form.level_position',
+                                                    { position: index + 1 },
                                                 )}
-                                            </Label>
-                                            <Input
-                                                placeholder={t(
-                                                    'organization.form.level_name_placeholder',
-                                                )}
-                                                value={level.name}
-                                                onChange={(event) =>
-                                                    updateLevel(
-                                                        index,
-                                                        'name',
-                                                        event.target.value,
-                                                    )
+                                            </span>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                disabled={
+                                                    form.data.levels.length ===
+                                                    1
                                                 }
-                                            />
-                                            <InputError
-                                                message={levelError(
-                                                    index,
-                                                    'name',
-                                                )}
-                                            />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label>
-                                                {t(
-                                                    'organization.form.level_key_label',
-                                                )}
-                                            </Label>
-                                            <Input
-                                                placeholder={t(
-                                                    'organization.form.level_key_placeholder',
-                                                )}
-                                                value={level.key}
-                                                onChange={(event) =>
-                                                    updateLevel(
-                                                        index,
-                                                        'key',
-                                                        event.target.value,
-                                                    )
-                                                }
-                                            />
-                                            <InputError
-                                                message={levelError(
-                                                    index,
-                                                    'key',
-                                                )}
-                                            />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label>
-                                                {t(
-                                                    'organization.form.level_capacity_label',
-                                                )}
-                                            </Label>
-                                            <Input
-                                                type="number"
-                                                min={1}
-                                                max={
-                                                    level.value_strategy ===
-                                                    'alphabetical'
-                                                        ? 26
-                                                        : undefined
-                                                }
-                                                placeholder={
-                                                    level.value_strategy ===
-                                                    'alphabetical'
-                                                        ? '26'
-                                                        : '∞'
-                                                }
-                                                className="w-20"
-                                                value={level.capacity}
-                                                onChange={(event) =>
-                                                    updateLevel(
-                                                        index,
-                                                        'capacity',
-                                                        event.target.value,
-                                                    )
-                                                }
-                                            />
-                                            <InputError
-                                                message={levelError(
-                                                    index,
-                                                    'capacity',
-                                                )}
-                                            />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label>
-                                                {t(
-                                                    'organization.form.level_value_strategy_label',
-                                                )}
-                                            </Label>
-                                            <Select
-                                                value={level.value_strategy}
-                                                onValueChange={(value) =>
-                                                    updateLevel(
-                                                        index,
-                                                        'value_strategy',
-                                                        value,
-                                                    )
+                                                onClick={() =>
+                                                    removeLevel(index)
                                                 }
                                             >
-                                                <SelectTrigger className="w-full">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {valueStrategies.map(
-                                                        (strategy) => (
-                                                            <SelectItem
-                                                                key={
-                                                                    strategy.value
-                                                                }
-                                                                value={
-                                                                    strategy.value
-                                                                }
-                                                            >
-                                                                {strategy.label}
-                                                            </SelectItem>
-                                                        ),
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
-                                            <InputError
-                                                message={levelError(
-                                                    index,
-                                                    'value_strategy',
-                                                )}
-                                            />
+                                                <Trash2Icon />
+                                            </Button>
                                         </div>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="justify-self-end @2xl/levels:justify-self-auto"
-                                            disabled={
-                                                form.data.levels.length === 1
-                                            }
-                                            onClick={() => removeLevel(index)}
-                                        >
-                                            <Trash2Icon />
-                                        </Button>
-                                        <label className="col-span-full flex items-center gap-2 text-sm">
+                                        <div className="grid grid-cols-1 items-start gap-3 @lg/levels:grid-cols-2">
+                                            <div className="grid gap-2">
+                                                <Label>
+                                                    {t(
+                                                        'organization.form.level_name_label',
+                                                    )}
+                                                </Label>
+                                                <Input
+                                                    placeholder={t(
+                                                        'organization.form.level_name_placeholder',
+                                                    )}
+                                                    value={level.name}
+                                                    onChange={(event) =>
+                                                        updateLevel(
+                                                            index,
+                                                            'name',
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                />
+                                                <InputError
+                                                    message={levelError(
+                                                        index,
+                                                        'name',
+                                                    )}
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label>
+                                                    {t(
+                                                        'organization.form.level_key_label',
+                                                    )}
+                                                </Label>
+                                                <Input
+                                                    placeholder={t(
+                                                        'organization.form.level_key_placeholder',
+                                                    )}
+                                                    value={level.key}
+                                                    onChange={(event) =>
+                                                        updateLevel(
+                                                            index,
+                                                            'key',
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                />
+                                                <InputError
+                                                    message={levelError(
+                                                        index,
+                                                        'key',
+                                                    )}
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label>
+                                                    {t(
+                                                        'organization.form.level_capacity_label',
+                                                    )}
+                                                </Label>
+                                                <Input
+                                                    type="number"
+                                                    min={1}
+                                                    max={
+                                                        level.value_strategy ===
+                                                        'alphabetical'
+                                                            ? 26
+                                                            : undefined
+                                                    }
+                                                    placeholder={
+                                                        level.value_strategy ===
+                                                        'alphabetical'
+                                                            ? '26'
+                                                            : '∞'
+                                                    }
+                                                    className="w-20"
+                                                    value={level.capacity}
+                                                    onChange={(event) =>
+                                                        updateLevel(
+                                                            index,
+                                                            'capacity',
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                />
+                                                <InputError
+                                                    message={levelError(
+                                                        index,
+                                                        'capacity',
+                                                    )}
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label>
+                                                    {t(
+                                                        'organization.form.level_value_strategy_label',
+                                                    )}
+                                                </Label>
+                                                <Select
+                                                    value={level.value_strategy}
+                                                    onValueChange={(value) =>
+                                                        updateLevel(
+                                                            index,
+                                                            'value_strategy',
+                                                            value,
+                                                        )
+                                                    }
+                                                >
+                                                    <SelectTrigger className="w-full">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {valueStrategies.map(
+                                                            (strategy) => (
+                                                                <SelectItem
+                                                                    key={
+                                                                        strategy.value
+                                                                    }
+                                                                    value={
+                                                                        strategy.value
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        strategy.label
+                                                                    }
+                                                                </SelectItem>
+                                                            ),
+                                                        )}
+                                                    </SelectContent>
+                                                </Select>
+                                                <InputError
+                                                    message={levelError(
+                                                        index,
+                                                        'value_strategy',
+                                                    )}
+                                                />
+                                            </div>
+                                        </div>
+                                        <label className="flex items-center gap-2 text-sm">
                                             <Checkbox
                                                 checked={
                                                     level.has_printable_label

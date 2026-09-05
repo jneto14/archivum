@@ -332,6 +332,7 @@ export default {
         'This level still has locations — remove them first.',
     'organization.form.level_delete_blocked_not_last':
         'Only the last level can be removed.',
+    'organization.form.level_position': 'Level :position',
     'organization.form.level_name_label': 'Name',
     'organization.form.level_key_label': 'Key',
     'organization.form.level_capacity_label': 'Capacity',
