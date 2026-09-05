@@ -411,7 +411,7 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                     );
                                 })}
 
-                                <div className="grid grid-cols-1 items-end gap-3 rounded-md border border-dashed p-3 @2xl/levels:grid-cols-[1fr_1fr_auto_1fr_auto] @2xl/levels:gap-2">
+                                <div className="grid grid-cols-1 items-end gap-3 rounded-md border border-dashed p-3 @lg/levels:grid-cols-2 @2xl/levels:grid-cols-[1fr_1fr_auto_1fr_auto] @2xl/levels:gap-2">
                                     <div className="grid gap-2">
                                         <Label>
                                             {t(
@@ -574,7 +574,7 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                 {form.data.levels.map((level, index) => (
                                     <div
                                         key={level.id}
-                                        className="grid grid-cols-1 items-end gap-3 rounded-md border p-3 @2xl/levels:grid-cols-[1fr_1fr_auto_1fr_auto] @2xl/levels:gap-2"
+                                        className="grid grid-cols-1 items-end gap-3 rounded-md border p-3 @lg/levels:grid-cols-2 @2xl/levels:grid-cols-[1fr_1fr_auto_1fr_auto] @2xl/levels:gap-2"
                                     >
                                         <div className="grid gap-2">
                                             <Label>
@@ -713,6 +713,7 @@ export default function OrganizationSchemeForm({ workspaceId, scheme }: Props) {
                                             type="button"
                                             variant="ghost"
                                             size="sm"
+                                            className="justify-self-end @2xl/levels:justify-self-auto"
                                             disabled={
                                                 form.data.levels.length === 1
                                             }

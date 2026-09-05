@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 return [
     'levels_required' => 'At least one level is required.',
+    'level_name_required' => 'Give this level a name.',
+    'level_key_required' => 'Give this level a key.',
+    'level_key_duplicate' => 'Another level already uses this key.',
+    'level_capacity_invalid' => 'Capacity must be a whole number, at least 1.',
+    'level_value_strategy_required' => 'Choose how this level numbers its locations.',
     'duplicate_level_keys' => 'Level keys must be unique within a scheme.',
     'alphabetical_capacity_max' => 'A level using the Alphabetical strategy cannot have a capacity greater than 26 (A–Z).',
     'level_has_no_labels' => 'This level does not carry printable labels.',
