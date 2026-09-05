@@ -259,6 +259,22 @@ proxy_busy_buffers_size 64k;
 
 Caddy and Traefik have no equivalent limit and need nothing.
 
+### Large requests
+
+The other direction, and the one that bites as soon as somebody scans a page
+with their phone. nginx defaults `client_max_body_size` to **1M** and answers
+**413** on anything larger, before the application sees the request at all — so
+the upload fails with nothing in the logs to say why. A photograph from a phone
+clears 1M easily.
+
+```nginx
+client_max_body_size 64m;
+```
+
+64M is what the image's PHP is configured for; the application itself refuses a
+single file over 50MB. Setting the proxy higher than PHP only moves where the
+rejection happens.
+
 ### Serving under a path
 
 An installation can be served at `https://example.com/archivum` rather than on
@@ -554,6 +570,10 @@ location /archivum/ {
     proxy_buffer_size       32k;
     proxy_buffers         8 32k;
     proxy_busy_buffers_size 64k;
+
+    # Scans and phone photographs go past nginx's 1M default, which rejects
+    # them with a 413 the application never sees.
+    client_max_body_size 64m;
 }
 ```
 

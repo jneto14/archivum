@@ -10,25 +10,38 @@ import { useSyncExternalStore } from 'react';
  * to open a camera.
  */
 export type CameraAccess =
-    /** `getUserMedia` is there to be called. */
+    /** A camera can be opened, on a device you can aim at a page. */
     | 'available'
     /** No camera API, and the page is not in a secure context — that is why. */
     | 'insecure'
     /** Secure, but the browser still offers no camera at all. */
-    | 'unavailable';
+    | 'unavailable'
+    /** A camera, but on a desktop. Not a fault — the wrong device for this. */
+    | 'not-handheld';
 
 /** Nothing to subscribe to: none of this changes within a page's life. */
 const neverChanges = () => () => {};
 
 function readCameraAccess(): CameraAccess {
-    if (typeof navigator.mediaDevices?.getUserMedia === 'function') {
-        return 'available';
+    if (typeof navigator.mediaDevices?.getUserMedia !== 'function') {
+        // `mediaDevices` is undefined outside a secure context however many
+        // cameras the device has, so an installation reached over plain HTTP on
+        // a LAN address has none as far as any page on it is concerned.
+        return window.isSecureContext ? 'unavailable' : 'insecure';
     }
 
-    // `mediaDevices` is undefined outside a secure context however many cameras
-    // the device has, so an installation reached over plain HTTP on a LAN
-    // address has none as far as any page on it is concerned.
-    return window.isSecureContext ? 'unavailable' : 'insecure';
+    // Having the API is not the same question as being a device you can hold up
+    // to a sheet of paper, and reading the first as an answer to the second is
+    // what offered a PC the viewfinder: every desktop browser over HTTPS has
+    // `getUserMedia`, webcam or not, and a camera bolted to a monitor cannot be
+    // aimed at a page anyway.
+    //
+    // A coarse primary pointer is the closest the platform comes to "held in a
+    // hand". `userAgentData.mobile` would be more direct and is Chromium-only,
+    // which rules out the iPhone this exists for.
+    return window.matchMedia('(pointer: coarse)').matches
+        ? 'available'
+        : 'not-handheld';
 }
 
 /**
