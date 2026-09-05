@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Workspaces;
 
+use App\Actions\Documents\IntakeVocabulary;
 use App\Http\Controllers\Controller;
+use App\Models\IntakeLabel;
 use App\Models\OrganizationScheme;
 use App\Models\Workspace;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -34,6 +37,19 @@ class WorkspaceSettingsController extends Controller
         $scheme = OrganizationScheme::query()->where('workspace_id', $workspace->id)->first(['id', 'name']);
         $isPlatformAdmin = (bool) $request->user()->is_platform_admin;
 
+        // Only the ones in use. Unanswered candidates are a queue of work, and
+        // they live on the review page with everything else the application
+        // worked out and cannot confirm on its own; what belongs here is the
+        // standing list, and the way to retire something off it. Rejected ones
+        // are not sent either: they are recorded so mining stops asking, not so
+        // anybody re-reads them.
+        $intakeLabels = IntakeLabel::query()
+            ->where('workspace_id', $workspace->id)
+            ->accepted()
+            ->orderBy('kind')
+            ->orderBy('label')
+            ->get(['id', 'kind', 'field', 'label', 'support']);
+
         return Inertia::render('workspace/settings', [
             'workspace' => ['id' => $workspace->id, 'name' => $workspace->name],
             'scheme' => $scheme !== null ? ['id' => $scheme->id, 'name' => $scheme->name] : null,
@@ -47,6 +63,7 @@ class WorkspaceSettingsController extends Controller
                 'created_at_diff' => $token->created_at?->diffForHumans(),
                 'last_used_at_diff' => $token->last_used_at?->diffForHumans(),
             ])->values()->all(),
+            'intakeLabels' => $this->presentLabels($intakeLabels, $workspace),
             'isPlatformAdmin' => $isPlatformAdmin,
             'limits' => $isPlatformAdmin ? [
                 'storage_bytes' => $workspace->limits?->storage_bytes,
@@ -55,5 +72,31 @@ class WorkspaceSettingsController extends Controller
                 'attachments' => $workspace->limits?->attachments,
             ] : null,
         ]);
+    }
+
+    /**
+     * @param Collection<int, IntakeLabel> $labels The rows to present.
+     * @param Workspace $workspace The workspace they belong to, whose spelling of each field is shown.
+     *
+     * @return list<array{id: string, kind: string, field: string, label: string, support: int}> One entry per label.
+     */
+    private function presentLabels(Collection $labels, Workspace $workspace): array
+    {
+        $vocabulary = app(IntakeVocabulary::class);
+        $presented = [];
+
+        foreach ($labels as $label) {
+            $presented[] = [
+                'id' => $label->id,
+                'kind' => $label->kind,
+                // A shipped kind has a name in the interface language; one the
+                // archive invented is shown as this workspace spells it.
+                'field' => $vocabulary->nameFor($label->kind, $workspace->id, $label->field),
+                'label' => $label->label,
+                'support' => $label->support,
+            ];
+        }
+
+        return $presented;
     }
 }

@@ -33,6 +33,7 @@ import {
     destroy as destroyWorkspace,
     update as updateWorkspace,
 } from '@/routes/workspaces';
+import { update as updateIntakeLabel } from '@/routes/workspaces/intake-labels';
 import { update as updateWorkspaceLimits } from '@/routes/workspaces/limits';
 
 type Scheme = { id: string; name: string } | null;
@@ -59,8 +60,19 @@ type Props = {
         attachments_disk: string;
     };
     tokens: Token[];
+    intakeLabels: IntakeLabel[];
     isPlatformAdmin: boolean;
     limits: WorkspaceLimits | null;
+};
+
+/** A phrase this archive was seen writing in front of a value, and adopted. */
+type IntakeLabel = {
+    id: string;
+    kind: string;
+    /** What the field is called here: a shipped name, or this workspace's own spelling. */
+    field: string;
+    label: string;
+    support: number;
 };
 
 const BYTES_PER_MB = 1024 * 1024;
@@ -70,6 +82,7 @@ export default function WorkspaceSettings({
     scheme,
     instance,
     tokens: apiTokens,
+    intakeLabels,
     isPlatformAdmin,
     limits,
 }: Props) {
@@ -155,6 +168,14 @@ export default function WorkspaceSettings({
         event.preventDefault();
 
         router.delete(destroyWorkspace.url(workspace.id));
+    };
+
+    const retireLabel = (label: IntakeLabel) => {
+        router.patch(
+            updateIntakeLabel.url([workspace.id, label.id]),
+            { status: 'rejected' },
+            { preserveScroll: true },
+        );
     };
 
     return (
@@ -395,6 +416,49 @@ export default function WorkspaceSettings({
                                 </Button>
                             </div>
                         </form>
+                    </CardContent>
+                </Card>
+            )}
+
+            {intakeLabels.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>
+                            {t('workspace.settings.vocabulary_section_title')}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <p className="text-xs text-muted-foreground">
+                            {t('workspace.settings.vocabulary_description')}
+                        </p>
+
+                        <div className="space-y-2">
+                            {intakeLabels.map((label) => (
+                                <div
+                                    key={label.id}
+                                    className="flex flex-wrap items-center gap-2 rounded-md border p-3"
+                                >
+                                    <div className="min-w-0 flex-1 basis-48">
+                                        <div className="truncate text-sm font-medium">
+                                            {label.label}
+                                        </div>
+                                        <div className="truncate text-xs text-muted-foreground">
+                                            {label.field}
+                                        </div>
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="shrink-0"
+                                        onClick={() => retireLabel(label)}
+                                    >
+                                        {t(
+                                            'workspace.settings.vocabulary_retire',
+                                        )}
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
                     </CardContent>
                 </Card>
             )}

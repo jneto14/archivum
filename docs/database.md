@@ -38,6 +38,8 @@ document_attachments
 document_locations
 tags
 document_tags
+intake_labels
+intake_label_documents
 
 organization_schemes
 organization_levels
@@ -72,6 +74,9 @@ Workspace
 │   ├── Locations              history; the newest is the current one
 │   └── Tags                   through document_tags
 │
+├── Intake Labels              words this archive taught itself to read by
+│   └── Documents              through intake_label_documents, the evidence
+│
 └── Tasks                      exports, bulk moves, text extractions
 ```
 
@@ -97,6 +102,20 @@ appends a row; the current location is the most recent one. That is what makes
 A generic tree. `level_id` says which level of the scheme a node belongs to, and
 `parent_id` points at a node of the level above. Nothing in the schema knows
 what a "cover" or a "drawer" is — see [organization.md](organization.md).
+
+### `intake_labels` and `intake_label_documents`
+
+Words a workspace's own documents were seen writing in front of a value, and
+which documents were seen writing each of them. `kind` is a metadata key
+normalised — the key *is* the kind, because there is no list in the code of what
+an archive holds — and `field` keeps that key as somebody typed it, so a learned
+kind can be named without going back to the documents.
+
+The evidence table is the part worth understanding. Labels are learned one
+document at a time, as documents are saved and extracted, so `support` is
+arrived at by adding to it — and the same document edited twice would add twice.
+Recording the pair instead makes re-reading a document idempotent, and `support`
+a derived count that cannot drift. See [ocr.md](ocr.md).
 
 ### `documents.ocr_text`
 

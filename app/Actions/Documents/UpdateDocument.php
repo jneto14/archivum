@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Documents;
 
+use App\Jobs\LearnDocumentIntakeLabels;
 use App\Models\Document;
 use App\Models\DocumentType;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,10 @@ class UpdateDocument
      * left nothing to suggest — whether the values were accepted from the
      * suggestions or typed by hand, they are filled in either way, and a queue
      * that lists documents with nothing waiting on them is one nobody trusts.
+     *
+     * And it is where the archive learns to read. A user filling in a field the
+     * reader missed is the entire signal this feature runs on, and the moment
+     * they save is the moment it exists — see LearnDocumentIntakeLabels.
      *
      * @param Document $document The document to update.
      * @param DocumentType $type The document type to assign.
@@ -43,6 +48,12 @@ class UpdateDocument
 
             if (filled($document->metadata_suggestions) && $this->suggest->handle($document) === []) {
                 $document->recordMetadataSuggestions([]);
+            }
+
+            // Only when the fields themselves moved: a retitling teaches
+            // nothing, and mining reads a page of text.
+            if ($document->wasChanged('metadata')) {
+                LearnDocumentIntakeLabels::dispatch($document)->afterCommit();
             }
 
             return $document;

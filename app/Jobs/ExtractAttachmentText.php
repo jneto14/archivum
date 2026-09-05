@@ -132,6 +132,11 @@ class ExtractAttachmentText implements ShouldQueue
         // happens to be extracted last as readily as the first.
         if ($document !== null) {
             $suggest->record($document);
+
+            // The other moment a document has something to teach: its fields
+            // may have been filled in by hand while its text was still being
+            // read, and until now there was no page to find those values on.
+            LearnDocumentIntakeLabels::dispatch($document);
         }
 
         $this->task->markCompleted([

@@ -1,4 +1,4 @@
-import { Head, router, setLayoutProps } from '@inertiajs/react';
+import { Head, Link, router, setLayoutProps } from '@inertiajs/react';
 import AttachmentController from '@/actions/App/Http/Controllers/Documents/AttachmentController';
 import { DocumentSuggestionReview } from '@/components/document-suggestion-review';
 import type { ReviewableDocument } from '@/components/document-suggestion-review';
@@ -15,6 +15,7 @@ import {
     index as documentsIndex,
     show as documentShow,
 } from '@/routes/documents';
+import { update as updateIntakeLabel } from '@/routes/workspaces/intake-labels';
 
 type DuplicateRow = {
     id: string;
@@ -25,6 +26,15 @@ type DuplicateRow = {
         document_id: string;
         document_title: string | null;
     };
+};
+
+type CandidateLabel = {
+    id: string;
+    kind: string;
+    field: string;
+    label: string;
+    support: number;
+    documents: { id: string; title: string }[];
 };
 
 type Props = {
@@ -39,6 +49,7 @@ type Props = {
         total: number;
     };
     duplicates: DuplicateRow[];
+    labels: CandidateLabel[];
 };
 
 export default function DocumentReview({
@@ -46,8 +57,20 @@ export default function DocumentReview({
     documents,
     pagination,
     duplicates,
+    labels,
 }: Props) {
     const t = useTranslation();
+
+    const answerLabel = (
+        label: CandidateLabel,
+        status: 'accepted' | 'rejected',
+    ) => {
+        router.patch(
+            updateIntakeLabel.url([workspaceId, label.id]),
+            { status },
+            { preserveScroll: true },
+        );
+    };
 
     setLayoutProps({
         breadcrumbs: [
@@ -59,7 +82,10 @@ export default function DocumentReview({
         ],
     });
 
-    const nothingToReview = documents.length === 0 && duplicates.length === 0;
+    const nothingToReview =
+        documents.length === 0 &&
+        duplicates.length === 0 &&
+        labels.length === 0;
 
     return (
         <>
@@ -180,6 +206,107 @@ export default function DocumentReview({
                                             >
                                                 {t(
                                                     'documents.review.keep_both',
+                                                )}
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </Panel>
+                            </div>
+                        )}
+
+                        {labels.length > 0 && (
+                            <div className="space-y-3">
+                                <Heading
+                                    variant="small"
+                                    title={t('documents.review.labels_title')}
+                                />
+                                <Panel>
+                                    <PanelHeader>
+                                        <span className="text-sm text-muted-foreground">
+                                            {t(
+                                                'documents.review.labels_description',
+                                            )}
+                                        </span>
+                                    </PanelHeader>
+                                    {labels.map((label) => (
+                                        <div
+                                            key={label.id}
+                                            className="flex flex-wrap items-center gap-2 border-b p-4 last:border-b-0"
+                                        >
+                                            <div className="min-w-0 flex-1 basis-64">
+                                                <div className="truncate text-sm font-medium">
+                                                    {t(
+                                                        'documents.review.label_reads_as',
+                                                        {
+                                                            label: label.label,
+                                                            field: label.field,
+                                                        },
+                                                    )}
+                                                </div>
+                                                <div className="truncate text-xs text-muted-foreground">
+                                                    {label.support === 1
+                                                        ? t(
+                                                              'documents.review.label_evidence_one',
+                                                              {
+                                                                  count: label.support,
+                                                              },
+                                                          )
+                                                        : t(
+                                                              'documents.review.label_evidence_other',
+                                                              {
+                                                                  count: label.support,
+                                                              },
+                                                          )}
+                                                </div>
+                                                {label.documents.length > 0 && (
+                                                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                                                        {label.documents.map(
+                                                            (document) => (
+                                                                <Link
+                                                                    key={
+                                                                        document.id
+                                                                    }
+                                                                    href={documentShow.url(
+                                                                        document.id,
+                                                                    )}
+                                                                    className="max-w-56 truncate text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                                                                >
+                                                                    {
+                                                                        document.title
+                                                                    }
+                                                                </Link>
+                                                            ),
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                className="shrink-0"
+                                                onClick={() =>
+                                                    answerLabel(
+                                                        label,
+                                                        'accepted',
+                                                    )
+                                                }
+                                            >
+                                                {t(
+                                                    'documents.review.label_accept',
+                                                )}
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="shrink-0"
+                                                onClick={() =>
+                                                    answerLabel(
+                                                        label,
+                                                        'rejected',
+                                                    )
+                                                }
+                                            >
+                                                {t(
+                                                    'documents.review.label_reject',
                                                 )}
                                             </Button>
                                         </div>

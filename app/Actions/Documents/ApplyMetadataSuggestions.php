@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Documents;
 
+use App\Jobs\LearnDocumentIntakeLabels;
 use App\Models\Document;
 use Illuminate\Support\Facades\DB;
 
@@ -57,6 +58,14 @@ class ApplyMetadataSuggestions
             ]);
 
             $document->recordMetadataSuggestions([]);
+
+            // Mostly a confirmation of what the reader already knew — these
+            // values were found by labels it has. It teaches where the document
+            // also carries fields somebody filled in by hand, which this is
+            // often the last step of.
+            if ($document->wasChanged('metadata')) {
+                LearnDocumentIntakeLabels::dispatch($document)->afterCommit();
+            }
 
             return $document;
         });

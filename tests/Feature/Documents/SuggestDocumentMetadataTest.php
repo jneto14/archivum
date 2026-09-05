@@ -94,7 +94,13 @@ class SuggestDocumentMetadataTest extends TestCase
     public static function foreignDocuments(): array
     {
         return [
-            'a spaced British VAT number' => ['VAT registration 501 234 567', 'tax_id', '501234567'],
+            // As the page wrote it, spacing and all. Stripping separators was
+            // a rule the tax-number reader carried and the plate reader did
+            // not, and with the kinds no longer written down in the code there
+            // is nobody left to hold an opinion about one kind's punctuation.
+            // A user can delete a space; they cannot put back a dash that a
+            // policy number needed.
+            'a spaced British VAT number' => ['VAT registration 501 234 567', 'tax_id', '501 234 567'],
             'a Spanish VAT number with a letter in it' => ['VAT number ESB12345678', 'tax_id', 'ESB12345678'],
             'an Irish VAT number ending in a letter' => ['VAT no. IE1234567T', 'tax_id', 'IE1234567T'],
             'a British plate' => ['Registration number AB12 CDE', 'vehicle_registration', 'AB12 CDE'],
@@ -114,7 +120,39 @@ class SuggestDocumentMetadataTest extends TestCase
             INVOICE No. 2026/0184
             TEXT));
 
-        $this->assertSame('501234567', $suggestions['tax_id']);
+        $this->assertSame('501 234 567', $suggestions['tax_id']);
+    }
+
+    /**
+     * A real letter, and the case every seeded example missed: the value is in
+     * the middle of a sentence rather than at the end of its line.
+     *
+     * What follows a label is groups joined by spaces, because a tax number is
+     * printed "501 234 567" — which means a value with prose after it arrives
+     * with the prose attached. The shape of what the workspace files is what
+     * says where the value ends.
+     */
+    public function test_a_value_is_read_out_of_the_middle_of_a_sentence()
+    {
+        $workspace = Workspace::factory()->create();
+        $type = DocumentType::factory()->for($workspace)->create();
+
+        // Three filed plates, so the workspace has said what one looks like.
+        foreach (['00-EV-80', '12-AB-34', 'AA-11-BC'] as $plate) {
+            $this->document($workspace, $type, metadata: ['Matrícula' => $plate]);
+        }
+
+        $suggestions = $this->suggestionsFor($this->documentWithText(
+            'A DEKRA informa que o veiculo com a matricula 00-EV-80 devera realizar a proxima inspecao ate 23/10/2026.',
+            $workspace,
+            $type,
+        ));
+
+        $this->assertSame(
+            '00-EV-80',
+            $suggestions['vehicle_registration'] ?? null,
+            'Read from a sentence: ' . json_encode($suggestions),
+        );
     }
 
     public function test_a_label_cannot_reach_across_words_to_claim_a_number()
@@ -182,7 +220,7 @@ class SuggestDocumentMetadataTest extends TestCase
         // The total, not a line item and not the subtotal.
         $this->assertSame('315.00', $suggestions['amount']);
         // Labelled, so the spacing and the country's format do not matter.
-        $this->assertSame('501234567', $suggestions['tax_id']);
+        $this->assertSame('501 234 567', $suggestions['tax_id']);
     }
 
     public function test_a_date_written_in_portuguese_is_read_too()

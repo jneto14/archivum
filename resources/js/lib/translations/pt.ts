@@ -152,6 +152,14 @@ export default {
     'documents.review.duplicate_of': ':filename parece “:document”',
     'documents.review.open_original': 'Abrir o original',
     'documents.review.keep_both': 'Manter os dois',
+    'documents.review.labels_title': 'Palavras que este arquivo usa',
+    'documents.review.labels_description':
+        'Os teus próprios documentos foram vistos a escrever isto à frente de um valor. Aceita uma e o leitor passa a reconhecer esse campo por ela, neste workspace e em mais nenhum.',
+    'documents.review.label_reads_as': '“:label” introduz :field',
+    'documents.review.label_evidence_one': 'visto em :count documento',
+    'documents.review.label_evidence_other': 'visto em :count documentos',
+    'documents.review.label_accept': 'Usar',
+    'documents.review.label_reject': 'Ignorar',
 
     'documents.show.breadcrumb_documents': 'Documentos',
     'documents.show.edit_button': 'Editar',
@@ -568,6 +576,10 @@ export default {
     'workspace.settings.limits_documents_label': 'Limite de documentos',
     'workspace.settings.limits_attachments_label': 'Limite de anexos',
     'workspace.settings.limits_save_button': 'Guardar limites',
+    'workspace.settings.vocabulary_section_title': 'Vocabulário aprendido',
+    'workspace.settings.vocabulary_description':
+        'Palavras que este arquivo aprendeu sozinho, e pelas quais o leitor passou a reconhecer campos. As novas são propostas na fila por rever; aqui é onde uma deixa de ser usada.',
+    'workspace.settings.vocabulary_retire': 'Deixar de usar',
     'workspace.settings.instance_section_title': 'Instância',
     'workspace.settings.instance_description':
         'Definido através da configuração do ambiente — não editável aqui.',

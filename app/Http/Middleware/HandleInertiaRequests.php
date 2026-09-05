@@ -103,7 +103,7 @@ class HandleInertiaRequests extends Middleware
             // The sidebar badge on the intake review queue. Costs one query on
             // every request, which is the price of the queue being noticed at
             // all — see CountIntakeReview. `QueryBudgetTest` covers it.
-            'intakeReviewCount' => $workspace ? app(CountIntakeReview::class)->handle($workspace) : null,
+            'intakeReviewCount' => $workspace ? app(CountIntakeReview::class)->handle($workspace, $isWorkspaceAdmin) : null,
             // Selected as a subquery on the workspace row by ResolveWorkspace,
             // rather than fetched here — see that middleware's withSchemeId().
             'organizationSchemeId' => $workspace?->organization_scheme_id,
