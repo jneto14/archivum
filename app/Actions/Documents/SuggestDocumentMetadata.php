@@ -590,12 +590,51 @@ class SuggestDocumentMetadata
         $shape = $this->vocabulary->shape($kind, $workspaceId);
 
         foreach ($this->labelled($folded, $kind, $workspaceId) as $candidate) {
-            if ($shape->matches($candidate['value'])) {
-                return [...$candidate, 'value' => mb_strtoupper(mb_trim($candidate['value']))];
+            foreach ($this->runsOf($candidate['value']) as $run) {
+                if ($shape->matches($run)) {
+                    return [...$candidate, 'value' => mb_strtoupper(mb_trim($run))];
+                }
             }
         }
 
         return null;
+    }
+
+    /**
+     * A matched run of text, then the same run with its trailing groups
+     * dropped one at a time.
+     *
+     * What follows a label is groups of letters and digits joined by spaces,
+     * dots or dashes, because that is what a number spaced "501 234 567" or a
+     * plate written "12-AB-34" looks like. The cost of allowing the space is
+     * that a value with prose after it on the same line takes the prose with
+     * it: "a matrícula 00-EV-80 deverá realizar" arrives here whole, and is
+     * nothing shaped like a registration.
+     *
+     * The shape knows where the value ends, so it is asked. The longest run
+     * that fits wins, which reads "501 234 567" as three groups where a tax
+     * number is nine digits long, and "00-EV-80" as one where a registration is
+     * six — from the same text, with nothing written down about either.
+     *
+     * @param string $value The whole run that followed the label.
+     *
+     * @return list<string> The run, longest first, down to its first group.
+     */
+    private function runsOf(string $value): array
+    {
+        /** @var list<string> $parts Groups and the separators between them, alternating. */
+        $parts = (array) preg_split('/([ .-])/', $value, -1, PREG_SPLIT_DELIM_CAPTURE);
+
+        $runs = [];
+
+        // Groups sit at even offsets, so a run of n groups is the first 2n-1
+        // parts — the separators between them included, since the value is
+        // offered as the page wrote it.
+        for ($groups = (count($parts) + 1) / 2; $groups >= 1; $groups--) {
+            $runs[] = implode('', array_slice($parts, 0, (int) $groups * 2 - 1));
+        }
+
+        return $runs;
     }
 
     /**

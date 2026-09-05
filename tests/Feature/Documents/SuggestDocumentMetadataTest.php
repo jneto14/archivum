@@ -123,6 +123,38 @@ class SuggestDocumentMetadataTest extends TestCase
         $this->assertSame('501 234 567', $suggestions['tax_id']);
     }
 
+    /**
+     * A real letter, and the case every seeded example missed: the value is in
+     * the middle of a sentence rather than at the end of its line.
+     *
+     * What follows a label is groups joined by spaces, because a tax number is
+     * printed "501 234 567" — which means a value with prose after it arrives
+     * with the prose attached. The shape of what the workspace files is what
+     * says where the value ends.
+     */
+    public function test_a_value_is_read_out_of_the_middle_of_a_sentence()
+    {
+        $workspace = Workspace::factory()->create();
+        $type = DocumentType::factory()->for($workspace)->create();
+
+        // Three filed plates, so the workspace has said what one looks like.
+        foreach (['00-EV-80', '12-AB-34', 'AA-11-BC'] as $plate) {
+            $this->document($workspace, $type, metadata: ['Matrícula' => $plate]);
+        }
+
+        $suggestions = $this->suggestionsFor($this->documentWithText(
+            'A DEKRA informa que o veiculo com a matricula 00-EV-80 devera realizar a proxima inspecao ate 23/10/2026.',
+            $workspace,
+            $type,
+        ));
+
+        $this->assertSame(
+            '00-EV-80',
+            $suggestions['vehicle_registration'] ?? null,
+            'Read from a sentence: ' . json_encode($suggestions),
+        );
+    }
+
     public function test_a_label_cannot_reach_across_words_to_claim_a_number()
     {
         $suggestions = $this->suggestionsFor(
