@@ -22,13 +22,14 @@ use Illuminate\Support\Carbon;
  * @property string $id
  * @property string $workspace_id
  * @property string $kind The normalised metadata key the phrase introduces — see IntakeVocabulary::kindForKey()
+ * @property string|null $field That key as somebody typed it, so a learned kind can be named without sampling the archive
  * @property string $label
  * @property IntakeLabelStatus $status
  * @property int $support
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['workspace_id', 'kind', 'label', 'status', 'support'])]
+#[Fillable(['workspace_id', 'kind', 'field', 'label', 'status', 'support'])]
 class IntakeLabel extends Model
 {
     /** @use HasFactory<IntakeLabelFactory> */

@@ -48,7 +48,7 @@ class WorkspaceSettingsController extends Controller
             ->accepted()
             ->orderBy('kind')
             ->orderBy('label')
-            ->get(['id', 'kind', 'label', 'support']);
+            ->get(['id', 'kind', 'field', 'label', 'support']);
 
         return Inertia::render('workspace/settings', [
             'workspace' => ['id' => $workspace->id, 'name' => $workspace->name],
@@ -91,7 +91,7 @@ class WorkspaceSettingsController extends Controller
                 'kind' => $label->kind,
                 // A shipped kind has a name in the interface language; one the
                 // archive invented is shown as this workspace spells it.
-                'field' => $vocabulary->nameFor($label->kind, $workspace->id),
+                'field' => $vocabulary->nameFor($label->kind, $workspace->id, $label->field),
                 'label' => $label->label,
                 'support' => $label->support,
             ];

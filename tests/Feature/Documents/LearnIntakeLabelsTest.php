@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Documents;
 
+use App\Actions\Documents\IntakeVocabulary;
 use App\Actions\Documents\LearnIntakeLabels;
 use App\Actions\Documents\SuggestDocumentMetadata;
 use App\Enums\IntakeLabelStatus;
@@ -286,9 +287,40 @@ class LearnIntakeLabelsTest extends TestCase
             'workspace_id' => $workspace->id,
             // The metadata key, normalised. There is no enum this had to be in.
             'kind' => 'no_apolice',
+            // And as it was typed, because that is what an admin gets shown.
+            'field' => 'Nº Apólice',
             'label' => 'apolice',
             'support' => 3,
         ]);
+    }
+
+    /**
+     * Working the name out later means sampling the archive, and a key that has
+     * not been filed in the last few hundred documents falls out of that
+     * sample — leaving the interface offering a word for "auto_n" instead of
+     * for "Auto nº". Recording it as it is mined cannot go stale.
+     */
+    public function test_a_learned_field_is_named_as_it_was_typed_however_large_the_archive()
+    {
+        $workspace = Workspace::factory()->create();
+
+        foreach (['AP4471182', 'AP4471183', 'AP4471184'] as $policy) {
+            $this->documentSaying($workspace, "Apolice {$policy}", ['Nº Apólice' => $policy]);
+        }
+
+        app(LearnIntakeLabels::class)->handle($workspace);
+
+        $label = IntakeLabel::query()->where('label', 'apolice')->sole();
+
+        // Nothing left in the archive to work the spelling out from, and a
+        // vocabulary that has not already memoised it — which is what a later
+        // request, on an archive grown past the sample, would be looking at.
+        Document::query()->where('workspace_id', $workspace->id)->update(['metadata' => null]);
+
+        $this->assertSame(
+            'Nº Apólice',
+            (new IntakeVocabulary())->nameFor($label->kind, $workspace->id, $label->field),
+        );
     }
 
     /**

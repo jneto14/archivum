@@ -133,13 +133,13 @@ class IntakeReviewController extends Controller
             // number asks to be trusted, where three titles let an admin open
             // one and see the phrase in the place it was read from.
             ->with(['documents' => fn ($query) => $query->select('documents.id', 'documents.title')->limit(3)])
-            ->get(['id', 'kind', 'label', 'support'])
+            ->get(['id', 'kind', 'field', 'label', 'support'])
             ->map(fn (IntakeLabel $label): array => [
                 'id' => $label->id,
                 'kind' => $label->kind,
                 // A shipped kind has a name in the interface language; one the
                 // archive invented is shown as this workspace spells it.
-                'field' => $vocabulary->nameFor($label->kind, $workspace->id),
+                'field' => $vocabulary->nameFor($label->kind, $workspace->id, $label->field),
                 'label' => $label->label,
                 'support' => $label->support,
                 'documents' => $label->documents

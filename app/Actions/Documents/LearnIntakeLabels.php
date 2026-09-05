@@ -118,7 +118,7 @@ class LearnIntakeLabels
             $before = $this->evidencedBy($document);
             $after = [];
 
-            foreach ($candidates as $candidate) {
+            foreach ($candidates as $candidate => $key) {
                 [$kind, $label] = explode("\0", $candidate, 2);
 
                 $after[] = IntakeLabel::query()->firstOrCreate(
@@ -127,7 +127,16 @@ class LearnIntakeLabels
                         'kind' => $kind,
                         'label' => $label,
                     ],
-                    ['status' => IntakeLabelStatus::Pending, 'support' => 0],
+                    [
+                        'status' => IntakeLabelStatus::Pending,
+                        'support' => 0,
+                        // Recorded now, while the key somebody typed is in
+                        // hand. Working it out later means sampling the
+                        // archive, and a key that has aged out of the sample
+                        // would leave the interface showing the normalised
+                        // form of it.
+                        'field' => $key,
+                    ],
                 )->id;
             }
 
@@ -201,7 +210,7 @@ class LearnIntakeLabels
      *
      * @param Document $document The document to read.
      *
-     * @return list<string> Phrases keyed "kind\0label".
+     * @return array<string, string> Phrases keyed "kind\0label", to the metadata key as it was typed.
      */
     private function candidatesIn(Document $document): array
     {
@@ -247,12 +256,12 @@ class LearnIntakeLabels
                         continue;
                     }
 
-                    $found[$kind . "\0" . $phrase] = true;
+                    $found[$kind . "\0" . $phrase] = (string) $key;
                 }
             }
         }
 
-        return array_keys($found);
+        return $found;
     }
 
     /**

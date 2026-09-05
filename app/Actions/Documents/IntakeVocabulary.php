@@ -290,16 +290,23 @@ class IntakeVocabulary
      *
      * @param string $kind The kind to name.
      * @param string|null $workspaceId The workspace whose spelling to fall back on.
+     * @param string|null $filedAs The key as it was typed on the documents that taught this, where that was recorded.
      *
      * @return string The name to show.
      */
-    public function nameFor(string $kind, ?string $workspaceId): string
+    public function nameFor(string $kind, ?string $workspaceId, ?string $filedAs = null): string
     {
         $name = trans('intake.names.' . $kind);
 
-        return is_string($name) && $name !== 'intake.names.' . $kind
-            ? $name
-            : $this->keyFor($kind, $workspaceId);
+        if (is_string($name) && $name !== 'intake.names.' . $kind) {
+            return $name;
+        }
+
+        // What was recorded beats what is sampled. A key that has not been
+        // filed in the last few hundred documents falls out of the sample, and
+        // a name that degrades to "auto_n" the moment an archive grows past it
+        // is showing somebody the machinery.
+        return $filedAs ?? $this->keyFor($kind, $workspaceId);
     }
 
     /**
@@ -358,7 +365,11 @@ class IntakeVocabulary
         Document::query()
             ->where('workspace_id', $workspaceId)
             ->whereNotNull('metadata')
+            // By id as well as by date: documents filed in one batch share a
+            // timestamp, and an unbroken tie makes the sample — and every shape
+            // derived from it — differ between two reads of the same archive.
             ->latest('created_at')
+            ->latest('id')
             ->limit(self::DOCUMENT_SAMPLE)
             ->get(['id', 'metadata'])
             ->each(function (Document $document) use (&$values, &$spellings): void {

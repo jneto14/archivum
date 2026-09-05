@@ -36,6 +36,13 @@ return new class() extends Migration
             // two spellings of one word.
             $table->string('label');
 
+            // The metadata key exactly as somebody typed it, kept so a learned
+            // kind can be named without going back to the documents. `kind` is
+            // a normalisation and reads as machinery — showing an admin
+            // "auto_n" where they wrote "Auto nº" is showing them the inside.
+            // Null for the kinds the language files name themselves.
+            $table->string('field')->nullable();
+
             $table->string('status')->index();
 
             // How many documents were seen writing this phrase in front of a
