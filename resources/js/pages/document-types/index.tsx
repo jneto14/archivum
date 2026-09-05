@@ -11,6 +11,12 @@ import InputError from '@/components/input-error';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
 import { Panel } from '@/components/panel';
+import {
+    SortableTableHead,
+    SortMenu,
+    tableSort,
+} from '@/components/sortable-table';
+import type { SortState } from '@/components/sortable-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,12 +54,14 @@ type DocumentTypeRow = {
 
 type Props = {
     workspace: { id: string; name: string };
+    sort: SortState;
     documentTypes: DocumentTypeRow[];
     canManage: boolean;
 };
 
 export default function DocumentTypeIndex({
     workspace,
+    sort,
     documentTypes,
     canManage,
 }: Props) {
@@ -65,6 +73,16 @@ export default function DocumentTypeIndex({
         null,
     );
     const form = useForm({ name: '', key: '' });
+
+    const sorting = tableSort(index.url(workspace.id), sort, [
+        { key: 'name', label: t('document_types.index.name_column') },
+        { key: 'key', label: t('document_types.index.key_column') },
+        {
+            key: 'documents_count',
+            label: t('document_types.index.documents_column'),
+            descendingFirst: true,
+        },
+    ]);
 
     setLayoutProps({
         breadcrumbs: [
@@ -133,6 +151,7 @@ export default function DocumentTypeIndex({
                               })
                     }
                 >
+                    {documentTypes.length > 0 && <SortMenu sorting={sorting} />}
                     {canManage && (
                         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                             <DialogTrigger asChild>
@@ -238,17 +257,26 @@ export default function DocumentTypeIndex({
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>
+                                    <SortableTableHead
+                                        sortKey="name"
+                                        sorting={sorting}
+                                    >
                                         {t('document_types.index.name_column')}
-                                    </TableHead>
-                                    <TableHead>
+                                    </SortableTableHead>
+                                    <SortableTableHead
+                                        sortKey="key"
+                                        sorting={sorting}
+                                    >
                                         {t('document_types.index.key_column')}
-                                    </TableHead>
-                                    <TableHead>
+                                    </SortableTableHead>
+                                    <SortableTableHead
+                                        sortKey="documents_count"
+                                        sorting={sorting}
+                                    >
                                         {t(
                                             'document_types.index.documents_column',
                                         )}
-                                    </TableHead>
+                                    </SortableTableHead>
                                     {canManage && (
                                         <TableHead className="w-32" />
                                     )}

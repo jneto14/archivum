@@ -8,6 +8,12 @@ import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
 import type { PageLink } from '@/components/pagination';
 import { Panel } from '@/components/panel';
+import {
+    SortableTableHead,
+    SortMenu,
+    tableSort,
+} from '@/components/sortable-table';
+import type { SortState } from '@/components/sortable-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -78,6 +84,7 @@ type Props = {
         /** Set by following a location's link from the physical archive. */
         node_id: string | null;
     };
+    sort: SortState;
     /** The location `filters.node_id` names, resolved for display. */
     filteredLocation: { id: string; path: string } | null;
     documentTypes: { id: string; name: string }[];
@@ -101,6 +108,7 @@ function readStoredLayout(): Layout {
 export default function DocumentIndex({
     documents,
     filters,
+    sort,
     filteredLocation,
     documentTypes,
     tags,
@@ -134,10 +142,33 @@ export default function DocumentIndex({
     const applyFilters = (next: Partial<Props['filters']>) => {
         router.get(
             documentsIndex.url(workspace.id),
-            { ...filters, ...next },
+            { ...filters, ...next, sort: sort.key, direction: sort.direction },
             { preserveState: true, replace: true },
         );
     };
+
+    // The card layout has no column heads at all, so the menu carries the whole
+    // list — including registration date, which is the default order and has no
+    // column of its own to click on either.
+    const sorting = tableSort(
+        documentsIndex.url(workspace.id),
+        sort,
+        [
+            { key: 'title', label: t('documents.index.column_document') },
+            { key: 'type', label: t('documents.index.column_type') },
+            {
+                key: 'document_date',
+                label: t('documents.index.column_date'),
+                descendingFirst: true,
+            },
+            {
+                key: 'created_at',
+                label: t('documents.index.sort_registered'),
+                descendingFirst: true,
+            },
+        ],
+        filters,
+    );
 
     const exportDocuments = () => {
         router.post(
@@ -167,6 +198,7 @@ export default function DocumentIndex({
                               })
                     }
                 >
+                    <SortMenu sorting={sorting} />
                     <ToggleGroup
                         type="single"
                         variant="outline"
@@ -341,15 +373,30 @@ export default function DocumentIndex({
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>
+                                    <SortableTableHead
+                                        sortKey="title"
+                                        sorting={sorting}
+                                    >
                                         {t('documents.index.column_document')}
-                                    </TableHead>
-                                    <TableHead>
+                                    </SortableTableHead>
+                                    <SortableTableHead
+                                        sortKey="type"
+                                        sorting={sorting}
+                                    >
                                         {t('documents.index.column_type')}
-                                    </TableHead>
-                                    <TableHead>
+                                    </SortableTableHead>
+                                    <SortableTableHead
+                                        sortKey="document_date"
+                                        sorting={sorting}
+                                    >
                                         {t('documents.index.column_date')}
-                                    </TableHead>
+                                    </SortableTableHead>
+                                    {/*
+                                     * Not sortable: a document's location is
+                                     * the latest of its assignments, resolved
+                                     * through a node's ancestors into a path
+                                     * assembled in PHP. No column holds it.
+                                     */}
                                     <TableHead>
                                         {t('documents.index.column_location')}
                                     </TableHead>

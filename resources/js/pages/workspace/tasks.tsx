@@ -5,6 +5,12 @@ import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
 import type { PageLink } from '@/components/pagination';
 import { Panel } from '@/components/panel';
+import {
+    SortableTableHead,
+    SortMenu,
+    tableSort,
+} from '@/components/sortable-table';
+import type { SortState } from '@/components/sortable-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,7 +24,7 @@ import {
 import { useDateFormatter } from '@/hooks/use-date-formatter';
 import { useTranslation } from '@/hooks/use-translation';
 import type { TranslationKey } from '@/lib/translations';
-import { download, retry } from '@/routes/workspaces/tasks';
+import { download, index, retry } from '@/routes/workspaces/tasks';
 
 type TaskRow = {
     id: string;
@@ -35,6 +41,7 @@ type TaskRow = {
 
 type Props = {
     workspace: { id: string; name: string };
+    sort: SortState;
     tasks: {
         data: TaskRow[];
         prev_page_url: string | null;
@@ -70,13 +77,27 @@ const STATUS_VARIANTS: Record<
     failed: 'destructive',
 };
 
-export default function WorkspaceTasks({ workspace, tasks }: Props) {
+export default function WorkspaceTasks({ workspace, sort, tasks }: Props) {
     const t = useTranslation();
     const { formatDateTime } = useDateFormatter();
 
     setLayoutProps({
         breadcrumbs: [{ title: t('workspace.tasks.title'), href: '#' }],
     });
+
+    const sorting = tableSort(index.url(workspace.id), sort, [
+        { key: 'type', label: t('workspace.tasks.column_type') },
+        { key: 'status', label: t('workspace.tasks.column_status') },
+        {
+            key: 'triggered_by',
+            label: t('workspace.tasks.column_triggered_by'),
+        },
+        {
+            key: 'created_at',
+            label: t('workspace.tasks.column_started'),
+            descendingFirst: true,
+        },
+    ]);
 
     const retryTask = (task: TaskRow) => {
         router.post(
@@ -94,7 +115,9 @@ export default function WorkspaceTasks({ workspace, tasks }: Props) {
                 <PageHeader
                     title={t('workspace.tasks.title')}
                     description={t('workspace.tasks.description')}
-                />
+                >
+                    {tasks.data.length > 0 && <SortMenu sorting={sorting} />}
+                </PageHeader>
 
                 {tasks.data.length === 0 ? (
                     <EmptyState
@@ -106,20 +129,36 @@ export default function WorkspaceTasks({ workspace, tasks }: Props) {
                         <Table className="min-w-[46rem] table-fixed">
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-[26%]">
+                                    <SortableTableHead
+                                        sortKey="type"
+                                        sorting={sorting}
+                                        className="w-[26%]"
+                                    >
                                         {t('workspace.tasks.column_type')}
-                                    </TableHead>
-                                    <TableHead className="w-[32%]">
+                                    </SortableTableHead>
+                                    <SortableTableHead
+                                        sortKey="status"
+                                        sorting={sorting}
+                                        className="w-[32%]"
+                                    >
                                         {t('workspace.tasks.column_status')}
-                                    </TableHead>
-                                    <TableHead className="w-[14%]">
+                                    </SortableTableHead>
+                                    <SortableTableHead
+                                        sortKey="triggered_by"
+                                        sorting={sorting}
+                                        className="w-[14%]"
+                                    >
                                         {t(
                                             'workspace.tasks.column_triggered_by',
                                         )}
-                                    </TableHead>
-                                    <TableHead className="w-[18%]">
+                                    </SortableTableHead>
+                                    <SortableTableHead
+                                        sortKey="created_at"
+                                        sorting={sorting}
+                                        className="w-[18%]"
+                                    >
                                         {t('workspace.tasks.column_started')}
-                                    </TableHead>
+                                    </SortableTableHead>
                                     <TableHead className="w-[10%]" />
                                 </TableRow>
                             </TableHeader>

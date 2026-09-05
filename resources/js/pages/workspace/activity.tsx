@@ -5,6 +5,12 @@ import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
 import type { PageLink } from '@/components/pagination';
 import { Panel } from '@/components/panel';
+import {
+    SortableTableHead,
+    SortMenu,
+    tableSort,
+} from '@/components/sortable-table';
+import type { SortState } from '@/components/sortable-table';
 import { Badge } from '@/components/ui/badge';
 import {
     Table,
@@ -30,6 +36,7 @@ type ActivityRow = {
 
 type Props = {
     workspace: { id: string; name: string };
+    sort: SortState;
     activities: {
         data: ActivityRow[];
         prev_page_url: string | null;
@@ -71,7 +78,11 @@ const EVENT_VARIANTS: Record<
     restored: 'outline',
 };
 
-export default function WorkspaceActivity({ workspace, activities }: Props) {
+export default function WorkspaceActivity({
+    workspace,
+    sort,
+    activities,
+}: Props) {
     const t = useTranslation();
     const { formatDateTime } = useDateFormatter();
 
@@ -84,6 +95,19 @@ export default function WorkspaceActivity({ workspace, activities }: Props) {
         ],
     });
 
+    // The label is not among them: it is assembled per entry from the logged
+    // properties rather than stored, so there is no column to order by.
+    const sorting = tableSort(activityIndex.url(workspace.id), sort, [
+        { key: 'log_name', label: t('workspace.activity.column_type') },
+        { key: 'event', label: t('workspace.activity.column_event') },
+        { key: 'causer', label: t('workspace.activity.column_causer') },
+        {
+            key: 'created_at',
+            label: t('workspace.activity.column_when'),
+            descendingFirst: true,
+        },
+    ]);
+
     return (
         <>
             <Head title={t('workspace.activity.title')} />
@@ -92,7 +116,11 @@ export default function WorkspaceActivity({ workspace, activities }: Props) {
                 <PageHeader
                     title={t('workspace.activity.title')}
                     description={t('workspace.activity.description')}
-                />
+                >
+                    {activities.data.length > 0 && (
+                        <SortMenu sorting={sorting} />
+                    )}
+                </PageHeader>
 
                 {activities.data.length === 0 ? (
                     <EmptyState
@@ -105,31 +133,48 @@ export default function WorkspaceActivity({ workspace, activities }: Props) {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>
+                                        <SortableTableHead
+                                            sortKey="log_name"
+                                            sorting={sorting}
+                                        >
                                             {t(
                                                 'workspace.activity.column_type',
                                             )}
-                                        </TableHead>
-                                        <TableHead>
+                                        </SortableTableHead>
+                                        <SortableTableHead
+                                            sortKey="event"
+                                            sorting={sorting}
+                                        >
                                             {t(
                                                 'workspace.activity.column_event',
                                             )}
-                                        </TableHead>
+                                        </SortableTableHead>
+                                        {/*
+                                         * Not sortable: the label is assembled
+                                         * per entry from the logged properties
+                                         * rather than stored in a column.
+                                         */}
                                         <TableHead>
                                             {t(
                                                 'workspace.activity.column_label',
                                             )}
                                         </TableHead>
-                                        <TableHead>
+                                        <SortableTableHead
+                                            sortKey="causer"
+                                            sorting={sorting}
+                                        >
                                             {t(
                                                 'workspace.activity.column_causer',
                                             )}
-                                        </TableHead>
-                                        <TableHead>
+                                        </SortableTableHead>
+                                        <SortableTableHead
+                                            sortKey="created_at"
+                                            sorting={sorting}
+                                        >
                                             {t(
                                                 'workspace.activity.column_when',
                                             )}
-                                        </TableHead>
+                                        </SortableTableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>

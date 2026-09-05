@@ -9,10 +9,13 @@ import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
 import type { PageLink } from '@/components/pagination';
 import { Panel, PanelHeader } from '@/components/panel';
+import { SortMenu, tableSort } from '@/components/sortable-table';
+import type { SortState } from '@/components/sortable-table';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/hooks/use-translation';
 import {
     index as documentsIndex,
+    review as documentsReview,
     show as documentShow,
 } from '@/routes/documents';
 import { update as updateIntakeLabel } from '@/routes/workspaces/intake-labels';
@@ -39,6 +42,7 @@ type CandidateLabel = {
 
 type Props = {
     workspaceId: string;
+    sort: SortState;
     documents: ReviewableDocument[];
     pagination: {
         prev: string | null;
@@ -54,12 +58,30 @@ type Props = {
 
 export default function DocumentReview({
     workspaceId,
+    sort,
     documents,
     pagination,
     duplicates,
     labels,
 }: Props) {
     const t = useTranslation();
+
+    // Only the queue of documents is ordered by this — the duplicates and the
+    // candidate labels below it are their own lists — so the control sits with
+    // that section rather than in the page header.
+    const sorting = tableSort(documentsReview.url(workspaceId), sort, [
+        { key: 'title', label: t('documents.review.sort_title') },
+        {
+            key: 'updated_at',
+            label: t('documents.review.sort_updated'),
+            descendingFirst: true,
+        },
+        {
+            key: 'waiting',
+            label: t('documents.review.sort_waiting'),
+            descendingFirst: true,
+        },
+    ]);
 
     const answerLabel = (
         label: CandidateLabel,
@@ -106,12 +128,15 @@ export default function DocumentReview({
                     <div className="space-y-6">
                         {documents.length > 0 && (
                             <div className="space-y-3">
-                                <Heading
-                                    variant="small"
-                                    title={t(
-                                        'documents.review.suggestions_title',
-                                    )}
-                                />
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <Heading
+                                        variant="small"
+                                        title={t(
+                                            'documents.review.suggestions_title',
+                                        )}
+                                    />
+                                    <SortMenu sorting={sorting} />
+                                </div>
                                 <Panel>
                                     {documents.map((document) => (
                                         <DocumentSuggestionReview
