@@ -79,6 +79,24 @@ used to be there and has since been moved on does not come back. A node from
 another workspace matches nothing, rather than being dropped — dropping it would
 answer "what is in that location" with the whole archive.
 
+## Order
+
+The index comes back most recently registered first, and can be read by title,
+document date, type, or registration date instead. Like the filters, the choice
+travels in the query string, so a sorted view can be linked and returned to.
+
+Every order ends in `documents.id`, and that part is not cosmetic. `paginate()`
+runs a fresh query per page with a different `OFFSET`, so an order that leaves
+ties — a date many documents share — lets a document be shown on two pages or on
+none while somebody clicks through. The list appears to lose and duplicate
+records. Only the columns `SearchDocuments::sortColumns()` declares ever reach
+`orderBy`; anything else falls back to the default rather than being refused, so
+a bookmark to a column that has since been renamed still opens the page.
+
+A document's physical location is not among the orders. It is the latest of its
+assignments, resolved through a node's ancestors into a path assembled in PHP,
+and no single column holds it.
+
 ## Cost
 
 The documents index does not issue more queries as it grows.
