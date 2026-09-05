@@ -350,7 +350,7 @@ export default function OrganizationSchemeShow({
                             : t('organization.show.add_rule_button')}
                     </DialogTitle>
                     <div className="space-y-4">
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="matcher_key">
                                     {t('organization.show.matcher_key_label')}

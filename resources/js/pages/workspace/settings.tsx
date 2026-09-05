@@ -313,7 +313,7 @@ export default function WorkspaceSettings({
                         </p>
                         <form
                             onSubmit={submitLimits}
-                            className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+                            className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2"
                         >
                             <div className="grid gap-2">
                                 <Label htmlFor="storage_mb">
@@ -544,37 +544,47 @@ export default function WorkspaceSettings({
                         </div>
                     ))}
 
+                    {/*
+                     * The message goes under the whole row rather than inside
+                     * the field. Bottom-aligned with the error in the field's
+                     * own cell, the button dropped below the input the moment
+                     * one appeared.
+                     */}
                     <form
                         onSubmit={submitCreateToken}
-                        className="flex items-end gap-2 rounded-md border border-dashed p-3"
+                        className="space-y-2 rounded-md border border-dashed p-3"
                     >
-                        <div className="grid flex-1 gap-2">
-                            <Label htmlFor="token_name">
-                                {t('workspace.settings.new_token_name_label')}
-                            </Label>
-                            <Input
-                                id="token_name"
-                                placeholder={t(
-                                    'workspace.settings.new_token_placeholder',
-                                )}
-                                value={tokenForm.data.name}
-                                onChange={(event) =>
-                                    tokenForm.setData(
-                                        'name',
-                                        event.target.value,
-                                    )
-                                }
-                            />
-                            <InputError message={tokenForm.errors.name} />
+                        <div className="flex items-end gap-2">
+                            <div className="grid flex-1 gap-2">
+                                <Label htmlFor="token_name">
+                                    {t(
+                                        'workspace.settings.new_token_name_label',
+                                    )}
+                                </Label>
+                                <Input
+                                    id="token_name"
+                                    placeholder={t(
+                                        'workspace.settings.new_token_placeholder',
+                                    )}
+                                    value={tokenForm.data.name}
+                                    onChange={(event) =>
+                                        tokenForm.setData(
+                                            'name',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+                            </div>
+                            <Button
+                                type="submit"
+                                size="sm"
+                                disabled={tokenForm.processing}
+                            >
+                                <PlusIcon />{' '}
+                                {t('workspace.settings.create_token_button')}
+                            </Button>
                         </div>
-                        <Button
-                            type="submit"
-                            size="sm"
-                            disabled={tokenForm.processing}
-                        >
-                            <PlusIcon />{' '}
-                            {t('workspace.settings.create_token_button')}
-                        </Button>
+                        <InputError message={tokenForm.errors.name} />
                     </form>
                 </CardContent>
             </Card>
