@@ -62,8 +62,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('workspaces/{workspace}/tasks', [TaskController::class, 'store'])->name('workspaces.tasks.store');
     Route::post('workspaces/{workspace}/tasks/{task}/retry', [TaskController::class, 'retry'])->name('workspaces.tasks.retry');
     Route::get('workspaces/{workspace}/tasks/{task}/download', [TaskController::class, 'download'])->name('workspaces.tasks.download');
+    // `relative` so the signature does not cover the host or the path prefix,
+    // which a proxy serving this under a path strips before the request lands.
+    // Paired with App\Support\SignedLink, which builds the link the same way.
     Route::get('workspaces/{workspace}/tasks/{task}/download/signed', [TaskController::class, 'downloadSigned'])
-        ->middleware('signed')
+        ->middleware('signed:relative')
         ->name('workspaces.tasks.download.signed');
 
     Route::get('workspaces/{workspace}/activity', [ActivityController::class, 'index'])->name('workspaces.activity.index');

@@ -8,13 +8,13 @@ use App\Actions\Documents\CreateCaptureSession;
 use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Models\DocumentCaptureSession;
+use App\Support\SignedLink;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
-use Illuminate\Support\Facades\URL;
 
 class CaptureSessionController extends Controller
 {
@@ -110,7 +110,7 @@ class CaptureSessionController extends Controller
      */
     private function pairingUrl(DocumentCaptureSession $captureSession): string
     {
-        return URL::temporarySignedRoute(
+        return SignedLink::temporary(
             'capture.show',
             $captureSession->expires_at,
             ['captureSession' => $captureSession->id],

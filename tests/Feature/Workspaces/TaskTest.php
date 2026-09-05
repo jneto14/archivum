@@ -21,11 +21,11 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use App\Notifications\DocumentExportReady;
+use App\Support\SignedLink;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Activitylog\Support\CauserResolver;
 use Tests\TestCase;
@@ -152,7 +152,7 @@ class TaskTest extends TestCase
             'result' => ['disk' => 'local', 'path' => 'exports/example.csv'],
         ]);
 
-        $url = URL::temporarySignedRoute(
+        $url = SignedLink::temporary(
             'workspaces.tasks.download.signed',
             now()->addDay(),
             ['workspace' => $workspace->id, 'task' => $task->id],
@@ -185,7 +185,7 @@ class TaskTest extends TestCase
             'result' => ['disk' => 'local', 'path' => 'exports/example.csv'],
         ]);
 
-        $url = URL::temporarySignedRoute(
+        $url = SignedLink::temporary(
             'workspaces.tasks.download.signed',
             now()->addDay(),
             ['workspace' => $workspace->id, 'task' => $task->id],

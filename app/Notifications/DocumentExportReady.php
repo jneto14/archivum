@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Models\Task;
+use App\Support\SignedLink;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Facades\URL;
 
 /**
  * Notifies the user who triggered a document export that it has finished,
@@ -46,7 +46,7 @@ class DocumentExportReady extends Notification
     {
         $retentionDays = config('archivum.attachments.export_retention_days');
 
-        $url = URL::temporarySignedRoute(
+        $url = SignedLink::temporary(
             'workspaces.tasks.download.signed',
             now()->addDays($retentionDays),
             ['workspace' => $this->task->workspace_id, 'task' => $this->task->id],

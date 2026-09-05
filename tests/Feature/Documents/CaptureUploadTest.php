@@ -11,10 +11,10 @@ use App\Models\DocumentCaptureSession;
 use App\Models\DocumentType;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
+use App\Support\SignedLink;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\URL;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -24,7 +24,7 @@ class CaptureUploadTest extends TestCase
 
     private function signedShowUrl(DocumentCaptureSession $session): string
     {
-        return URL::temporarySignedRoute(
+        return SignedLink::temporary(
             'capture.show',
             $session->expires_at,
             ['captureSession' => $session->id],
@@ -136,7 +136,7 @@ class CaptureUploadTest extends TestCase
         // hold as the last line of defence.
         $session = DocumentCaptureSession::factory()->expired()->for($document)->for($creator, 'creator')->create();
 
-        $url = URL::temporarySignedRoute('capture.show', now()->addDay(), ['captureSession' => $session->id]);
+        $url = SignedLink::temporary('capture.show', now()->addDay(), ['captureSession' => $session->id]);
 
         $response = $this->post($url, [
             'files' => [UploadedFile::fake()->image('page-1.jpg')],
