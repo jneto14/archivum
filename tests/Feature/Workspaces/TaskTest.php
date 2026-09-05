@@ -450,4 +450,32 @@ class TaskTest extends TestCase
             'A failed move must release its lock, or the workspace can never bulk-move again.',
         );
     }
+
+    /**
+     * By who triggered it, which is a name on `users` rather than a column on
+     * the task.
+     */
+    public function test_tasks_can_be_ordered_by_who_triggered_them()
+    {
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $admin->user->update(['name' => 'Zoe']);
+        $other = User::factory()->create(['name' => 'Ana']);
+
+        Task::factory()->for($workspace)->for($admin->user)->completed()->create();
+        Task::factory()->for($workspace)->for($other)->completed()->create();
+
+        $this->actingAs($admin->user)
+            ->get(route('workspaces.tasks.index', [
+                'workspace' => $workspace,
+                'sort' => 'triggered_by',
+                'direction' => 'asc',
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('sort.key', 'triggered_by')
+                ->where('tasks.data.0.triggered_by', 'Ana')
+                ->where('tasks.data.1.triggered_by', 'Zoe'),
+            );
+    }
 }

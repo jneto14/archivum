@@ -139,6 +139,25 @@ class PlatformAdminAccessTest extends TestCase
             );
     }
 
+    public function test_workspaces_index_can_be_ordered_by_how_many_members_each_has()
+    {
+        $crowded = Workspace::factory()->create(['name' => 'Aardvark']);
+        WorkspaceUser::factory()->for($crowded)->count(3)->create(['role' => WorkspaceRole::User]);
+        Workspace::factory()->create(['name' => 'Zebra']);
+
+        $platformAdmin = User::factory()->create(['is_platform_admin' => true]);
+
+        $this->actingAs($platformAdmin)
+            ->get(route('workspaces.index', ['sort' => 'users_count', 'direction' => 'desc']))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('sort.key', 'users_count')
+                ->where('workspaces.0.name', 'Aardvark')
+                ->where('workspaces.0.usersCount', 3)
+                ->where('workspaces.1.name', 'Zebra'),
+            );
+    }
+
     public function test_workspaces_index_is_forbidden_for_a_non_platform_admin()
     {
         $member = WorkspaceUser::factory()->create(['role' => WorkspaceRole::Admin]);

@@ -15,10 +15,13 @@ use App\Http\Requests\Workspaces\UpdateWorkspaceUserRequest;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
+use App\Support\TableSort;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -28,24 +31,33 @@ class WorkspaceUserController extends Controller
     /**
      * List the workspace's members and their roles.
      *
+     * @param Request $request The incoming request, read for the chosen order.
      * @param Workspace $workspace The workspace whose memberships are listed.
      *
      * @return Response The rendered workspace members page.
      *
      * @throws AuthorizationException If the current user cannot list $workspace's memberships.
      */
-    public function index(Workspace $workspace): Response
+    public function index(Request $request, Workspace $workspace): Response
     {
         $this->authorize('viewAny', [WorkspaceUser::class, $workspace]);
+
+        $sort = TableSort::fromRequest($request, [
+            'name' => DB::raw('(select name from users where users.id = workspace_user.user_id)'),
+            'email' => DB::raw('(select email from users where users.id = workspace_user.user_id)'),
+            'role' => 'workspace_user.role',
+            'created_at' => 'workspace_user.created_at',
+        ], 'created_at');
 
         $memberships = WorkspaceUser::query()
             ->where('workspace_id', $workspace->id)
             ->with('user')
-            ->orderBy('created_at')
+            ->tap(fn (Builder $query) => $sort->apply($query, 'workspace_user.id'))
             ->get();
 
         return Inertia::render('workspace/users', [
             'workspace' => ['id' => $workspace->id, 'name' => $workspace->name],
+            'sort' => $sort->toArray(),
             'members' => $memberships->map(fn (WorkspaceUser $membership) => [
                 'id' => $membership->user->id,
                 'name' => $membership->user->name,

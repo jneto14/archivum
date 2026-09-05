@@ -11,9 +11,12 @@ use App\Enums\TaskType;
 use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Models\Workspace;
+use App\Support\TableSort;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -23,17 +26,25 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class TaskController extends Controller
 {
     /**
-     * List the workspace's background tasks, most recent first.
+     * List the workspace's background tasks, most recent first by default.
      *
+     * @param Request $request The incoming request, read for the chosen order.
      * @param Workspace $workspace The workspace whose tasks are listed.
      *
      * @return Response The rendered "Tarefas" Inertia page.
      *
      * @throws AuthorizationException If the current user cannot view $workspace's tasks.
      */
-    public function index(Workspace $workspace): Response
+    public function index(Request $request, Workspace $workspace): Response
     {
         $this->authorize('viewAny', [Task::class, $workspace]);
+
+        $sort = TableSort::fromRequest($request, [
+            'type' => 'tasks.type',
+            'status' => 'tasks.status',
+            'triggered_by' => DB::raw('(select name from users where users.id = tasks.user_id)'),
+            'created_at' => 'tasks.created_at',
+        ], 'created_at', 'desc');
 
         // Paginated because attachment text extraction creates a task per
         // uploaded file. An unbounded list would bury the deliberate,
@@ -42,13 +53,14 @@ class TaskController extends Controller
         $tasks = Task::query()
             ->where('workspace_id', $workspace->id)
             ->with('user')
-            ->orderByDesc('created_at')
+            ->tap(fn (Builder $query) => $sort->apply($query, 'tasks.id'))
             ->paginate(25)
             ->onEachSide(1)
             ->withQueryString();
 
         return Inertia::render('workspace/tasks', [
             'workspace' => ['id' => $workspace->id, 'name' => $workspace->name],
+            'sort' => $sort->toArray(),
             'tasks' => $tasks->through(fn (Task $task) => [
                 'id' => $task->id,
                 'type' => $task->type->value,
