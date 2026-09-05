@@ -181,6 +181,23 @@ kind of thing — "Observações", or anything else free-text — has no shape t
 check a reading against, so **nothing is learned for it**. Without that, the
 reader would start lifting sentences off pages.
 
+**And it is what says where a value ends.** What follows a label is groups of
+letters and digits joined by spaces, dots or dashes, because that is what "501
+234 567" and "12-AB-34" look like on a page. The cost of allowing the space is
+that a value with prose after it on the same line takes the prose with it: "o
+veículo com a matrícula 00-EV-80 deverá realizar" reads out as *00-EV-80 deverá
+realizar*, which is not shaped like a registration. So the run is offered to the
+shape whole, then a group shorter, and a group shorter again, and the longest
+one that fits wins — nine digits where a tax number is nine digits long, six
+characters where a registration is six, out of the same sentence and with
+nothing written down about either.
+
+A value is suggested **as the page wrote it**, spacing and punctuation included:
+*501 234 567*, not *501234567*. Stripping separators was a rule one of the two
+removed readers carried and the other did not, and a policy number written
+*POL-2026-0044* needs its dashes. A space is easy to delete; a dash that was
+never offered is not.
+
 The keys in `lang/{locale}/intake.php` remain, as a **seed**. Without them a new
 archive would read nothing until somebody had filled the same field in by hand
 on three documents, which is a feature for saving typing that requires the
@@ -209,6 +226,14 @@ double-count; an increment can, the second time the same document is edited. So
 **which** documents evidence a phrase is recorded rather than how many, which
 makes re-reading a document idempotent by construction — and gives an admin the
 documents themselves to judge a candidate by.
+
+The key somebody typed is recorded on the candidate at the same moment, in
+`intake_labels.field`. A learned kind has no name the application ships — it is
+a normalised key — so it is shown as the workspace spells it. Working that out
+later would mean sampling the archive for the spelling, and a key that has not
+been filed in the last few hundred documents falls out of that sample: thirty
+parking fines in an archive of hundreds, and the interface starts asking about
+"auto_n" instead of about "Auto nº".
 
 `archivum:learn-intake-labels` survives as the backfill, for an archive that was
 filled before any of this existed. It is not scheduled. Nothing had to be

@@ -62,12 +62,19 @@ whatever the workspace types, and a type's fields are only the keys its
 documents already carry.
 
 That is also how a suggestion read out of an attachment's text decides where to
-go (see [ocr.md](ocr.md)): each kind of value it recognises carries a list of
-alias names, and adopts a key already used by other documents of the same type
-when one of them matches. A workspace whose invoices all say *total* is not
-handed a second field called *amount*. With no match, the kind's default key is
-used. A suggestion is only ever offered for a field that is still empty, and
-only ever applied when somebody accepts it.
+go (see [ocr.md](ocr.md)). A suggestion adopts a key already used by other
+documents of the same type when one means the same thing, so a workspace whose
+invoices all say *total* is not handed a second field called *amount*. With no
+match it falls back to the name the application ships for that kind — *amount*,
+*tax_id* — or, for a kind the archive taught itself, to the way this workspace
+spells it. A suggestion is only ever offered for a field that is still empty,
+and only ever applied when somebody accepts it.
+
+The absence of a schema is also what the reader learns from. Because the keys
+are whatever the workspace types, a field called *Nº de apólice* has already
+said what it holds better than any list in the code could — so the key **is**
+the kind of value, and what one looks like is derived from the ones already
+filed under it. There is no enumeration anywhere of what an archive may hold.
 
 ## Tags
 
