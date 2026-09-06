@@ -30,33 +30,11 @@ use Throwable;
  * Output is asked for as TSV rather than plain text. It is the same
  * recognition pass at the same cost, and it carries a confidence per word —
  * which is the only thing standing between a page of handwriting and a search
- * index full of words nobody wrote (ARC-118).
+ * index full of words nobody wrote (ARC-118). Reading that table is
+ * `TesseractTsv`; this class only runs the binary.
  */
 class TesseractEngine implements OcrEngine
 {
-    /**
-     * Columns in Tesseract's TSV output, which carries no names of its own
-     * past the header row.
-     */
-    private const COLUMN_LEVEL = 0;
-
-    private const COLUMN_PAGE = 1;
-
-    private const COLUMN_BLOCK = 2;
-
-    private const COLUMN_PARAGRAPH = 3;
-
-    private const COLUMN_LINE = 4;
-
-    private const COLUMN_CONFIDENCE = 10;
-
-    private const COLUMN_TEXT = 11;
-
-    private const COLUMN_COUNT = 12;
-
-    /** The `level` of a row describing one word. Coarser rows describe the blocks and lines around it. */
-    private const LEVEL_WORD = 5;
-
     /**
      * @param string $languages Tesseract language codes joined with "+", e.g. "por+eng".
      * @param int $timeout Seconds a single recognition may run before it is killed.
@@ -129,78 +107,7 @@ class TesseractEngine implements OcrEngine
             throw new RuntimeException($this->failureMessage($process));
         }
 
-        return $this->parseTsv($process->getOutput());
-    }
-
-    /**
-     * Read tesseract's TSV into text, keeping only the words it was sure of.
-     *
-     * Line structure is rebuilt from the page/block/paragraph/line columns
-     * rather than dropped: the reader that finds a value by the words in front
-     * of it works along a line, so text reassembled as one long run of words
-     * would join the end of one line to the start of the next and invent
-     * labels that were never written.
-     *
-     * A dropped word leaves no placeholder. It leaves a gap in a line, which
-     * is what it is — the alternative is a marker that finds its way into the
-     * search index and into suggested values.
-     *
-     * @param string $output The TSV tesseract wrote to stdout, header row included.
-     *
-     * @return RecognizedText The surviving text, and the word counts behind it.
-     */
-    private function parseTsv(string $output): RecognizedText
-    {
-        $lines = [];
-        $currentKey = null;
-        $wordCount = 0;
-        $confidentWordCount = 0;
-
-        foreach (explode("\n", $output) as $row) {
-            $columns = explode("\t", mb_rtrim($row, "\r"));
-
-            if (count($columns) < self::COLUMN_COUNT || (int) $columns[self::COLUMN_LEVEL] !== self::LEVEL_WORD) {
-                continue;
-            }
-
-            $word = mb_trim($columns[self::COLUMN_TEXT]);
-
-            // Tesseract emits word rows carrying no text; they are not words
-            // it read badly, they are spacing, and counting them would drag
-            // every page's ratio down by however many it happened to emit.
-            if ($word === '') {
-                continue;
-            }
-
-            $wordCount++;
-
-            if ((float) $columns[self::COLUMN_CONFIDENCE] < $this->minWordConfidence) {
-                continue;
-            }
-
-            $confidentWordCount++;
-
-            $key = implode('/', [
-                $columns[self::COLUMN_PAGE],
-                $columns[self::COLUMN_BLOCK],
-                $columns[self::COLUMN_PARAGRAPH],
-                $columns[self::COLUMN_LINE],
-            ]);
-
-            if ($key !== $currentKey) {
-                $lines[] = [];
-                $currentKey = $key;
-            }
-
-            $lines[array_key_last($lines)][] = $word;
-        }
-
-        $text = implode("\n", array_map(
-            static fn (array $words): string => implode(' ', $words),
-            $lines,
-        ));
-
-        return new RecognizedText(mb_trim($text), $wordCount, $confidentWordCount);
+        return (new TesseractTsv($this->minWordConfidence))->read($process->getOutput());
     }
 
     /**

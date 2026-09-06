@@ -134,6 +134,13 @@ Line structure is rebuilt from the TSV's line columns rather than dropped, for
 the same reason. Text reassembled as one long run of words would join the end of
 one line to the start of the next and invent labels nobody wrote.
 
+A refused word leaves **two spaces** rather than nothing. Removing it outright
+closes the space it occupied, and a value's end is decided by adjacency — groups
+one space apart are one value — so dropping an unreadable dash out of
+`3 — 49051 242344062 1165797` offered four unrelated numbers as a single tax
+number. The wider gap says what happened, and costs nothing elsewhere: every
+other reader of this text either collapses whitespace or splits on it.
+
 **Then a floor for the page.** Where almost nothing survives — a sheet of pure
 handwriting — the few words that scored well are as likely to be noise that
 happened to look like a word. The attachment is recorded as *poorly read* and no
