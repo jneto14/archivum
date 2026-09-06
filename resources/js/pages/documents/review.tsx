@@ -39,6 +39,8 @@ type ReadingRow = {
     document_title: string;
     /** What OCR made of the page, or null where the engine refused it outright. */
     text: string | null;
+    word_count: number | null;
+    unread_word_count: number | null;
 };
 
 type CandidateLabel = {

@@ -24,10 +24,14 @@ readonly class ExtractedText
      *
      * @param OcrStatus $status How the attempt ended.
      * @param string $text The extracted text; empty for every status other than Completed.
+     * @param int|null $wordCount Words the engine returned, or null where nothing was recognised.
+     * @param int|null $confidentWordCount Words it was sure enough of to keep.
      */
     private function __construct(
         public OcrStatus $status,
         public string $text,
+        public ?int $wordCount = null,
+        public ?int $confidentWordCount = null,
     ) {}
 
     /**
@@ -35,12 +39,14 @@ readonly class ExtractedText
      * has no text, and re-running would not change that.
      *
      * @param string $text The extracted text.
+     * @param int|null $wordCount Words the engine returned, or null where the text came from a source that does not score itself.
+     * @param int|null $confidentWordCount Words it was sure enough of to keep.
      *
      * @return self A Completed result.
      */
-    public static function completed(string $text): self
+    public static function completed(string $text, ?int $wordCount = null, ?int $confidentWordCount = null): self
     {
-        return new self(OcrStatus::Completed, mb_trim($text));
+        return new self(OcrStatus::Completed, mb_trim($text), $wordCount, $confidentWordCount);
     }
 
     /**
@@ -54,9 +60,9 @@ readonly class ExtractedText
      *
      * @return self A PoorlyRead result.
      */
-    public static function poorlyRead(): self
+    public static function poorlyRead(?int $wordCount = null, ?int $confidentWordCount = null): self
     {
-        return new self(OcrStatus::PoorlyRead, '');
+        return new self(OcrStatus::PoorlyRead, '', $wordCount, $confidentWordCount);
     }
 
     /**

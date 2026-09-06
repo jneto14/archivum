@@ -125,8 +125,8 @@ class AttachmentTextExtractor
         $floor = (float) config('archivum.ocr.min_confident_word_ratio');
 
         return $recognized->confidentRatio() < $floor
-            ? ExtractedText::poorlyRead()
-            : ExtractedText::completed($recognized->text);
+            ? ExtractedText::poorlyRead($recognized->wordCount, $recognized->confidentWordCount)
+            : ExtractedText::completed($recognized->text, $recognized->wordCount, $recognized->confidentWordCount);
     }
 
     /**

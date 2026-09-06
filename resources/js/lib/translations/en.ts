@@ -161,11 +161,13 @@ export default {
     'documents.review.keep_both': 'Keep both',
     'documents.review.open_document': 'Open the document',
     'documents.review.dismiss': 'Dismiss',
-    'documents.review.readings_title': 'What was read from each scan',
+    'documents.review.readings_title': 'Scans that were read badly',
     'documents.review.readings_description':
-        'This is the text extraction pulled off these pages, exactly as it will be searched. Keep it, or throw it away if it is wrong — a bad reading is worse than none, because it becomes a search result for words nobody wrote.',
+        'Text extraction struggled with these pages and left words out. This is what it kept, exactly as it will be searched. Keep it, or throw it away if it is wrong — a bad reading is worse than none, because it becomes a search result for words nobody wrote.',
     'documents.review.reading_empty':
         'Nothing legible came off this page. There was writing on it, but not enough of it could be read to be worth keeping.',
+    'documents.review.reading_words_dropped':
+        ':dropped of the :total words on this page were too unclear to keep, so they are missing from the text below.',
     'documents.review.reading_confirm': 'Reading is good',
     'documents.review.reading_reject': 'Throw it away',
     'documents.review.reading_acknowledge': 'Understood',

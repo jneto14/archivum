@@ -25,7 +25,7 @@ class CountIntakeReview
      * @param Workspace $workspace The workspace to count within.
      * @param bool $canAnswerLabels Whether the current user may answer learned labels, which only a workspace admin can. Counting them for anybody else would badge a section they are not shown.
      *
-     * @return int Documents with suggestions still to review, plus attachments still flagged as duplicates, plus readings nobody has confirmed or refused, plus the candidate labels waiting on an admin.
+     * @return int Documents with suggestions still to review, plus attachments still flagged as duplicates, plus readings that went badly and nobody has answered for, plus the candidate labels waiting on an admin.
      */
     public function handle(Workspace $workspace, bool $canAnswerLabels = false): int
     {
@@ -48,7 +48,11 @@ class CountIntakeReview
                           and document_attachments.ocr_reviewed_at is null
                           and (
                               document_attachments.ocr_status = ?
-                              or (document_attachments.ocr_status = ? and document_attachments.ocr_text is not null and document_attachments.ocr_text <> '')
+                              or (
+                                  document_attachments.ocr_status = ?
+                                  and document_attachments.ocr_text is not null and document_attachments.ocr_text <> ''
+                                  and document_attachments.ocr_confident_word_count < document_attachments.ocr_word_count
+                              )
                           )
                     ) as readings,
                     (

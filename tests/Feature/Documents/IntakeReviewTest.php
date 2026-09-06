@@ -259,7 +259,7 @@ class IntakeReviewTest extends TestCase
         $document = $this->reviewable($workspace, 'Fatura da oficina');
 
         $scan = $this->attachment($document, 'invoice.jpg');
-        $scan->markOcrCompleted("Factura 2026/0044\n3  49051 242344062 1165797");
+        $scan->markOcrCompleted("Factura 2026/0044\n3  49051 242344062 1165797", 40, 36);
 
         $this->actingAs($this->member($workspace))
             ->get(route('documents.review', $workspace))
@@ -267,8 +267,30 @@ class IntakeReviewTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('readings.0.id', $scan->id)
                 ->where('readings.0.text', "Factura 2026/0044\n3  49051 242344062 1165797")
+                ->where('readings.0.unread_word_count', 4)
                 // The one document with suggestions, plus the reading.
                 ->where('intakeReviewCount', 2),
+            );
+    }
+
+    // The queue is for the readings that went badly. A page where every word
+    // cleared the floor is not worth anybody's time, and a queue that asks
+    // about every upload is one people stop opening.
+    public function test_a_reading_the_engine_was_sure_of_is_never_asked_about()
+    {
+        $workspace = $this->workspace();
+        $document = $this->reviewable($workspace, 'Fatura limpa');
+
+        $scan = $this->attachment($document, 'clean.pdf');
+        $scan->markOcrCompleted('Factura 2026/0044 total 98,80', 5, 5);
+
+        $this->actingAs($this->member($workspace))
+            ->get(route('documents.review', $workspace))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('readings', [])
+                // Only the document's own suggestions are waiting.
+                ->where('intakeReviewCount', 1),
             );
     }
 
@@ -294,7 +316,7 @@ class IntakeReviewTest extends TestCase
         $workspace = $this->workspace();
         $document = $this->reviewable($workspace, 'Fatura da oficina');
         $scan = $this->attachment($document, 'invoice.jpg');
-        $scan->markOcrCompleted('Factura 2026/0044');
+        $scan->markOcrCompleted('Factura 2026/0044', 3, 2);
 
         $this->actingAs($this->member($workspace))
             ->post(route('attachments.reading.confirm', $scan))
@@ -320,7 +342,7 @@ class IntakeReviewTest extends TestCase
         $workspace = $this->workspace();
         $document = $this->reviewable($workspace, 'Fatura da oficina');
         $scan = $this->attachment($document, 'invoice.jpg');
-        $scan->markOcrCompleted('3  49051 242344062 1165797');
+        $scan->markOcrCompleted('3  49051 242344062 1165797', 5, 4);
         $scan->recordTextFingerprint(4321, null);
         $document->refreshOcrText();
 
@@ -344,7 +366,7 @@ class IntakeReviewTest extends TestCase
         $workspace = $this->workspace();
         $document = $this->reviewable($workspace, 'Fatura da oficina');
         $scan = $this->attachment($document, 'invoice.jpg');
-        $scan->markOcrCompleted('Factura 2026/0044');
+        $scan->markOcrCompleted('Factura 2026/0044', 3, 2);
 
         $outsider = WorkspaceUser::factory()->create(['role' => WorkspaceRole::Admin]);
 

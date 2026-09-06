@@ -28,6 +28,8 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string $checksum
  * @property OcrStatus $ocr_status
  * @property string|null $ocr_text
+ * @property int|null $ocr_word_count
+ * @property int|null $ocr_confident_word_count
  * @property Carbon|null $ocr_reviewed_at
  * @property string|null $ocr_error
  * @property Carbon|null $ocr_extracted_at
@@ -189,12 +191,14 @@ class DocumentAttachment extends Model
      * is still `Completed`, not a failure.
      *
      * @param string $text The extracted text.
+     * @param int|null $wordCount Words the engine returned, or null where the text came from a source that does not score itself.
+     * @param int|null $confidentWordCount Words it was sure enough of to keep.
      *
-     * @return void No return value; persists the text and status as a side effect.
+     * @return void No return value; persists the text, counts and status as a side effect.
      */
-    public function markOcrCompleted(string $text): void
+    public function markOcrCompleted(string $text, ?int $wordCount = null, ?int $confidentWordCount = null): void
     {
-        $this->recordOcr(OcrStatus::Completed, text: $text);
+        $this->recordOcr(OcrStatus::Completed, text: $text, wordCount: $wordCount, confidentWordCount: $confidentWordCount);
     }
 
     /**
@@ -216,11 +220,14 @@ class DocumentAttachment extends Model
      * the fragment that survived out of the document's mirror, the search
      * index and the duplicate fingerprint (ARC-118).
      *
-     * @return void No return value; persists the status as a side effect.
+     * @param int|null $wordCount Words the engine returned.
+     * @param int|null $confidentWordCount Words it was sure enough of to keep.
+     *
+     * @return void No return value; persists the counts and status as a side effect.
      */
-    public function markOcrPoorlyRead(): void
+    public function markOcrPoorlyRead(?int $wordCount = null, ?int $confidentWordCount = null): void
     {
-        $this->recordOcr(OcrStatus::PoorlyRead);
+        $this->recordOcr(OcrStatus::PoorlyRead, wordCount: $wordCount, confidentWordCount: $confidentWordCount);
     }
 
     /**
@@ -346,12 +353,19 @@ class DocumentAttachment extends Model
      *
      * @return void No return value; saves the model as a side effect.
      */
-    private function recordOcr(OcrStatus $status, ?string $text = null, ?string $error = null): void
-    {
+    private function recordOcr(
+        OcrStatus $status,
+        ?string $text = null,
+        ?string $error = null,
+        ?int $wordCount = null,
+        ?int $confidentWordCount = null,
+    ): void {
         $this->forceFill([
             'ocr_status' => $status,
             'ocr_text' => $text,
             'ocr_error' => $error,
+            'ocr_word_count' => $wordCount,
+            'ocr_confident_word_count' => $confidentWordCount,
             'ocr_extracted_at' => $status === OcrStatus::Processing ? null : now(),
         ])->save();
     }

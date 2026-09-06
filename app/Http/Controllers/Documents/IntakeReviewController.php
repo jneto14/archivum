@@ -168,24 +168,26 @@ class IntakeReviewController extends Controller
     }
 
     /**
-     * Every reading nobody has passed judgement on yet, with the text itself.
+     * The readings that went badly and nobody has answered for yet, with the
+     * text itself.
      *
-     * The engine's confidence says how sure it was of each word, which is a
-     * different question from whether the reading is right: a confident
-     * misreading scores as well as a correct one. Only somebody looking at the
-     * page can tell those apart, so the text is put in front of them to keep
-     * or throw away (ARC-118).
+     * **Only the ones that went badly.** A page where every word cleared the
+     * confidence floor is not worth anybody's time, and a queue that asks about
+     * every upload is a queue people stop opening. Two things qualify:
      *
-     * Two kinds arrive here. A reading the engine produced and stands by, which
-     * wants confirming or refusing; and a page the engine refused itself, which
-     * has no text and only wants acknowledging.
+     * - The engine refused the page outright, so there is no text and the row
+     *   only wants acknowledging.
+     * - It kept the page but dropped words out of it. That is the case worth
+     *   a person's eyes, because dropping a word changes what the text says
+     *   without saying so — and the confidence that decided it answers how sure
+     *   the engine was, never whether it was right.
      *
      * Not paginated, for the same reason as the duplicates: a long list here is
      * a signal about the scanning rather than a page to work through.
      *
      * @param Workspace $workspace The workspace being reviewed.
      *
-     * @return array<int, array{id: string, filename: string, document_id: string, document_title: string, text: string|null}> One entry per unreviewed reading, newest first.
+     * @return array<int, array{id: string, filename: string, document_id: string, document_title: string, text: string|null, word_count: int|null, unread_word_count: int|null}> One entry per unanswered bad reading, newest first.
      */
     private function readings(Workspace $workspace): array
     {
@@ -193,10 +195,11 @@ class IntakeReviewController extends Controller
             ->whereNull('ocr_reviewed_at')
             ->where(fn (Builder $query) => $query
                 ->where('ocr_status', OcrStatus::PoorlyRead)
-                ->orWhere(fn (Builder $read) => $read
+                ->orWhere(fn (Builder $partial) => $partial
                     ->where('ocr_status', OcrStatus::Completed)
                     ->whereNotNull('ocr_text')
-                    ->where('ocr_text', '!=', '')))
+                    ->where('ocr_text', '!=', '')
+                    ->whereColumn('ocr_confident_word_count', '<', 'ocr_word_count')))
             ->whereHas('document', fn (Builder $query) => $query->where('workspace_id', $workspace->id))
             ->with('document')
             ->latest('created_at')
@@ -207,6 +210,10 @@ class IntakeReviewController extends Controller
                 'document_id' => (string) $attachment->document_id,
                 'document_title' => (string) $attachment->document?->title,
                 'text' => $attachment->ocr_text,
+                'word_count' => $attachment->ocr_word_count,
+                'unread_word_count' => $attachment->ocr_word_count === null
+                    ? null
+                    : $attachment->ocr_word_count - (int) $attachment->ocr_confident_word_count,
             ])
             ->values()
             ->all();

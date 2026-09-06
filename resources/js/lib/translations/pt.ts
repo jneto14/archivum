@@ -163,11 +163,13 @@ export default {
     'documents.review.keep_both': 'Manter os dois',
     'documents.review.open_document': 'Abrir o documento',
     'documents.review.dismiss': 'Dispensar',
-    'documents.review.readings_title': 'O que foi lido de cada digitalização',
+    'documents.review.readings_title': 'Digitalizações que foram mal lidas',
     'documents.review.readings_description':
-        'Este é o texto que a extração tirou destas páginas, tal e qual como vai ser pesquisado. Fica, ou deita-se fora se estiver mal — uma leitura errada é pior do que nenhuma, porque passa a ser resultado de pesquisa para palavras que ninguém escreveu.',
+        'A extração de texto teve dificuldade nestas páginas e deixou palavras de fora. Isto é o que ficou, tal e qual como vai ser pesquisado. Fica, ou deita-se fora se estiver mal — uma leitura errada é pior do que nenhuma, porque passa a ser resultado de pesquisa para palavras que ninguém escreveu.',
     'documents.review.reading_empty':
         'Não saiu nada legível desta página. Havia escrita nela, mas não se leu o suficiente para valer a pena guardar.',
+    'documents.review.reading_words_dropped':
+        ':dropped das :total palavras desta página estavam pouco nítidas para guardar, por isso faltam no texto abaixo.',
     'documents.review.reading_confirm': 'A leitura está boa',
     'documents.review.reading_reject': 'Deitar fora',
     'documents.review.reading_acknowledge': 'Percebido',
