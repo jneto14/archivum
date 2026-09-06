@@ -19,6 +19,7 @@ use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use App\Services\Ocr\AttachmentTextExtractor;
 use App\Services\Ocr\Contracts\OcrEngine;
+use App\Services\Ocr\RecognizedText;
 use App\Services\Ocr\TextFingerprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -217,9 +218,9 @@ class AttachmentDuplicateTest extends TestCase
                 return true;
             }
 
-            public function extract(string $imagePath): string
+            public function extract(string $imagePath): RecognizedText
             {
-                return $this->text;
+                return RecognizedText::confident($this->text);
             }
         });
 

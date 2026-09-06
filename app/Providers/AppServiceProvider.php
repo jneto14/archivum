@@ -57,6 +57,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(OcrEngine::class, fn (): OcrEngine => new TesseractEngine(
             (string) config('archivum.ocr.languages'),
             (int) config('archivum.ocr.timeout'),
+            (int) config('archivum.ocr.min_word_confidence'),
         ));
     }
 

@@ -63,6 +63,8 @@ The `archivum.ocr` block in `config/archivum.php`:
 | `OCR_MAX_PAGES` | `20` | Pages rasterized per attachment. OCR costs roughly a second of CPU per page |
 | `OCR_DPI` | `300` | Rasterization resolution. Tesseract is trained around 300 and degrades below it |
 | `OCR_TIMEOUT` | `120` | Seconds any single binary call may run |
+| `OCR_MIN_WORD_CONFIDENCE` | `60` | Confidence, 0-100, a word must carry to be kept. Tesseract scores every word it reads; printed text scores 91-96 here, while ink carrying no text at all comes back between 0 and 63 |
+| `OCR_MIN_CONFIDENT_WORD_RATIO` | `0.3` | Share of a page's words that must clear that floor before the reading is stored at all |
 
 An installation without the binaries still works. Extraction records itself as
 unavailable on the attachment and the document page says so, rather than failing
@@ -91,6 +93,7 @@ They are not all the same, and the job treats them differently:
 | The job was killed around `handle()` — a timeout, a missing model | `failed()` records it, so the attachment and its task do not sit on "processing" forever |
 | Neither a PDF nor an image | Recorded as *skipped*. Nothing is wrong with the file; extraction just does not apply |
 | The binaries are absent, or OCR is off | Recorded as *unavailable* |
+| The page was read, but almost none of it confidently | Recorded as *poorly read*, with no text stored. Not retried: the same file reads the same way |
 
 A corrupt upload never fails the upload request, which matters on an
 installation running the `sync` queue driver where the job runs inline.
@@ -107,6 +110,77 @@ queue retry_after  >  worker --timeout  >=  job timeout  >=  max_pages × ocr.ti
 
 All of them derive from `OCR_MAX_PAGES` and `OCR_TIMEOUT`, so raising the page
 cap moves the whole chain. `QueueTimeoutTest` fails if it stops holding.
+
+## Believing it
+
+Handwriting is read badly — the shipped models are trained on printed text, and
+there is no handwriting model — so something has to stand between what Tesseract
+returns and the database. Unlike suggested values and learned vocabulary, both
+of which wait for a person, the extracted text is stored, mirrored onto the
+document, indexed for search and reduced to a duplicate fingerprint with nobody
+in the way.
+
+Tesseract already scores every word it reads. Output is asked for as TSV rather
+than plain text — the same recognition pass at the same cost — and the score
+comes with it, so a guess no longer arrives indistinguishable from a reading.
+
+**Words are filtered one at a time, not pages.** A printed form filled in by
+hand is the common case in an archive, and the right outcome there is to keep
+the printed labels and lose the scrawl: a value is recognised by the words in
+front of it, so the labels are precisely what must survive. An all-or-nothing
+page decision would throw them away along with the handwriting.
+
+Line structure is rebuilt from the TSV's line columns rather than dropped, for
+the same reason. Text reassembled as one long run of words would join the end of
+one line to the start of the next and invent labels nobody wrote.
+
+A refused word leaves **two spaces** rather than nothing. Removing it outright
+closes the space it occupied, and a value's end is decided by adjacency — groups
+one space apart are one value — so dropping an unreadable dash out of
+`3 — 49051 242344062 1165797` offered four unrelated numbers as a single tax
+number. The wider gap says what happened, and costs nothing elsewhere: every
+other reader of this text either collapses whitespace or splits on it.
+
+**Then a floor for the page.** Where almost nothing survives — a sheet of pure
+handwriting — the few words that scored well are as likely to be noise that
+happened to look like a word. The attachment is recorded as *poorly read* and no
+text is stored, which keeps it out of the search index, out of the document's
+mirror and out of the fingerprint. That is distinct from a blank page, which was
+read perfectly and simply has nothing on it.
+
+**A blank page is told apart by its layout, not its word count.** Tesseract
+lays out blocks, paragraphs and lines before it recognises anything, so a page
+of handwriting comes back with lines on it and not one readable word, while a
+blank sheet comes back with no layout at all. Counting only words makes those
+two the same answer — and a photographed page of handwriting was duly recorded
+as a blank page that had been read perfectly, which is the exact case any of
+this exists for. Across
+a multi-page scan the counts add up rather than being averaged per page, so one
+unreadable page does not condemn the other nineteen.
+
+### Every reading is confirmed by a person
+
+Confidence answers how sure the engine was of each word. It does not answer
+whether the reading is **right** — a confident misreading scores as well as a
+correct one, and no threshold can tell those apart. Only somebody looking at the
+page can.
+
+So the review queue puts the extracted text itself in front of a person,
+verbatim and preformatted, beside the file it came from. Two answers:
+
+- **Keep it.** The reading stands, and the attachment leaves the queue.
+- **Throw it away.** `ocr_text` is deleted, the fingerprint with it, and the
+  attachment is recorded as poorly read. Not flagged — deleted. The text is what
+  feeds the search index and the duplicate comparison, so a reading nobody
+  believes has to stop being one; flagging it would leave it doing its damage.
+
+A page the engine refused itself has no text to judge and only wants
+acknowledging, which is the same answer with nothing to weigh.
+
+`ocr_reviewed_at` records that somebody answered, either way. It is a separate
+column from the status because the status is what happened to the file and goes
+on being shown on the document page, while this only says the question has been
+put and answered.
 
 ## What is made of the text
 
@@ -276,9 +350,9 @@ document's own page to be revisited would mean nothing is ever confirmed.
 
 So the findings are collected on **To review** (`documents.review`), a
 workspace-wide queue: one row per document, its suggested values ticked by
-default, applied or dismissed in a click. Flagged duplicates are listed below
-it, and below those — **for workspace admins only** — the words the archive is
-proposing to read by. The sidebar carries the count, which costs one query on
+default, applied or dismissed in a click. Scans that could not be read are
+listed below it, then flagged duplicates, and below those — **for workspace
+admins only** — the words the archive is proposing to read by. The sidebar carries the count, which costs one query on
 every request and is the reason the queue is used at all; the label half of it
 is counted only for the admins who are shown that section, so nobody is badged
 towards work they cannot do.

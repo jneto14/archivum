@@ -23,6 +23,17 @@ enum OcrStatus: string
     /** Text was extracted — possibly an empty string, if the page is blank. */
     case Completed = 'completed';
 
+    /**
+     * The page was read, but too little of it confidently enough to keep.
+     *
+     * Distinct from `Completed` with no text, which is a blank page: this one
+     * had something on it that the engine could not read — handwriting, most
+     * often. No text is stored, so nothing reaches the search index or the
+     * duplicate fingerprint. Not worth retrying; the same file reads the same
+     * way (ARC-118).
+     */
+    case PoorlyRead = 'poorly_read';
+
     /** Nothing to extract from: the file is neither a PDF nor an image. */
     case Skipped = 'skipped';
 

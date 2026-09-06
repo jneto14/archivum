@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Documents;
 
 use App\Actions\Documents\IntakeVocabulary;
 use App\Actions\Documents\SuggestDocumentMetadata;
+use App\Enums\OcrStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Models\DocumentAttachment;
@@ -107,6 +108,7 @@ class IntakeReviewController extends Controller
                 'total' => $documents->total(),
             ],
             'duplicates' => $this->duplicates($workspace),
+            'readings' => $this->readings($workspace),
             'labels' => $request->user()->can('update', $workspace)
                 ? $this->candidateLabels($workspace)
                 : [],
@@ -160,6 +162,58 @@ class IntakeReviewController extends Controller
                     ])
                     ->values()
                     ->all(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The readings that went badly and nobody has answered for yet, with the
+     * text itself.
+     *
+     * **Only the ones that went badly.** A page where every word cleared the
+     * confidence floor is not worth anybody's time, and a queue that asks about
+     * every upload is a queue people stop opening. Two things qualify:
+     *
+     * - The engine refused the page outright, so there is no text and the row
+     *   only wants acknowledging.
+     * - It kept the page but dropped words out of it. That is the case worth
+     *   a person's eyes, because dropping a word changes what the text says
+     *   without saying so — and the confidence that decided it answers how sure
+     *   the engine was, never whether it was right.
+     *
+     * Not paginated, for the same reason as the duplicates: a long list here is
+     * a signal about the scanning rather than a page to work through.
+     *
+     * @param Workspace $workspace The workspace being reviewed.
+     *
+     * @return array<int, array{id: string, filename: string, document_id: string, document_title: string, text: string|null, word_count: int|null, unread_word_count: int|null}> One entry per unanswered bad reading, newest first.
+     */
+    private function readings(Workspace $workspace): array
+    {
+        return DocumentAttachment::query()
+            ->whereNull('ocr_reviewed_at')
+            ->where(fn (Builder $query) => $query
+                ->where('ocr_status', OcrStatus::PoorlyRead)
+                ->orWhere(fn (Builder $partial) => $partial
+                    ->where('ocr_status', OcrStatus::Completed)
+                    ->whereNotNull('ocr_text')
+                    ->where('ocr_text', '!=', '')
+                    ->whereColumn('ocr_confident_word_count', '<', 'ocr_word_count')))
+            ->whereHas('document', fn (Builder $query) => $query->where('workspace_id', $workspace->id))
+            ->with('document')
+            ->latest('created_at')
+            ->get()
+            ->map(fn (DocumentAttachment $attachment): array => [
+                'id' => $attachment->id,
+                'filename' => $attachment->filename,
+                'document_id' => (string) $attachment->document_id,
+                'document_title' => (string) $attachment->document?->title,
+                'text' => $attachment->ocr_text,
+                'word_count' => $attachment->ocr_word_count,
+                'unread_word_count' => $attachment->ocr_word_count === null
+                    ? null
+                    : $attachment->ocr_word_count - (int) $attachment->ocr_confident_word_count,
             ])
             ->values()
             ->all();

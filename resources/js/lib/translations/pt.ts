@@ -161,6 +161,18 @@ export default {
     'documents.review.duplicate_of': ':filename parece “:document”',
     'documents.review.open_original': 'Abrir o original',
     'documents.review.keep_both': 'Manter os dois',
+    'documents.review.open_document': 'Abrir o documento',
+    'documents.review.dismiss': 'Dispensar',
+    'documents.review.readings_title': 'Digitalizações que foram mal lidas',
+    'documents.review.readings_description':
+        'A extração de texto teve dificuldade nestas páginas e deixou palavras de fora. Isto é o que ficou, tal e qual como vai ser pesquisado. Fica, ou deita-se fora se estiver mal — uma leitura errada é pior do que nenhuma, porque passa a ser resultado de pesquisa para palavras que ninguém escreveu.',
+    'documents.review.reading_empty':
+        'Não saiu nada legível desta página. Havia escrita nela, mas não se leu o suficiente para valer a pena guardar.',
+    'documents.review.reading_words_dropped':
+        ':dropped das :total palavras desta página estavam pouco nítidas para guardar, por isso faltam no texto abaixo.',
+    'documents.review.reading_confirm': 'A leitura está boa',
+    'documents.review.reading_reject': 'Deitar fora',
+    'documents.review.reading_acknowledge': 'Percebido',
     'documents.review.labels_title': 'Palavras que este arquivo usa',
     'documents.review.labels_description':
         'Os teus próprios documentos foram vistos a escrever isto à frente de um valor. Aceita uma e o leitor passa a reconhecer esse campo por ela, neste workspace e em mais nenhum.',
@@ -197,6 +209,8 @@ export default {
     'documents.show.ocr_processing': 'A ler o texto…',
     'documents.show.ocr_skipped': 'Sem texto legível',
     'documents.show.ocr_unavailable': 'Extração de texto indisponível',
+    'documents.show.ocr_poorly_read':
+        'Lido, mas pouco dele com nitidez suficiente para guardar',
     'documents.show.ocr_failed': 'Não foi possível ler o texto',
     'documents.show.physical_location_title': 'Localização física',
     'documents.show.location_not_assigned': 'Ainda não atribuída.',

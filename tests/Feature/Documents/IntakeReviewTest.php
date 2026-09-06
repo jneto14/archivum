@@ -7,6 +7,7 @@ namespace Tests\Feature\Documents;
 use App\Actions\Documents\CountIntakeReview;
 use App\Actions\Documents\CreateDocument;
 use App\Actions\Documents\SuggestDocumentMetadata;
+use App\Enums\OcrStatus;
 use App\Enums\WorkspaceRole;
 use App\Models\Document;
 use App\Models\DocumentAttachment;
@@ -246,6 +247,134 @@ class IntakeReviewTest extends TestCase
                 // Two documents with suggestions, plus the flagged attachment.
                 ->where('intakeReviewCount', 3),
             );
+    }
+
+    // The engine's confidence says how sure it was of each word, which is not
+    // the same question as whether the reading is right — a confident
+    // misreading scores as well as a correct one. Only somebody looking at the
+    // page can tell them apart, so the text goes in front of them (ARC-118).
+    public function test_the_queue_shows_what_was_read_off_each_scan()
+    {
+        $workspace = $this->workspace();
+        $document = $this->reviewable($workspace, 'Fatura da oficina');
+
+        $scan = $this->attachment($document, 'invoice.jpg');
+        $scan->markOcrCompleted("Factura 2026/0044\n3  49051 242344062 1165797", 40, 36);
+
+        $this->actingAs($this->member($workspace))
+            ->get(route('documents.review', $workspace))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('readings.0.id', $scan->id)
+                ->where('readings.0.text', "Factura 2026/0044\n3  49051 242344062 1165797")
+                ->where('readings.0.unread_word_count', 4)
+                // The one document with suggestions, plus the reading.
+                ->where('intakeReviewCount', 2),
+            );
+    }
+
+    // The queue is for the readings that went badly. A page where every word
+    // cleared the floor is not worth anybody's time, and a queue that asks
+    // about every upload is one people stop opening.
+    public function test_a_reading_the_engine_was_sure_of_is_never_asked_about()
+    {
+        $workspace = $this->workspace();
+        $document = $this->reviewable($workspace, 'Fatura limpa');
+
+        $scan = $this->attachment($document, 'clean.pdf');
+        $scan->markOcrCompleted('Factura 2026/0044 total 98,80', 5, 5);
+
+        $this->actingAs($this->member($workspace))
+            ->get(route('documents.review', $workspace))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('readings', [])
+                // Only the document's own suggestions are waiting.
+                ->where('intakeReviewCount', 1),
+            );
+    }
+
+    public function test_a_page_the_engine_refused_is_listed_with_no_text_to_judge()
+    {
+        $workspace = $this->workspace();
+        $document = $this->reviewable($workspace, 'Recibo manuscrito');
+
+        $scan = $this->attachment($document, 'handwritten.png');
+        $scan->markOcrPoorlyRead();
+
+        $this->actingAs($this->member($workspace))
+            ->get(route('documents.review', $workspace))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('readings.0.id', $scan->id)
+                ->where('readings.0.text', null),
+            );
+    }
+
+    public function test_confirming_a_reading_keeps_the_text_and_takes_it_off_the_queue()
+    {
+        $workspace = $this->workspace();
+        $document = $this->reviewable($workspace, 'Fatura da oficina');
+        $scan = $this->attachment($document, 'invoice.jpg');
+        $scan->markOcrCompleted('Factura 2026/0044', 3, 2);
+
+        $this->actingAs($this->member($workspace))
+            ->post(route('attachments.reading.confirm', $scan))
+            ->assertRedirect();
+
+        $scan->refresh();
+
+        $this->assertNotNull($scan->ocr_reviewed_at);
+        $this->assertSame('Factura 2026/0044', $scan->ocr_text);
+
+        $this->actingAs($this->member($workspace))
+            ->get(route('documents.review', $workspace))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('readings', []));
+    }
+
+    // Refusing deletes the text rather than flagging it. `ocr_text` is what
+    // feeds the search index and the duplicate fingerprint, so a reading
+    // nobody believes has to stop being one — flagging it would leave it doing
+    // its damage.
+    public function test_refusing_a_reading_throws_the_text_away()
+    {
+        $workspace = $this->workspace();
+        $document = $this->reviewable($workspace, 'Fatura da oficina');
+        $scan = $this->attachment($document, 'invoice.jpg');
+        $scan->markOcrCompleted('3  49051 242344062 1165797', 5, 4);
+        $scan->recordTextFingerprint(4321, null);
+        $document->refreshOcrText();
+
+        $this->actingAs($this->member($workspace))
+            ->delete(route('attachments.reading.reject', $scan))
+            ->assertRedirect();
+
+        $scan->refresh();
+
+        $this->assertNull($scan->ocr_text);
+        $this->assertNull($scan->text_simhash, 'A refused reading must leave the duplicate fingerprint too.');
+        $this->assertSame(OcrStatus::PoorlyRead, $scan->ocr_status);
+        $this->assertNotNull($scan->ocr_reviewed_at);
+
+        // The document mirrors its attachments, and is what search reads.
+        $this->assertNull($document->refresh()->ocr_text);
+    }
+
+    public function test_an_outsider_cannot_answer_for_a_reading()
+    {
+        $workspace = $this->workspace();
+        $document = $this->reviewable($workspace, 'Fatura da oficina');
+        $scan = $this->attachment($document, 'invoice.jpg');
+        $scan->markOcrCompleted('Factura 2026/0044', 3, 2);
+
+        $outsider = WorkspaceUser::factory()->create(['role' => WorkspaceRole::Admin]);
+
+        $this->actingAs($outsider->user)
+            ->delete(route('attachments.reading.reject', $scan))
+            ->assertForbidden();
+
+        $this->assertSame('Factura 2026/0044', $scan->refresh()->ocr_text);
     }
 
     /**

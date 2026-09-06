@@ -28,6 +28,9 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string $checksum
  * @property OcrStatus $ocr_status
  * @property string|null $ocr_text
+ * @property int|null $ocr_word_count
+ * @property int|null $ocr_confident_word_count
+ * @property Carbon|null $ocr_reviewed_at
  * @property string|null $ocr_error
  * @property Carbon|null $ocr_extracted_at
  * @property int|null $text_simhash
@@ -100,6 +103,7 @@ class DocumentAttachment extends Model
         return [
             'ocr_status' => OcrStatus::class,
             'ocr_extracted_at' => 'datetime',
+            'ocr_reviewed_at' => 'datetime',
             'text_simhash' => 'integer',
         ];
     }
@@ -187,12 +191,14 @@ class DocumentAttachment extends Model
      * is still `Completed`, not a failure.
      *
      * @param string $text The extracted text.
+     * @param int|null $wordCount Words the engine returned, or null where the text came from a source that does not score itself.
+     * @param int|null $confidentWordCount Words it was sure enough of to keep.
      *
-     * @return void No return value; persists the text and status as a side effect.
+     * @return void No return value; persists the text, counts and status as a side effect.
      */
-    public function markOcrCompleted(string $text): void
+    public function markOcrCompleted(string $text, ?int $wordCount = null, ?int $confidentWordCount = null): void
     {
-        $this->recordOcr(OcrStatus::Completed, text: $text);
+        $this->recordOcr(OcrStatus::Completed, text: $text, wordCount: $wordCount, confidentWordCount: $confidentWordCount);
     }
 
     /**
@@ -204,6 +210,24 @@ class DocumentAttachment extends Model
     public function markOcrSkipped(): void
     {
         $this->recordOcr(OcrStatus::Skipped);
+    }
+
+    /**
+     * Record that the page was read but too little of it clearly enough to
+     * keep.
+     *
+     * No text is written, deliberately: `ocr_text` staying null is what keeps
+     * the fragment that survived out of the document's mirror, the search
+     * index and the duplicate fingerprint (ARC-118).
+     *
+     * @param int|null $wordCount Words the engine returned.
+     * @param int|null $confidentWordCount Words it was sure enough of to keep.
+     *
+     * @return void No return value; persists the counts and status as a side effect.
+     */
+    public function markOcrPoorlyRead(?int $wordCount = null, ?int $confidentWordCount = null): void
+    {
+        $this->recordOcr(OcrStatus::PoorlyRead, wordCount: $wordCount, confidentWordCount: $confidentWordCount);
     }
 
     /**
@@ -261,6 +285,63 @@ class DocumentAttachment extends Model
     }
 
     /**
+     * Record that somebody has read what OCR made of this file and is content
+     * to keep it.
+     *
+     * Only a person can answer this. The engine's own confidence says how sure
+     * it was of each word, which is not the same as whether the reading is
+     * right — a confident misreading scores as well as a correct one, and only
+     * somebody looking at the page can tell them apart (ARC-118).
+     *
+     * @return void No return value; saves the model as a side effect.
+     */
+    public function confirmOcr(): void
+    {
+        $this->forceFill(['ocr_reviewed_at' => now()])->save();
+    }
+
+    /**
+     * Throw away what OCR made of this file, because somebody has read it and
+     * it is wrong.
+     *
+     * The text goes rather than being flagged, which is the whole value of the
+     * answer: `ocr_text` is what feeds the search index and the duplicate
+     * fingerprint, so a reading nobody believes has to stop being one. The
+     * status becomes `PoorlyRead` for the same reason it does when the engine
+     * refuses a page itself — the file was read, and what came back was not
+     * worth having.
+     *
+     * The caller is responsible for refreshing the document's mirror
+     * afterwards; the attachment cannot see its siblings' text.
+     *
+     * @return void No return value; saves the model as a side effect.
+     */
+    public function rejectOcr(): void
+    {
+        $this->forceFill([
+            'ocr_text' => null,
+            'ocr_status' => OcrStatus::PoorlyRead,
+            'text_simhash' => null,
+            'duplicate_of_attachment_id' => null,
+            'ocr_reviewed_at' => now(),
+        ])->save();
+    }
+
+    /**
+     * Record that somebody has seen a page the engine itself refused, so it
+     * stops being counted.
+     *
+     * Handwriting never improves, and without a way out the queue would go on
+     * counting a page nobody can do anything more about.
+     *
+     * @return void No return value; saves the model as a side effect.
+     */
+    public function dismissOcrReview(): void
+    {
+        $this->forceFill(['ocr_reviewed_at' => now()])->save();
+    }
+
+    /**
      * Persist an extraction outcome.
      *
      * Uses `forceFill` because the OCR columns are intentionally not fillable;
@@ -272,12 +353,19 @@ class DocumentAttachment extends Model
      *
      * @return void No return value; saves the model as a side effect.
      */
-    private function recordOcr(OcrStatus $status, ?string $text = null, ?string $error = null): void
-    {
+    private function recordOcr(
+        OcrStatus $status,
+        ?string $text = null,
+        ?string $error = null,
+        ?int $wordCount = null,
+        ?int $confidentWordCount = null,
+    ): void {
         $this->forceFill([
             'ocr_status' => $status,
             'ocr_text' => $text,
             'ocr_error' => $error,
+            'ocr_word_count' => $wordCount,
+            'ocr_confident_word_count' => $confidentWordCount,
             'ocr_extracted_at' => $status === OcrStatus::Processing ? null : now(),
         ])->save();
     }

@@ -26,16 +26,24 @@ use Throwable;
  * exit code 0, for an image that simply has no legible text: a photograph, a
  * logo, a blank page. Going through Process means the exit code decides, which
  * is the only thing that actually distinguishes "found nothing" from "broke".
+ *
+ * Output is asked for as TSV rather than plain text. It is the same
+ * recognition pass at the same cost, and it carries a confidence per word —
+ * which is the only thing standing between a page of handwriting and a search
+ * index full of words nobody wrote (ARC-118). Reading that table is
+ * `TesseractTsv`; this class only runs the binary.
  */
 class TesseractEngine implements OcrEngine
 {
     /**
      * @param string $languages Tesseract language codes joined with "+", e.g. "por+eng".
      * @param int $timeout Seconds a single recognition may run before it is killed.
+     * @param int $minWordConfidence Confidence, 0-100, a word must carry to be kept.
      */
     public function __construct(
         private readonly string $languages,
         private readonly int $timeout,
+        private readonly int $minWordConfidence,
     ) {}
 
     /**
@@ -67,11 +75,11 @@ class TesseractEngine implements OcrEngine
     /**
      * @param string $imagePath Absolute path to a readable local raster image.
      *
-     * @return string The recognised text, trimmed. Empty when the image holds no legible text.
+     * @return RecognizedText The words that met the confidence floor, and how many did not.
      *
      * @throws RuntimeException If tesseract exits unsuccessfully or is killed by the timeout.
      */
-    public function extract(string $imagePath): string
+    public function extract(string $imagePath): RecognizedText
     {
         $command = new Command($imagePath);
 
@@ -79,6 +87,12 @@ class TesseractEngine implements OcrEngine
         // up and the result is read straight off the process.
         $command->useFileAsOutput = false;
         $command->options[] = Option::lang(...$this->languageCodes());
+
+        // TSV rather than plain text: the same recognition pass, but it also
+        // reports what tesseract thought of each word. Asking for the text
+        // alone throws that away, and a guess then arrives indistinguishable
+        // from a reading (ARC-118).
+        $command->configFile = 'tsv';
 
         $process = Process::fromShellCommandline((string) $command);
         $process->setTimeout((float) $this->timeout);
@@ -93,7 +107,7 @@ class TesseractEngine implements OcrEngine
             throw new RuntimeException($this->failureMessage($process));
         }
 
-        return mb_trim($process->getOutput());
+        return (new TesseractTsv($this->minWordConfidence))->read($process->getOutput());
     }
 
     /**

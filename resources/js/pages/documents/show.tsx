@@ -63,6 +63,7 @@ type OcrStatus =
     | 'pending'
     | 'processing'
     | 'completed'
+    | 'poorly_read'
     | 'skipped'
     | 'unavailable'
     | 'failed';
@@ -99,6 +100,7 @@ const ocrStatusKeys = {
     skipped: 'documents.show.ocr_skipped',
     unavailable: 'documents.show.ocr_unavailable',
     failed: 'documents.show.ocr_failed',
+    poorly_read: 'documents.show.ocr_poorly_read',
     completed: null,
 } as const;
 

@@ -159,6 +159,18 @@ export default {
     'documents.review.duplicate_of': ':filename looks like “:document”',
     'documents.review.open_original': 'Open the original',
     'documents.review.keep_both': 'Keep both',
+    'documents.review.open_document': 'Open the document',
+    'documents.review.dismiss': 'Dismiss',
+    'documents.review.readings_title': 'Scans that were read badly',
+    'documents.review.readings_description':
+        'Text extraction struggled with these pages and left words out. This is what it kept, exactly as it will be searched. Keep it, or throw it away if it is wrong — a bad reading is worse than none, because it becomes a search result for words nobody wrote.',
+    'documents.review.reading_empty':
+        'Nothing legible came off this page. There was writing on it, but not enough of it could be read to be worth keeping.',
+    'documents.review.reading_words_dropped':
+        ':dropped of the :total words on this page were too unclear to keep, so they are missing from the text below.',
+    'documents.review.reading_confirm': 'Reading is good',
+    'documents.review.reading_reject': 'Throw it away',
+    'documents.review.reading_acknowledge': 'Understood',
     'documents.review.labels_title': 'Words this archive uses',
     'documents.review.labels_description':
         'Your own documents were seen writing these in front of a value. Accept one and the reader will recognise that field by it from now on, across this workspace and nowhere else.',
@@ -195,6 +207,8 @@ export default {
     'documents.show.ocr_processing': 'Reading text…',
     'documents.show.ocr_skipped': 'No readable text',
     'documents.show.ocr_unavailable': 'Text extraction unavailable',
+    'documents.show.ocr_poorly_read':
+        'Read, but too little of it clearly enough to keep',
     'documents.show.ocr_failed': 'Could not read text',
     'documents.show.physical_location_title': 'Physical location',
     'documents.show.location_not_assigned': 'Not yet assigned.',

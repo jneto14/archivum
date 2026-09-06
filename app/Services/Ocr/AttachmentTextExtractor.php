@@ -60,7 +60,7 @@ class AttachmentTextExtractor
 
         if (Str::startsWith($mimeType, 'image/')) {
             return $this->engine->isAvailable()
-                ? $this->withLocalCopy($attachment, fn (string $path): ExtractedText => ExtractedText::completed($this->engine->extract($path)))
+                ? $this->withLocalCopy($attachment, fn (string $path): ExtractedText => $this->believe($this->engine->extract($path)))
                 : ExtractedText::unavailable();
         }
 
@@ -97,8 +97,36 @@ class AttachmentTextExtractor
                 return ExtractedText::unavailable();
             }
 
-            return ExtractedText::completed($this->ocrPdfPages($path));
+            return $this->believe($this->ocrPdfPages($path));
         });
+    }
+
+    /**
+     * Decide whether a reading is worth storing at all.
+     *
+     * Words below the confidence floor are already gone by the time this runs;
+     * what is left to judge is whether enough of the page survived for the
+     * remainder to mean anything. A page where almost everything was dropped
+     * is one the engine could not read — handwriting, most often — and the few
+     * words that scored well on it are as likely to be noise that happened to
+     * look like a word as anything that was written.
+     *
+     * Storing that fragment is worse than storing nothing. It would go into
+     * the full-text index, where it becomes a search result for a word nobody
+     * wrote, and into the duplicate fingerprint, where two unrelated pages of
+     * noise can land close enough to be flagged as copies of each other.
+     *
+     * @param RecognizedText $recognized What the engine made of the attachment.
+     *
+     * @return ExtractedText A Completed result, or PoorlyRead when too little survived.
+     */
+    private function believe(RecognizedText $recognized): ExtractedText
+    {
+        $floor = (float) config('archivum.ocr.min_confident_word_ratio');
+
+        return $recognized->confidentRatio() < $floor
+            ? ExtractedText::poorlyRead($recognized->wordCount, $recognized->confidentWordCount)
+            : ExtractedText::completed($recognized->text, $recognized->wordCount, $recognized->confidentWordCount);
     }
 
     /**
@@ -158,12 +186,12 @@ class AttachmentTextExtractor
      *
      * @param string $path Absolute path to a local PDF.
      *
-     * @return string The recognised text of every processed page, joined by blank lines.
+     * @return RecognizedText The recognised text of every processed page, joined by blank lines.
      *
      * @throws UnreadableAttachment If the file is not a PDF Imagick can open.
      * @throws RuntimeException If a page cannot be recognised.
      */
-    private function ocrPdfPages(string $path): string
+    private function ocrPdfPages(string $path): RecognizedText
     {
         $directory = $this->temporaryDirectory();
 
@@ -175,14 +203,14 @@ class AttachmentTextExtractor
             $pageCount = min($pdf->pageCount(), (int) config('archivum.ocr.max_pages'));
 
             if ($pageCount < 1) {
-                return '';
+                return RecognizedText::empty();
             }
 
             $images = $pdf->selectPages(...range(1, $pageCount))->save($directory);
 
-            $pages = array_map(fn (string $image): string => $this->engine->extract($image), $images);
-
-            return mb_trim(implode("\n\n", array_filter($pages, static fn (string $page): bool => $page !== '')));
+            return RecognizedText::join(
+                array_values(array_map(fn (string $image): RecognizedText => $this->engine->extract($image), $images)),
+            );
         } catch (RuntimeException $exception) {
             // Already ours — an engine failure from the loop above, which is
             // about the engine rather than the file, and stays retryable.

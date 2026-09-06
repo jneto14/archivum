@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Ocr\Contracts;
 
+use App\Services\Ocr\RecognizedText;
 use RuntimeException;
 
 /**
@@ -38,11 +39,16 @@ interface OcrEngine
     /**
      * Extract the text from one image.
      *
+     * Implementations return the words they were confident about, and how
+     * many they were not. An engine that scores nothing may report every word
+     * as confident; what it must not do is present a guess as a reading, since
+     * the caller has no other way to tell the two apart.
+     *
      * @param string $imagePath Absolute path to a readable local raster image.
      *
-     * @return string The recognised text, trimmed. Empty when the image holds no legible text.
+     * @return RecognizedText The recognised text and what it is worth. Empty when the image holds no legible text.
      *
      * @throws RuntimeException If recognition fails, as opposed to finding nothing.
      */
-    public function extract(string $imagePath): string;
+    public function extract(string $imagePath): RecognizedText;
 }

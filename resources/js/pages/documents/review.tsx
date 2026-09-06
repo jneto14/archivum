@@ -4,6 +4,7 @@ import { DocumentSuggestionReview } from '@/components/document-suggestion-revie
 import type { ReviewableDocument } from '@/components/document-suggestion-review';
 import { EmptyState } from '@/components/empty-state';
 import Heading from '@/components/heading';
+import { OcrReadingReview } from '@/components/ocr-reading-review';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
@@ -31,6 +32,17 @@ type DuplicateRow = {
     };
 };
 
+type ReadingRow = {
+    id: string;
+    filename: string;
+    document_id: string;
+    document_title: string;
+    /** What OCR made of the page, or null where the engine refused it outright. */
+    text: string | null;
+    word_count: number | null;
+    unread_word_count: number | null;
+};
+
 type CandidateLabel = {
     id: string;
     kind: string;
@@ -53,6 +65,7 @@ type Props = {
         total: number;
     };
     duplicates: DuplicateRow[];
+    readings: ReadingRow[];
     labels: CandidateLabel[];
 };
 
@@ -62,6 +75,7 @@ export default function DocumentReview({
     documents,
     pagination,
     duplicates,
+    readings,
     labels,
 }: Props) {
     const t = useTranslation();
@@ -107,6 +121,7 @@ export default function DocumentReview({
     const nothingToReview =
         documents.length === 0 &&
         duplicates.length === 0 &&
+        readings.length === 0 &&
         labels.length === 0;
 
     return (
@@ -153,6 +168,30 @@ export default function DocumentReview({
                                     to={pagination.to}
                                     total={pagination.total}
                                 />
+                            </div>
+                        )}
+
+                        {readings.length > 0 && (
+                            <div className="space-y-3">
+                                <Heading
+                                    variant="small"
+                                    title={t('documents.review.readings_title')}
+                                />
+                                <Panel>
+                                    <PanelHeader>
+                                        <span className="text-sm text-muted-foreground">
+                                            {t(
+                                                'documents.review.readings_description',
+                                            )}
+                                        </span>
+                                    </PanelHeader>
+                                    {readings.map((reading) => (
+                                        <OcrReadingReview
+                                            key={reading.id}
+                                            reading={reading}
+                                        />
+                                    ))}
+                                </Panel>
                             </div>
                         )}
 

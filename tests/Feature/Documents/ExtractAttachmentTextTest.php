@@ -24,6 +24,7 @@ use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use App\Services\Ocr\AttachmentTextExtractor;
 use App\Services\Ocr\Contracts\OcrEngine;
+use App\Services\Ocr\RecognizedText;
 use App\Services\Ocr\TextFingerprint;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Http\UploadedFile;
@@ -336,6 +337,33 @@ class ExtractAttachmentTextTest extends TestCase
         $this->assertSame(OcrStatus::Skipped->value, $task->result['outcome']);
     }
 
+    public function test_a_poorly_read_page_stores_no_text_and_gets_no_fingerprint()
+    {
+        config()->set('archivum.ocr.min_confident_word_ratio', 0.3);
+
+        $this->fakeEngine(new RecognizedText('scraps that scored well', 40, 4));
+
+        $attachment = $this->attachment($this->document(), 'handwritten.png', 'image/png');
+
+        $task = $this->runExtraction($attachment);
+
+        $attachment->refresh();
+
+        $this->assertSame(OcrStatus::PoorlyRead, $attachment->ocr_status);
+        $this->assertNull($attachment->ocr_text);
+        $this->assertNull($attachment->ocr_error, 'Nothing went wrong; the page simply could not be read.');
+
+        // The half of this that matters as much as the empty text. Two
+        // unrelated pages of noise can land close enough to be flagged as
+        // copies of each other, so a reading nobody trusts must never reach
+        // the fingerprint (ARC-118).
+        $this->assertNull($attachment->text_simhash);
+        $this->assertNull($attachment->document->refresh()->ocr_text);
+
+        $this->assertSame(TaskStatus::Completed, $task->refresh()->status);
+        $this->assertSame(OcrStatus::PoorlyRead->value, $task->result['outcome']);
+    }
+
     public function test_the_job_records_unavailable_when_extraction_is_switched_off()
     {
         config()->set('archivum.ocr.enabled', false);
@@ -469,24 +497,26 @@ class ExtractAttachmentTextTest extends TestCase
     /**
      * Bind an OCR engine that always recognises $text.
      *
-     * @param string $text What the engine returns.
+     * @param string|RecognizedText $text What the engine returns. A plain string is taken as fully confident.
      *
      * @return void No return value; binds the engine into the container.
      */
-    private function fakeEngine(string $text): void
+    private function fakeEngine(string|RecognizedText $text): void
     {
-        $this->app->instance(OcrEngine::class, new class($text) implements OcrEngine
+        $recognized = $text instanceof RecognizedText ? $text : RecognizedText::confident($text);
+
+        $this->app->instance(OcrEngine::class, new class($recognized) implements OcrEngine
         {
-            public function __construct(private readonly string $text) {}
+            public function __construct(private readonly RecognizedText $recognized) {}
 
             public function isAvailable(): bool
             {
                 return true;
             }
 
-            public function extract(string $imagePath): string
+            public function extract(string $imagePath): RecognizedText
             {
-                return $this->text;
+                return $this->recognized;
             }
         });
     }
@@ -509,7 +539,7 @@ class ExtractAttachmentTextTest extends TestCase
                 return true;
             }
 
-            public function extract(string $imagePath): string
+            public function extract(string $imagePath): RecognizedText
             {
                 throw new RuntimeException($this->message);
             }

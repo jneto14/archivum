@@ -8,6 +8,7 @@ use App\Enums\OcrStatus;
 use App\Models\DocumentAttachment;
 use App\Services\Ocr\AttachmentTextExtractor;
 use App\Services\Ocr\Contracts\OcrEngine;
+use App\Services\Ocr\RecognizedText;
 use App\Services\Ocr\UnreadableAttachment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -35,6 +36,7 @@ class AttachmentTextExtractorTest extends TestCase
         config()->set('archivum.ocr.enabled', true);
         config()->set('archivum.ocr.min_text_length', 20);
         config()->set('archivum.ocr.max_pages', 5);
+        config()->set('archivum.ocr.min_confident_word_ratio', 0.3);
     }
 
     public function test_a_pdf_with_a_text_layer_is_read_without_running_ocr()
@@ -163,33 +165,79 @@ class AttachmentTextExtractorTest extends TestCase
         app(AttachmentTextExtractor::class)->handle($attachment);
     }
 
+    // The point of the whole confidence filter: what the engine mostly guessed
+    // at never becomes text. Storing the fragment that scored well would put
+    // it in the search index, where it is a result for a word nobody wrote,
+    // and in the duplicate fingerprint (ARC-118).
+    public function test_a_page_the_engine_mostly_guessed_at_stores_no_text()
+    {
+        $this->fakeEngine(new RecognizedText('four words got through', 20, 4));
+        $attachment = $this->attachmentHolding('png bytes', 'handwritten.png', 'image/png');
+
+        $extracted = app(AttachmentTextExtractor::class)->handle($attachment);
+
+        $this->assertSame(OcrStatus::PoorlyRead, $extracted->status);
+        $this->assertSame('', $extracted->text, 'The words that survived are as likely to be noise that scored well.');
+    }
+
+    // Why the filter is per word rather than per page. A printed form filled
+    // in by hand is the common case in an archive, and the printed labels are
+    // exactly what the reader needs: a value is found by the words in front of
+    // it, so losing the labels along with the handwriting would cost more than
+    // the handwriting was worth.
+    public function test_a_form_keeps_its_printed_labels_when_the_handwriting_is_dropped()
+    {
+        $this->fakeEngine(new RecognizedText("Nome\nMorada\nData", 10, 6));
+        $attachment = $this->attachmentHolding('png bytes', 'form.png', 'image/png');
+
+        $extracted = app(AttachmentTextExtractor::class)->handle($attachment);
+
+        $this->assertSame(OcrStatus::Completed, $extracted->status);
+        $this->assertStringContainsString('Morada', $extracted->text);
+    }
+
+    // A blank page was read perfectly and simply has nothing on it. Reporting
+    // it as poorly read would flag every blank sheet in an archive.
+    public function test_a_blank_page_is_completed_rather_than_poorly_read()
+    {
+        $this->fakeEngine(RecognizedText::empty());
+        $attachment = $this->attachmentHolding('png bytes', 'blank.png', 'image/png');
+
+        $extracted = app(AttachmentTextExtractor::class)->handle($attachment);
+
+        $this->assertSame(OcrStatus::Completed, $extracted->status);
+        $this->assertSame('', $extracted->text);
+    }
+
     /**
      * Bind an OCR engine that records what it was asked to read.
      *
-     * @param string $text What the engine "recognises".
+     * @param string|RecognizedText $text What the engine "recognises". A plain string is taken as fully confident; pass a `RecognizedText` to say how much of it the engine was unsure about.
      * @param bool $available Whether the engine reports itself as installed.
      *
      * @return OcrEngine The bound engine, with a public `$calls` list of image paths.
      */
-    private function fakeEngine(string $text, bool $available = true): OcrEngine
+    private function fakeEngine(string|RecognizedText $text, bool $available = true): OcrEngine
     {
-        $engine = new class($text, $available) implements OcrEngine
+        $recognized = $text instanceof RecognizedText ? $text : RecognizedText::confident($text);
+
+        $engine = new class($recognized, $available) implements OcrEngine
         {
             /** @var list<string> Paths this engine was asked to read. */
             public array $calls = [];
 
-            public function __construct(private readonly string $text, private readonly bool $available) {}
+            public function __construct(private readonly RecognizedText $recognized, private readonly bool $available) {}
 
             public function isAvailable(): bool
             {
                 return $this->available;
             }
 
-            public function extract(string $imagePath): string
+            public function extract(string $imagePath): RecognizedText
             {
                 $this->calls[] = $imagePath;
 
-                return $this->text;
+                return $this->recognized;
             }
         };
 

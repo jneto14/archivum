@@ -9,5 +9,6 @@ Before planning or editing, find the row whose globs match the file's path and r
 | vite.config.ts, package.json | .ai/rules/general.md |
 | resources/js/** | .ai/rules/js.md |
 | resources/js/layouts/** | .ai/rules/layouts.md |
-| resources/js/lib/document-scan*.ts, resources/js/components/document-camera-dialog.tsx, resources/js/components/document-scan-review.tsx | .ai/rules/lib.md |
+| resources/js/lib/document-scan.ts, resources/js/lib/document-scan-runtime.ts, resources/js/components/document-camera-dialog.tsx, resources/js/components/document-scan-review.tsx | .ai/rules/lib.md |
+| app/Services/Ocr/** | .ai/rules/ocr.md |
 | resources/js/pages/** | .ai/rules/pages.md |
