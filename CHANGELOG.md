@@ -11,6 +11,41 @@ release. Read this file before upgrading.
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-09-06
+
+All about scanning a page with the phone's own camera, and specifically about
+the outline drawn over the live picture — which flickered, chased the wrong
+shapes, and frequently had corners that were not the page's. If nobody scans
+with a phone, there is nothing here.
+
+### Fixed
+
+- **The outline over the live camera settled on the wrong shape, and lost
+  corners on a page that was not square to the lens.** Detection came from a
+  library that finds corners by splitting the shape into four quadrants and
+  taking the point furthest from the centre within each. A page turned towards
+  45° puts a real corner on a quadrant boundary, so it crossed between
+  quadrants from one frame to the next — and a quadrant left with no points
+  dropped a corner outright, taking the whole outline with it. The edge
+  detection underneath had its own faults: it ran over colour channels rather
+  than brightness, and blurred the image after finding edges instead of before.
+  Detection is now done here, against the same OpenCV build already shipped,
+  taking the largest convex quadrilateral of plausible size and proportion and
+  naming its corners by angle rather than by quadrant. A page photographed at an
+  angle, and a page lying on a desk of similar tone, are both found where they
+  were not before.
+- **The outline vanished whenever a single frame missed.** Detection runs
+  several times a second over a moving picture and legitimately finds nothing on
+  a frame caught mid-exposure, or with a hand across a corner. Clearing the
+  outline the instant that happened is what made it strobe. It now survives a
+  few consecutive misses, and is averaged between frames so it stops jittering
+  on a page being held still.
+- **The outline only appeared once the page nearly filled the frame.** The check
+  that refuses an implausible detection was tuned for a photograph, which is
+  framed before it is taken, and applied unchanged to a viewfinder, which is
+  aimed. A page covers a small share of the frame while it is still being
+  approached — which is exactly when a guide is any use.
+
 ## [0.3.1] - 2026-09-05
 
 Two things 0.3.0 shipped broken, both found the moment it ran somewhere with
@@ -373,7 +408,8 @@ The first tagged release. Everything below shipped in it.
 - A brand-new user invited on a single-workspace installation is added with the
   role the admin chose, rather than failing with "already a member".
 
-[Unreleased]: https://github.com/jneto14/archivum/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/jneto14/archivum/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/jneto14/archivum/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/jneto14/archivum/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/jneto14/archivum/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/jneto14/archivum/compare/v0.2.0...v0.2.1
