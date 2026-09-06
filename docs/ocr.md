@@ -158,24 +158,29 @@ this exists for. Across
 a multi-page scan the counts add up rather than being averaged per page, so one
 unreadable page does not condemn the other nineteen.
 
-### And it has to be said somewhere
+### Every reading is confirmed by a person
 
-Refusing the text solves the pollution and creates a silence. With no `ocr_text`
-there are no suggestions, and the review queue lists documents by the
-suggestions waiting on them — so a page nobody could read would leave no trace
-anybody opens, only its own row on a document page and a line on the Tasks page.
+Confidence answers how sure the engine was of each word. It does not answer
+whether the reading is **right** — a confident misreading scores as well as a
+correct one, and no threshold can tell those apart. Only somebody looking at the
+page can.
 
-So the queue carries a third section, beside the flagged duplicates, listing the
-scans that could not be read; the sidebar badge counts them. Each one can be
-**dismissed**, which is what makes the section usable rather than an accumulating
-reproach: the two causes want different answers. A bad photograph can be
-retaken. Handwriting cannot be, and has to be able to leave the queue instead of
-sitting in it for the life of the archive and teaching people to ignore the
-badge.
+So the review queue puts the extracted text itself in front of a person,
+verbatim and preformatted, beside the file it came from. Two answers:
 
-Dismissal is its own column rather than clearing the status. `ocr_status` is the
-record of what happened to the file and goes on being shown on the document
-page; `ocr_review_dismissed_at` only says somebody has seen it.
+- **Keep it.** The reading stands, and the attachment leaves the queue.
+- **Throw it away.** `ocr_text` is deleted, the fingerprint with it, and the
+  attachment is recorded as poorly read. Not flagged — deleted. The text is what
+  feeds the search index and the duplicate comparison, so a reading nobody
+  believes has to stop being one; flagging it would leave it doing its damage.
+
+A page the engine refused itself has no text to judge and only wants
+acknowledging, which is the same answer with nothing to weigh.
+
+`ocr_reviewed_at` records that somebody answered, either way. It is a separate
+column from the status because the status is what happened to the file and goes
+on being shown on the document page, while this only says the question has been
+put and answered.
 
 ## What is made of the text
 

@@ -28,7 +28,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string $checksum
  * @property OcrStatus $ocr_status
  * @property string|null $ocr_text
- * @property Carbon|null $ocr_review_dismissed_at
+ * @property Carbon|null $ocr_reviewed_at
  * @property string|null $ocr_error
  * @property Carbon|null $ocr_extracted_at
  * @property int|null $text_simhash
@@ -101,7 +101,7 @@ class DocumentAttachment extends Model
         return [
             'ocr_status' => OcrStatus::class,
             'ocr_extracted_at' => 'datetime',
-            'ocr_review_dismissed_at' => 'datetime',
+            'ocr_reviewed_at' => 'datetime',
             'text_simhash' => 'integer',
         ];
     }
@@ -278,20 +278,60 @@ class DocumentAttachment extends Model
     }
 
     /**
-     * Stop listing this attachment on the review queue, because somebody has
-     * looked at the page that could not be read and decided what to do about
-     * it — retake it, type the metadata by hand, or accept that handwriting is
-     * handwriting.
+     * Record that somebody has read what OCR made of this file and is content
+     * to keep it.
      *
-     * Deliberately permanent, like dismissing a duplicate. `ocr_status` is
-     * left alone: it is what happened to the file, and the document page goes
-     * on saying so (ARC-118).
+     * Only a person can answer this. The engine's own confidence says how sure
+     * it was of each word, which is not the same as whether the reading is
+     * right — a confident misreading scores as well as a correct one, and only
+     * somebody looking at the page can tell them apart (ARC-118).
+     *
+     * @return void No return value; saves the model as a side effect.
+     */
+    public function confirmOcr(): void
+    {
+        $this->forceFill(['ocr_reviewed_at' => now()])->save();
+    }
+
+    /**
+     * Throw away what OCR made of this file, because somebody has read it and
+     * it is wrong.
+     *
+     * The text goes rather than being flagged, which is the whole value of the
+     * answer: `ocr_text` is what feeds the search index and the duplicate
+     * fingerprint, so a reading nobody believes has to stop being one. The
+     * status becomes `PoorlyRead` for the same reason it does when the engine
+     * refuses a page itself — the file was read, and what came back was not
+     * worth having.
+     *
+     * The caller is responsible for refreshing the document's mirror
+     * afterwards; the attachment cannot see its siblings' text.
+     *
+     * @return void No return value; saves the model as a side effect.
+     */
+    public function rejectOcr(): void
+    {
+        $this->forceFill([
+            'ocr_text' => null,
+            'ocr_status' => OcrStatus::PoorlyRead,
+            'text_simhash' => null,
+            'duplicate_of_attachment_id' => null,
+            'ocr_reviewed_at' => now(),
+        ])->save();
+    }
+
+    /**
+     * Record that somebody has seen a page the engine itself refused, so it
+     * stops being counted.
+     *
+     * Handwriting never improves, and without a way out the queue would go on
+     * counting a page nobody can do anything more about.
      *
      * @return void No return value; saves the model as a side effect.
      */
     public function dismissOcrReview(): void
     {
-        $this->forceFill(['ocr_review_dismissed_at' => now()])->save();
+        $this->forceFill(['ocr_reviewed_at' => now()])->save();
     }
 
     /**

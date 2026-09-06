@@ -12,8 +12,6 @@ export type ReviewableDocument = {
     title: string;
     document_type: string | null;
     suggestions: MetadataSuggestion[];
-    /** What OCR made of the page, so a wrong value can be judged against it. */
-    ocr_text: string | null;
 };
 
 type Props = {
@@ -39,7 +37,6 @@ export function DocumentSuggestionReview({ document }: Props) {
         document.suggestions.map((suggestion) => suggestion.kind),
     );
     const [submitting, setSubmitting] = useState(false);
-    const [showingText, setShowingText] = useState(false);
 
     const label = (suggestion: MetadataSuggestion) =>
         suggestion.kind === 'document_date'
@@ -107,33 +104,6 @@ export function DocumentSuggestionReview({ document }: Props) {
                     </label>
                 ))}
             </div>
-
-            {document.ocr_text && (
-                <div>
-                    <button
-                        type="button"
-                        className="text-xs text-muted-foreground hover:underline"
-                        onClick={() => setShowingText((showing) => !showing)}
-                        aria-expanded={showingText}
-                    >
-                        {showingText
-                            ? t('documents.review.hide_ocr_text')
-                            : t('documents.review.show_ocr_text', {
-                                  count: document.ocr_text.length,
-                              })}
-                    </button>
-                    {showingText && (
-                        // `pre` with wrapping, not a paragraph: the line breaks
-                        // are the page's own, and a value is read by the words
-                        // in front of it along a line. Reflowed as prose, the
-                        // text stops resembling what the reader saw, which is
-                        // the whole point of showing it.
-                        <pre className="mt-2 max-h-72 overflow-auto rounded-md border bg-muted/40 p-3 font-mono text-xs whitespace-pre-wrap">
-                            {document.ocr_text}
-                        </pre>
-                    )}
-                </div>
-            )}
 
             <div className="flex flex-wrap justify-end gap-2">
                 <Button

@@ -4,6 +4,7 @@ import { DocumentSuggestionReview } from '@/components/document-suggestion-revie
 import type { ReviewableDocument } from '@/components/document-suggestion-review';
 import { EmptyState } from '@/components/empty-state';
 import Heading from '@/components/heading';
+import { OcrReadingReview } from '@/components/ocr-reading-review';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
@@ -31,11 +32,13 @@ type DuplicateRow = {
     };
 };
 
-type UnreadableRow = {
+type ReadingRow = {
     id: string;
     filename: string;
     document_id: string;
     document_title: string;
+    /** What OCR made of the page, or null where the engine refused it outright. */
+    text: string | null;
 };
 
 type CandidateLabel = {
@@ -60,7 +63,7 @@ type Props = {
         total: number;
     };
     duplicates: DuplicateRow[];
-    unreadable: UnreadableRow[];
+    readings: ReadingRow[];
     labels: CandidateLabel[];
 };
 
@@ -70,7 +73,7 @@ export default function DocumentReview({
     documents,
     pagination,
     duplicates,
-    unreadable,
+    readings,
     labels,
 }: Props) {
     const t = useTranslation();
@@ -116,7 +119,7 @@ export default function DocumentReview({
     const nothingToReview =
         documents.length === 0 &&
         duplicates.length === 0 &&
-        unreadable.length === 0 &&
+        readings.length === 0 &&
         labels.length === 0;
 
     return (
@@ -166,69 +169,25 @@ export default function DocumentReview({
                             </div>
                         )}
 
-                        {unreadable.length > 0 && (
+                        {readings.length > 0 && (
                             <div className="space-y-3">
                                 <Heading
                                     variant="small"
-                                    title={t(
-                                        'documents.review.unreadable_title',
-                                    )}
+                                    title={t('documents.review.readings_title')}
                                 />
                                 <Panel>
                                     <PanelHeader>
                                         <span className="text-sm text-muted-foreground">
                                             {t(
-                                                'documents.review.unreadable_description',
+                                                'documents.review.readings_description',
                                             )}
                                         </span>
                                     </PanelHeader>
-                                    {unreadable.map((scan) => (
-                                        <div
-                                            key={scan.id}
-                                            className="flex flex-wrap items-center gap-2 border-b p-4 last:border-b-0"
-                                        >
-                                            <div className="min-w-0 flex-1">
-                                                <div className="truncate text-sm font-medium">
-                                                    {scan.document_title}
-                                                </div>
-                                                <div className="truncate text-xs text-muted-foreground">
-                                                    {scan.filename}
-                                                </div>
-                                            </div>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="shrink-0"
-                                                onClick={() =>
-                                                    router.visit(
-                                                        documentShow.url(
-                                                            scan.document_id,
-                                                        ),
-                                                    )
-                                                }
-                                            >
-                                                {t(
-                                                    'documents.review.open_document',
-                                                )}
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="shrink-0"
-                                                onClick={() =>
-                                                    router.delete(
-                                                        AttachmentController.dismissOcrReview.url(
-                                                            scan.id,
-                                                        ),
-                                                        {
-                                                            preserveScroll: true,
-                                                        },
-                                                    )
-                                                }
-                                            >
-                                                {t('documents.review.dismiss')}
-                                            </Button>
-                                        </div>
+                                    {readings.map((reading) => (
+                                        <OcrReadingReview
+                                            key={reading.id}
+                                            reading={reading}
+                                        />
                                     ))}
                                 </Panel>
                             </div>

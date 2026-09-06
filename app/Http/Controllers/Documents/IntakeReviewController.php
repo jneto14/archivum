@@ -91,11 +91,6 @@ class IntakeReviewController extends Controller
                 'title' => $row['document']->title,
                 'document_type' => $row['document']->documentType?->name,
                 'suggestions' => $row['suggestions'],
-                // What the page was read as, so a wrong value can be judged
-                // against the text it came out of rather than guessed at. The
-                // column is already loaded with the document; sending it costs
-                // no query.
-                'ocr_text' => $row['document']->ocr_text,
             ])
             ->values()
             ->all();
@@ -113,7 +108,7 @@ class IntakeReviewController extends Controller
                 'total' => $documents->total(),
             ],
             'duplicates' => $this->duplicates($workspace),
-            'unreadable' => $this->unreadable($workspace),
+            'readings' => $this->readings($workspace),
             'labels' => $request->user()->can('update', $workspace)
                 ? $this->candidateLabels($workspace)
                 : [],
@@ -173,27 +168,35 @@ class IntakeReviewController extends Controller
     }
 
     /**
-     * The scans that were read but yielded too little to trust, and that
-     * nobody has looked at yet.
+     * Every reading nobody has passed judgement on yet, with the text itself.
      *
-     * Without this the refusal is silent. Storing no text is what keeps a bad
-     * reading out of the search index and the fingerprint, but it also means
-     * `metadata_suggestions` stays empty and the document never reaches the
-     * listing above — so a page nobody could read would leave no trace anybody
-     * opens (ARC-118).
+     * The engine's confidence says how sure it was of each word, which is a
+     * different question from whether the reading is right: a confident
+     * misreading scores as well as a correct one. Only somebody looking at the
+     * page can tell those apart, so the text is put in front of them to keep
+     * or throw away (ARC-118).
+     *
+     * Two kinds arrive here. A reading the engine produced and stands by, which
+     * wants confirming or refusing; and a page the engine refused itself, which
+     * has no text and only wants acknowledging.
      *
      * Not paginated, for the same reason as the duplicates: a long list here is
      * a signal about the scanning rather than a page to work through.
      *
      * @param Workspace $workspace The workspace being reviewed.
      *
-     * @return array<int, array{id: string, filename: string, document_id: string, document_title: string}> One entry per undismissed poor reading.
+     * @return array<int, array{id: string, filename: string, document_id: string, document_title: string, text: string|null}> One entry per unreviewed reading, newest first.
      */
-    private function unreadable(Workspace $workspace): array
+    private function readings(Workspace $workspace): array
     {
         return DocumentAttachment::query()
-            ->where('ocr_status', OcrStatus::PoorlyRead)
-            ->whereNull('ocr_review_dismissed_at')
+            ->whereNull('ocr_reviewed_at')
+            ->where(fn (Builder $query) => $query
+                ->where('ocr_status', OcrStatus::PoorlyRead)
+                ->orWhere(fn (Builder $read) => $read
+                    ->where('ocr_status', OcrStatus::Completed)
+                    ->whereNotNull('ocr_text')
+                    ->where('ocr_text', '!=', '')))
             ->whereHas('document', fn (Builder $query) => $query->where('workspace_id', $workspace->id))
             ->with('document')
             ->latest('created_at')
@@ -203,6 +206,7 @@ class IntakeReviewController extends Controller
                 'filename' => $attachment->filename,
                 'document_id' => (string) $attachment->document_id,
                 'document_title' => (string) $attachment->document?->title,
+                'text' => $attachment->ocr_text,
             ])
             ->values()
             ->all();

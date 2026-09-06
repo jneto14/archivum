@@ -140,24 +140,48 @@ class AttachmentController extends Controller
     }
 
     /**
-     * Take a scan that could not be read off the review queue.
+     * Keep what OCR made of an attachment, because somebody has read it and it
+     * is right.
      *
-     * The status is left on the attachment: this says somebody has seen it,
-     * not that it turned out to be readable after all. Handwriting never
-     * improves, so without a way out the queue would keep counting a page
-     * nobody can do anything more about (ARC-118).
+     * Also the answer for a page the engine refused itself, where there is no
+     * text to keep and this only stops it being counted.
      *
-     * @param DocumentAttachment $attachment The attachment to stop listing.
+     * @param DocumentAttachment $attachment The attachment whose reading is accepted.
      *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws AuthorizationException If the current user cannot update $attachment.
      */
-    public function dismissOcrReview(DocumentAttachment $attachment): RedirectResponse
+    public function confirmOcr(DocumentAttachment $attachment): RedirectResponse
     {
         $this->authorize('update', $attachment);
 
-        $attachment->dismissOcrReview();
+        $attachment->confirmOcr();
+
+        return back();
+    }
+
+    /**
+     * Throw away what OCR made of an attachment, because somebody has read it
+     * and it is wrong.
+     *
+     * The text is what feeds the search index and the duplicate fingerprint,
+     * so a reading nobody believes has to stop being one — flagging it would
+     * leave it doing its damage. The document's mirror is rebuilt from what is
+     * left, which is why this cannot live on the model alone (ARC-118).
+     *
+     * @param DocumentAttachment $attachment The attachment whose reading is refused.
+     *
+     * @return RedirectResponse Redirect back to the previous page.
+     *
+     * @throws AuthorizationException If the current user cannot update $attachment.
+     */
+    public function rejectOcr(DocumentAttachment $attachment): RedirectResponse
+    {
+        $this->authorize('update', $attachment);
+
+        $attachment->rejectOcr();
+        $attachment->document?->refreshOcrText();
 
         return back();
     }

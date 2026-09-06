@@ -159,14 +159,16 @@ export default {
     'documents.review.duplicate_of': ':filename looks like “:document”',
     'documents.review.open_original': 'Open the original',
     'documents.review.keep_both': 'Keep both',
-    'documents.review.show_ocr_text':
-        'Show the text that was read (:count characters)',
-    'documents.review.hide_ocr_text': 'Hide the text that was read',
-    'documents.review.unreadable_title': 'Scans that could not be read',
-    'documents.review.unreadable_description':
-        'There was writing on these, but too little of it came back clearly enough to keep, so they are not searchable by their contents. A sharper photograph may read; handwriting will not, and is worth typing in by hand.',
     'documents.review.open_document': 'Open the document',
     'documents.review.dismiss': 'Dismiss',
+    'documents.review.readings_title': 'What was read from each scan',
+    'documents.review.readings_description':
+        'This is the text extraction pulled off these pages, exactly as it will be searched. Keep it, or throw it away if it is wrong — a bad reading is worse than none, because it becomes a search result for words nobody wrote.',
+    'documents.review.reading_empty':
+        'Nothing legible came off this page. There was writing on it, but not enough of it could be read to be worth keeping.',
+    'documents.review.reading_confirm': 'Reading is good',
+    'documents.review.reading_reject': 'Throw it away',
+    'documents.review.reading_acknowledge': 'Understood',
     'documents.review.labels_title': 'Words this archive uses',
     'documents.review.labels_description':
         'Your own documents were seen writing these in front of a value. Accept one and the reader will recognise that field by it from now on, across this workspace and nowhere else.',

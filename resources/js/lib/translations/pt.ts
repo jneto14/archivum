@@ -161,15 +161,16 @@ export default {
     'documents.review.duplicate_of': ':filename parece “:document”',
     'documents.review.open_original': 'Abrir o original',
     'documents.review.keep_both': 'Manter os dois',
-    'documents.review.show_ocr_text':
-        'Ver o texto que foi lido (:count caracteres)',
-    'documents.review.hide_ocr_text': 'Esconder o texto que foi lido',
-    'documents.review.unreadable_title':
-        'Digitalizações que não foi possível ler',
-    'documents.review.unreadable_description':
-        'Havia escrita nestas, mas veio pouca com nitidez suficiente para guardar, por isso não são pesquisáveis pelo conteúdo. Uma fotografia mais nítida pode ler-se; letra à mão não, e vale a pena escrever à mão.',
     'documents.review.open_document': 'Abrir o documento',
     'documents.review.dismiss': 'Dispensar',
+    'documents.review.readings_title': 'O que foi lido de cada digitalização',
+    'documents.review.readings_description':
+        'Este é o texto que a extração tirou destas páginas, tal e qual como vai ser pesquisado. Fica, ou deita-se fora se estiver mal — uma leitura errada é pior do que nenhuma, porque passa a ser resultado de pesquisa para palavras que ninguém escreveu.',
+    'documents.review.reading_empty':
+        'Não saiu nada legível desta página. Havia escrita nela, mas não se leu o suficiente para valer a pena guardar.',
+    'documents.review.reading_confirm': 'A leitura está boa',
+    'documents.review.reading_reject': 'Deitar fora',
+    'documents.review.reading_acknowledge': 'Percebido',
     'documents.review.labels_title': 'Palavras que este arquivo usa',
     'documents.review.labels_description':
         'Os teus próprios documentos foram vistos a escrever isto à frente de um valor. Aceita uma e o leitor passa a reconhecer esse campo por ela, neste workspace e em mais nenhum.',
