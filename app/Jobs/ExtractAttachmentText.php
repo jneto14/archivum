@@ -112,6 +112,7 @@ class ExtractAttachmentText implements ShouldQueue
         // or a failure raised as an exception — the extractor cannot return them.
         match ($extracted->status) {
             OcrStatus::Completed => $this->attachment->markOcrCompleted($extracted->text),
+            OcrStatus::PoorlyRead => $this->attachment->markOcrPoorlyRead(),
             OcrStatus::Skipped => $this->attachment->markOcrSkipped(),
             OcrStatus::Unavailable => $this->attachment->markOcrUnavailable(),
             OcrStatus::Pending, OcrStatus::Processing, OcrStatus::Failed => throw new LogicException(

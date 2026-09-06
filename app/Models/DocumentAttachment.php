@@ -207,6 +207,21 @@ class DocumentAttachment extends Model
     }
 
     /**
+     * Record that the page was read but too little of it clearly enough to
+     * keep.
+     *
+     * No text is written, deliberately: `ocr_text` staying null is what keeps
+     * the fragment that survived out of the document's mirror, the search
+     * index and the duplicate fingerprint (ARC-118).
+     *
+     * @return void No return value; persists the status as a side effect.
+     */
+    public function markOcrPoorlyRead(): void
+    {
+        $this->recordOcr(OcrStatus::PoorlyRead);
+    }
+
+    /**
      * Record that extraction could not run at all: it is switched off, or the
      * system binaries are missing on this installation.
      *

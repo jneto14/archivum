@@ -176,6 +176,34 @@ return [
         'timeout' => (int) env('OCR_TIMEOUT', 120),
 
         /*
+        | Confidence, 0-100, a word must carry to be kept. Tesseract scores
+        | every word it reads and we ask for that score rather than plain
+        | text, so a guess and a confident reading no longer arrive as the
+        | same string.
+        |
+        | Measured on printed text this recognises at 91-96, while ink
+        | carrying no text at all comes back between 0 and 63. 60 sits in that
+        | gap, nearer the noise: the cost of dropping a good word is a gap in
+        | the searchable text, and the cost of keeping a bad one is a word
+        | that was never on the page becoming a search result.
+        */
+        'min_word_confidence' => (int) env('OCR_MIN_WORD_CONFIDENCE', 60),
+
+        /*
+        | Share of a page's words that must survive that floor before the
+        | reading is believed at all. Below this the page is recorded as
+        | poorly read and no text is stored, so nothing reaches the search
+        | index or the duplicate fingerprint.
+        |
+        | Filtering is per word precisely so a printed form filled in by hand
+        | keeps its printed labels and loses the handwriting. This second
+        | floor is for the page where that leaves almost nothing — a sheet of
+        | pure handwriting, where the few surviving words are as likely to be
+        | noise that scored well as anything real.
+        */
+        'min_confident_word_ratio' => (float) env('OCR_MIN_CONFIDENT_WORD_RATIO', 0.3),
+
+        /*
         | Seconds the whole extraction job may run, derived rather than fixed:
         | the worst case is every page of a scanned PDF taking the full
         | per-binary timeout, so anything below `max_pages * timeout` kills
