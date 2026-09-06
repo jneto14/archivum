@@ -159,6 +159,9 @@ export default {
     'documents.review.duplicate_of': ':filename looks like “:document”',
     'documents.review.open_original': 'Open the original',
     'documents.review.keep_both': 'Keep both',
+    'documents.review.show_ocr_text':
+        'Show the text that was read (:count characters)',
+    'documents.review.hide_ocr_text': 'Hide the text that was read',
     'documents.review.unreadable_title': 'Scans that could not be read',
     'documents.review.unreadable_description':
         'There was writing on these, but too little of it came back clearly enough to keep, so they are not searchable by their contents. A sharper photograph may read; handwriting will not, and is worth typing in by hand.',

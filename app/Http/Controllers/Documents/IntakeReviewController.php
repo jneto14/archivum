@@ -91,6 +91,11 @@ class IntakeReviewController extends Controller
                 'title' => $row['document']->title,
                 'document_type' => $row['document']->documentType?->name,
                 'suggestions' => $row['suggestions'],
+                // What the page was read as, so a wrong value can be judged
+                // against the text it came out of rather than guessed at. The
+                // column is already loaded with the document; sending it costs
+                // no query.
+                'ocr_text' => $row['document']->ocr_text,
             ])
             ->values()
             ->all();

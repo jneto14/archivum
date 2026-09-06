@@ -249,6 +249,22 @@ class IntakeReviewTest extends TestCase
             );
     }
 
+    // A suggested value can only be judged against the text it came out of.
+    // Without it on the page, a wrong value looks like it appeared from nowhere.
+    public function test_the_queue_carries_the_text_each_document_was_read_as()
+    {
+        $workspace = $this->workspace();
+        $document = $this->reviewable($workspace, 'Scan sem titulo');
+        $document->forceFill(['ocr_text' => "Factura 2026/0044\n3  49051 242344062 1165797"])->save();
+
+        $this->actingAs($this->member($workspace))
+            ->get(route('documents.review', $workspace))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('documents.0.ocr_text', "Factura 2026/0044\n3  49051 242344062 1165797"),
+            );
+    }
+
     // Refusing to store a bad reading keeps it out of the search index, and
     // creates a silence: no text means no suggestions, and the queue selects
     // on suggestions, so a page nobody could read would leave no trace anybody

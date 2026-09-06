@@ -15,6 +15,7 @@ const document = {
         { kind: 'document_date', key: 'document_date', value: '2026-08-20' },
         { kind: 'amount', key: 'total', value: '1250.50' },
     ],
+    ocr_text: 'Factura 2026/0044\n3  49051 242344062 1165797\nTotal 1250.50',
 };
 
 /** The kinds sent by the last submission. */
@@ -66,4 +67,41 @@ it('cannot apply with nothing ticked', async () => {
             .getByRole('button', { name: 'Apply (0)' })
             .hasAttribute('disabled'),
     ).toBe(true);
+});
+
+// A suggested value is only judgeable against the text it came out of. Without
+// this, a wrong value looks like it appeared from nowhere — which is exactly
+// how a run of unrelated numbers offered as one tax number went unexplained.
+it('shows the text that was read, on request', async () => {
+    render(<DocumentSuggestionReview document={document} />);
+
+    expect(screen.queryByText(/49051/)).toBeNull();
+
+    await userEvent.click(
+        screen.getByRole('button', { name: /Show the text that was read/ }),
+    );
+
+    expect(screen.getByText(/49051/)).toBeInTheDocument();
+});
+
+it('keeps the line breaks of the page, which is what the reader works along', async () => {
+    render(<DocumentSuggestionReview document={document} />);
+
+    await userEvent.click(
+        screen.getByRole('button', { name: /Show the text that was read/ }),
+    );
+
+    // Reflowed as prose the text stops resembling what the reader saw: a value
+    // is found by the words in front of it, along a line.
+    expect(screen.getByText(/49051/).textContent).toContain('\n');
+});
+
+it('offers nothing to open when the page yielded no text', () => {
+    render(
+        <DocumentSuggestionReview document={{ ...document, ocr_text: null }} />,
+    );
+
+    expect(
+        screen.queryByRole('button', { name: /Show the text that was read/ }),
+    ).toBeNull();
 });

@@ -161,6 +161,9 @@ export default {
     'documents.review.duplicate_of': ':filename parece “:document”',
     'documents.review.open_original': 'Abrir o original',
     'documents.review.keep_both': 'Manter os dois',
+    'documents.review.show_ocr_text':
+        'Ver o texto que foi lido (:count caracteres)',
+    'documents.review.hide_ocr_text': 'Esconder o texto que foi lido',
     'documents.review.unreadable_title':
         'Digitalizações que não foi possível ler',
     'documents.review.unreadable_description':
