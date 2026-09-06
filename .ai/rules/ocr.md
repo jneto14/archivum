@@ -12,6 +12,6 @@ paths:
 
 Filter word by word, never per page: a printed form filled in by hand must keep its printed labels, because a value is recognised by the words in front of it. Rebuild line structure from the TSV line columns too, or the end of one line joins the start of the next and invents labels.
 
-A blank page counts as fully confident (`confidentRatio()` returns 1.0 at zero words), not as a total failure — otherwise every blank sheet reports itself unreadable. Across pages the counts add rather than average, so one bad page in a twenty-page scan does not condemn the rest.
+A blank page counts as fully confident, but **zero words is not enough to say so** — `confidentRatio()` also asks `lineCount`. Tesseract lays out lines before it recognises anything, so handwriting returns lines and no words while a blank sheet returns no layout at all. Counting only words made both "read perfectly", and a photographed page of handwriting was recorded as a blank page. Across pages the counts add rather than average, so one bad page in a twenty-page scan does not condemn the rest.
 
 The `match` on `OcrStatus` in `ExtractAttachmentText` lists every case on purpose: adding a status without deciding what it means there is meant to fail PHPStan at build time.

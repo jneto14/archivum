@@ -34,6 +34,14 @@ namespace App\Services\Ocr;
  *
  * A gap at the start of a line needs no marker; the line break is already a
  * stronger separator than any run can cross.
+ *
+ * ## Lines are counted as well as words
+ *
+ * Tesseract lays out blocks, paragraphs and lines before it recognises
+ * anything, so a page of handwriting comes back with lines on it and not one
+ * readable word, while a blank sheet comes back with no layout at all. Counting
+ * only words makes those two the same answer, and a photographed page of
+ * handwriting was duly recorded as a blank page that had been read perfectly.
  */
 class TesseractTsv
 {
@@ -61,6 +69,17 @@ class TesseractTsv
     private const LEVEL_WORD = 5;
 
     /**
+     * The `level` of a row describing one line of writing.
+     *
+     * Counted as well as the words, because layout happens before recognition:
+     * a page of handwriting comes back with lines on it and not one readable
+     * word, while a genuinely blank sheet comes back with no layout at all.
+     * Without this the two are the same answer — no words — and a photographed
+     * page of handwriting was recorded as a blank page read perfectly.
+     */
+    private const LEVEL_LINE = 4;
+
+    /**
      * @param int $minWordConfidence Confidence, 0-100, a word must carry to be kept.
      */
     public function __construct(private readonly int $minWordConfidence) {}
@@ -79,11 +98,24 @@ class TesseractTsv
         $afterDroppedWord = false;
         $wordCount = 0;
         $confidentWordCount = 0;
+        $lineCount = 0;
 
         foreach (explode("\n", $output) as $row) {
             $columns = explode("\t", mb_rtrim($row, "\r"));
 
-            if (count($columns) < self::COLUMN_COUNT || (int) $columns[self::COLUMN_LEVEL] !== self::LEVEL_WORD) {
+            if (count($columns) < self::COLUMN_COUNT) {
+                continue;
+            }
+
+            $level = (int) $columns[self::COLUMN_LEVEL];
+
+            if ($level === self::LEVEL_LINE) {
+                $lineCount++;
+
+                continue;
+            }
+
+            if ($level !== self::LEVEL_WORD) {
                 continue;
             }
 
@@ -136,6 +168,6 @@ class TesseractTsv
             $lines[] = $currentLine;
         }
 
-        return new RecognizedText(mb_trim(implode("\n", $lines)), $wordCount, $confidentWordCount);
+        return new RecognizedText(mb_trim(implode("\n", $lines)), $wordCount, $confidentWordCount, $lineCount);
     }
 }

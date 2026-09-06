@@ -133,6 +133,31 @@ class TesseractTsvTest extends TestCase
         $this->assertSame(1, $read->wordCount);
     }
 
+    // Tesseract lays out lines before it recognises anything, so a page of
+    // handwriting comes back with a line on it and no readable word — which is
+    // what tells it apart from a blank sheet, where it lays out nothing at all.
+    // Counting only words made both "no words", and a photographed page of
+    // handwriting was recorded as a blank page read perfectly (ARC-118).
+    public function test_it_counts_the_lines_the_engine_laid_out_but_could_not_read()
+    {
+        $handwritten = (new TesseractTsv(60))->read($this->tsv([
+            "4\t1\t1\t1\t1\t0\t0\t0\t100\t100\t-1\t",
+            $this->word(1, 95.0, '   '),
+        ]));
+
+        $this->assertSame(0, $handwritten->wordCount);
+        $this->assertSame(1, $handwritten->lineCount);
+        $this->assertSame(0.0, $handwritten->confidentRatio(), 'A page with writing it could not read is not a page read perfectly.');
+    }
+
+    public function test_a_page_with_no_layout_at_all_is_a_blank_sheet()
+    {
+        $blank = (new TesseractTsv(60))->read($this->tsv([]));
+
+        $this->assertSame(0, $blank->lineCount);
+        $this->assertSame(1.0, $blank->confidentRatio(), 'A blank sheet was read perfectly and simply has nothing on it.');
+    }
+
     public function test_refusing_every_word_leaves_nothing_rather_than_a_line_of_gaps()
     {
         $read = (new TesseractTsv(60))->read($this->tsv([

@@ -27,10 +27,19 @@ class RecognizedTextTest extends TestCase
     // A blank page was read perfectly and has nothing on it. Returning 0.0
     // here would put every blank sheet in an archive under the page floor and
     // report it as unreadable.
-    public function test_a_page_with_no_words_counts_as_fully_confident()
+    public function test_a_page_with_neither_words_nor_layout_counts_as_fully_confident()
     {
         $this->assertSame(1.0, RecognizedText::empty()->confidentRatio());
         $this->assertSame(1.0, RecognizedText::confident('')->confidentRatio());
+    }
+
+    // The distinction that made lineCount necessary: no words is ambiguous
+    // until you ask whether the engine found anything to read (ARC-118).
+    public function test_no_words_but_lines_laid_out_is_an_unreadable_page_not_a_blank_one()
+    {
+        $handwritten = new RecognizedText('', 0, 0, lineCount: 3);
+
+        $this->assertSame(0.0, $handwritten->confidentRatio());
     }
 
     public function test_the_ratio_is_the_share_that_survived()

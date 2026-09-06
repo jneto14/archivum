@@ -148,8 +148,13 @@ text is stored, which keeps it out of the search index, out of the document's
 mirror and out of the fingerprint. That is distinct from a blank page, which was
 read perfectly and simply has nothing on it.
 
-A blank page therefore counts as fully confident rather than as a total failure;
-otherwise every blank sheet in an archive would report itself unreadable. Across
+**A blank page is told apart by its layout, not its word count.** Tesseract
+lays out blocks, paragraphs and lines before it recognises anything, so a page
+of handwriting comes back with lines on it and not one readable word, while a
+blank sheet comes back with no layout at all. Counting only words makes those
+two the same answer — and a photographed page of handwriting was duly recorded
+as a blank page that had been read perfectly, which is the exact case any of
+this exists for. Across
 a multi-page scan the counts add up rather than being averaged per page, so one
 unreadable page does not condemn the other nineteen.
 

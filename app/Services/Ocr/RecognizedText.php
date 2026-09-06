@@ -20,11 +20,13 @@ readonly class RecognizedText
      * @param string $text The words that met the confidence floor, with the page's line structure kept.
      * @param int $wordCount Words the engine returned, whether or not they were kept.
      * @param int $confidentWordCount Words that met the floor, so the length of `text` in words.
+     * @param int $lineCount Lines of writing the engine laid out, whether or not it could read them.
      */
     public function __construct(
         public string $text,
         public int $wordCount,
         public int $confidentWordCount,
+        public int $lineCount = 0,
     ) {}
 
     /**
@@ -34,7 +36,7 @@ readonly class RecognizedText
      */
     public static function empty(): self
     {
-        return new self('', 0, 0);
+        return new self('', 0, 0, 0);
     }
 
     /**
@@ -54,7 +56,9 @@ readonly class RecognizedText
     {
         $words = preg_split('/\s+/', mb_trim($text), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
-        return new self(mb_trim($text), count($words), count($words));
+        $lines = preg_split('/\R/', mb_trim($text), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        return new self(mb_trim($text), count($words), count($words), count($lines));
     }
 
     /**
@@ -80,23 +84,30 @@ readonly class RecognizedText
             mb_trim(implode("\n\n", $texts)),
             array_sum(array_map(static fn (self $page): int => $page->wordCount, $pages)),
             array_sum(array_map(static fn (self $page): int => $page->confidentWordCount, $pages)),
+            array_sum(array_map(static fn (self $page): int => $page->lineCount, $pages)),
         );
     }
 
     /**
      * The share of what was read that survived the confidence floor.
      *
-     * A page the engine found no words on returns 1.0 rather than 0.0. It is
-     * a blank page, which was read perfectly and simply has nothing on it —
-     * treating it as a failed reading would report every blank sheet in an
-     * archive as unreadable.
+     * When the engine returned no words at all, the count cannot answer this
+     * and the layout has to. Tesseract lays out blocks, paragraphs and lines
+     * before it recognises anything, so a page of handwriting comes back with
+     * lines on it and not one readable word — while a genuinely blank sheet
+     * comes back with no layout at all.
+     *
+     * Reading both as 1.0 was the bug that made this distinction necessary: a
+     * photographed page of handwriting was recorded as a blank page that had
+     * been read perfectly, which is the exact case the confidence filter
+     * exists for (ARC-118).
      *
      * @return float Between 0.0 and 1.0.
      */
     public function confidentRatio(): float
     {
         if ($this->wordCount === 0) {
-            return 1.0;
+            return $this->lineCount === 0 ? 1.0 : 0.0;
         }
 
         return $this->confidentWordCount / $this->wordCount;
