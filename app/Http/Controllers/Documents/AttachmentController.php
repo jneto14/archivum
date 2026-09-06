@@ -138,4 +138,27 @@ class AttachmentController extends Controller
 
         return back();
     }
+
+    /**
+     * Take a scan that could not be read off the review queue.
+     *
+     * The status is left on the attachment: this says somebody has seen it,
+     * not that it turned out to be readable after all. Handwriting never
+     * improves, so without a way out the queue would keep counting a page
+     * nobody can do anything more about (ARC-118).
+     *
+     * @param DocumentAttachment $attachment The attachment to stop listing.
+     *
+     * @return RedirectResponse Redirect back to the previous page.
+     *
+     * @throws AuthorizationException If the current user cannot update $attachment.
+     */
+    public function dismissOcrReview(DocumentAttachment $attachment): RedirectResponse
+    {
+        $this->authorize('update', $attachment);
+
+        $attachment->dismissOcrReview();
+
+        return back();
+    }
 }

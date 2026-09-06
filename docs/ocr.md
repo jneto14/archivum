@@ -146,6 +146,25 @@ otherwise every blank sheet in an archive would report itself unreadable. Across
 a multi-page scan the counts add up rather than being averaged per page, so one
 unreadable page does not condemn the other nineteen.
 
+### And it has to be said somewhere
+
+Refusing the text solves the pollution and creates a silence. With no `ocr_text`
+there are no suggestions, and the review queue lists documents by the
+suggestions waiting on them — so a page nobody could read would leave no trace
+anybody opens, only its own row on a document page and a line on the Tasks page.
+
+So the queue carries a third section, beside the flagged duplicates, listing the
+scans that could not be read; the sidebar badge counts them. Each one can be
+**dismissed**, which is what makes the section usable rather than an accumulating
+reproach: the two causes want different answers. A bad photograph can be
+retaken. Handwriting cannot be, and has to be able to leave the queue instead of
+sitting in it for the life of the archive and teaching people to ignore the
+badge.
+
+Dismissal is its own column rather than clearing the status. `ocr_status` is the
+record of what happened to the file and goes on being shown on the document
+page; `ocr_review_dismissed_at` only says somebody has seen it.
+
 ## What is made of the text
 
 Two things, both once extraction completes and both on the queue, so nothing is
@@ -314,9 +333,9 @@ document's own page to be revisited would mean nothing is ever confirmed.
 
 So the findings are collected on **To review** (`documents.review`), a
 workspace-wide queue: one row per document, its suggested values ticked by
-default, applied or dismissed in a click. Flagged duplicates are listed below
-it, and below those — **for workspace admins only** — the words the archive is
-proposing to read by. The sidebar carries the count, which costs one query on
+default, applied or dismissed in a click. Scans that could not be read are
+listed below it, then flagged duplicates, and below those — **for workspace
+admins only** — the words the archive is proposing to read by. The sidebar carries the count, which costs one query on
 every request and is the reason the queue is used at all; the label half of it
 is counted only for the admins who are shown that section, so nobody is badged
 towards work they cannot do.

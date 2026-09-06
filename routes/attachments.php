@@ -11,4 +11,5 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('attachments/{attachment}/preview', [AttachmentController::class, 'preview'])->name('attachments.preview');
     Route::delete('attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
     Route::delete('attachments/{attachment}/duplicate', [AttachmentController::class, 'dismissDuplicate'])->name('attachments.duplicate.dismiss');
+    Route::delete('attachments/{attachment}/unreadable', [AttachmentController::class, 'dismissOcrReview'])->name('attachments.unreadable.dismiss');
 });

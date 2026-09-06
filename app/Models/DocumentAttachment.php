@@ -28,6 +28,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string $checksum
  * @property OcrStatus $ocr_status
  * @property string|null $ocr_text
+ * @property Carbon|null $ocr_review_dismissed_at
  * @property string|null $ocr_error
  * @property Carbon|null $ocr_extracted_at
  * @property int|null $text_simhash
@@ -100,6 +101,7 @@ class DocumentAttachment extends Model
         return [
             'ocr_status' => OcrStatus::class,
             'ocr_extracted_at' => 'datetime',
+            'ocr_review_dismissed_at' => 'datetime',
             'text_simhash' => 'integer',
         ];
     }
@@ -273,6 +275,23 @@ class DocumentAttachment extends Model
     public function dismissDuplicate(): void
     {
         $this->forceFill(['duplicate_of_attachment_id' => null])->save();
+    }
+
+    /**
+     * Stop listing this attachment on the review queue, because somebody has
+     * looked at the page that could not be read and decided what to do about
+     * it — retake it, type the metadata by hand, or accept that handwriting is
+     * handwriting.
+     *
+     * Deliberately permanent, like dismissing a duplicate. `ocr_status` is
+     * left alone: it is what happened to the file, and the document page goes
+     * on saying so (ARC-118).
+     *
+     * @return void No return value; saves the model as a side effect.
+     */
+    public function dismissOcrReview(): void
+    {
+        $this->forceFill(['ocr_review_dismissed_at' => now()])->save();
     }
 
     /**

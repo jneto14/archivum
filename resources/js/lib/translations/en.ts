@@ -159,6 +159,11 @@ export default {
     'documents.review.duplicate_of': ':filename looks like “:document”',
     'documents.review.open_original': 'Open the original',
     'documents.review.keep_both': 'Keep both',
+    'documents.review.unreadable_title': 'Scans that could not be read',
+    'documents.review.unreadable_description':
+        'There was writing on these, but too little of it came back clearly enough to keep, so they are not searchable by their contents. A sharper photograph may read; handwriting will not, and is worth typing in by hand.',
+    'documents.review.open_document': 'Open the document',
+    'documents.review.dismiss': 'Dismiss',
     'documents.review.labels_title': 'Words this archive uses',
     'documents.review.labels_description':
         'Your own documents were seen writing these in front of a value. Accept one and the reader will recognise that field by it from now on, across this workspace and nowhere else.',

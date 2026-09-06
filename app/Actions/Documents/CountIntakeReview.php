@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Documents;
 
 use App\Enums\IntakeLabelStatus;
+use App\Enums\OcrStatus;
 use App\Models\IntakeLabel;
 use App\Models\Workspace;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +25,7 @@ class CountIntakeReview
      * @param Workspace $workspace The workspace to count within.
      * @param bool $canAnswerLabels Whether the current user may answer learned labels, which only a workspace admin can. Counting them for anybody else would badge a section they are not shown.
      *
-     * @return int Documents with suggestions still to review, plus attachments still flagged as duplicates, plus the candidate labels waiting on an admin.
+     * @return int Documents with suggestions still to review, plus attachments still flagged as duplicates, plus scans that could not be read and have not been dismissed, plus the candidate labels waiting on an admin.
      */
     public function handle(Workspace $workspace, bool $canAnswerLabels = false): int
     {
@@ -41,6 +42,13 @@ class CountIntakeReview
                         where documents.workspace_id = ? and document_attachments.duplicate_of_attachment_id is not null
                     ) as duplicates,
                     (
+                        select count(*) from document_attachments
+                        inner join documents on documents.id = document_attachments.document_id
+                        where documents.workspace_id = ?
+                          and document_attachments.ocr_status = ?
+                          and document_attachments.ocr_review_dismissed_at is null
+                    ) as unreadable,
+                    (
                         select count(*) from intake_labels
                         where workspace_id = ? and status = ? and support >= ?
                     ) as labels
@@ -48,6 +56,8 @@ class CountIntakeReview
             [
                 $workspace->id,
                 $workspace->id,
+                $workspace->id,
+                OcrStatus::PoorlyRead->value,
                 $workspace->id,
                 IntakeLabelStatus::Pending->value,
                 // Kept in the same round trip and discarded rather than
@@ -60,6 +70,7 @@ class CountIntakeReview
 
         return (int) ($counts->suggestions ?? 0)
             + (int) ($counts->duplicates ?? 0)
+            + (int) ($counts->unreadable ?? 0)
             + (int) ($counts->labels ?? 0);
     }
 }

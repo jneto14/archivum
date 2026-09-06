@@ -31,6 +31,13 @@ type DuplicateRow = {
     };
 };
 
+type UnreadableRow = {
+    id: string;
+    filename: string;
+    document_id: string;
+    document_title: string;
+};
+
 type CandidateLabel = {
     id: string;
     kind: string;
@@ -53,6 +60,7 @@ type Props = {
         total: number;
     };
     duplicates: DuplicateRow[];
+    unreadable: UnreadableRow[];
     labels: CandidateLabel[];
 };
 
@@ -62,6 +70,7 @@ export default function DocumentReview({
     documents,
     pagination,
     duplicates,
+    unreadable,
     labels,
 }: Props) {
     const t = useTranslation();
@@ -107,6 +116,7 @@ export default function DocumentReview({
     const nothingToReview =
         documents.length === 0 &&
         duplicates.length === 0 &&
+        unreadable.length === 0 &&
         labels.length === 0;
 
     return (
@@ -153,6 +163,74 @@ export default function DocumentReview({
                                     to={pagination.to}
                                     total={pagination.total}
                                 />
+                            </div>
+                        )}
+
+                        {unreadable.length > 0 && (
+                            <div className="space-y-3">
+                                <Heading
+                                    variant="small"
+                                    title={t(
+                                        'documents.review.unreadable_title',
+                                    )}
+                                />
+                                <Panel>
+                                    <PanelHeader>
+                                        <span className="text-sm text-muted-foreground">
+                                            {t(
+                                                'documents.review.unreadable_description',
+                                            )}
+                                        </span>
+                                    </PanelHeader>
+                                    {unreadable.map((scan) => (
+                                        <div
+                                            key={scan.id}
+                                            className="flex flex-wrap items-center gap-2 border-b p-4 last:border-b-0"
+                                        >
+                                            <div className="min-w-0 flex-1">
+                                                <div className="truncate text-sm font-medium">
+                                                    {scan.document_title}
+                                                </div>
+                                                <div className="truncate text-xs text-muted-foreground">
+                                                    {scan.filename}
+                                                </div>
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="shrink-0"
+                                                onClick={() =>
+                                                    router.visit(
+                                                        documentShow.url(
+                                                            scan.document_id,
+                                                        ),
+                                                    )
+                                                }
+                                            >
+                                                {t(
+                                                    'documents.review.open_document',
+                                                )}
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="shrink-0"
+                                                onClick={() =>
+                                                    router.delete(
+                                                        AttachmentController.dismissOcrReview.url(
+                                                            scan.id,
+                                                        ),
+                                                        {
+                                                            preserveScroll: true,
+                                                        },
+                                                    )
+                                                }
+                                            >
+                                                {t('documents.review.dismiss')}
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </Panel>
                             </div>
                         )}
 

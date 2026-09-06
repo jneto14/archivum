@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Documents;
 
 use App\Actions\Documents\IntakeVocabulary;
 use App\Actions\Documents\SuggestDocumentMetadata;
+use App\Enums\OcrStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Models\DocumentAttachment;
@@ -107,6 +108,7 @@ class IntakeReviewController extends Controller
                 'total' => $documents->total(),
             ],
             'duplicates' => $this->duplicates($workspace),
+            'unreadable' => $this->unreadable($workspace),
             'labels' => $request->user()->can('update', $workspace)
                 ? $this->candidateLabels($workspace)
                 : [],
@@ -160,6 +162,42 @@ class IntakeReviewController extends Controller
                     ])
                     ->values()
                     ->all(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The scans that were read but yielded too little to trust, and that
+     * nobody has looked at yet.
+     *
+     * Without this the refusal is silent. Storing no text is what keeps a bad
+     * reading out of the search index and the fingerprint, but it also means
+     * `metadata_suggestions` stays empty and the document never reaches the
+     * listing above — so a page nobody could read would leave no trace anybody
+     * opens (ARC-118).
+     *
+     * Not paginated, for the same reason as the duplicates: a long list here is
+     * a signal about the scanning rather than a page to work through.
+     *
+     * @param Workspace $workspace The workspace being reviewed.
+     *
+     * @return array<int, array{id: string, filename: string, document_id: string, document_title: string}> One entry per undismissed poor reading.
+     */
+    private function unreadable(Workspace $workspace): array
+    {
+        return DocumentAttachment::query()
+            ->where('ocr_status', OcrStatus::PoorlyRead)
+            ->whereNull('ocr_review_dismissed_at')
+            ->whereHas('document', fn (Builder $query) => $query->where('workspace_id', $workspace->id))
+            ->with('document')
+            ->latest('created_at')
+            ->get()
+            ->map(fn (DocumentAttachment $attachment): array => [
+                'id' => $attachment->id,
+                'filename' => $attachment->filename,
+                'document_id' => (string) $attachment->document_id,
+                'document_title' => (string) $attachment->document?->title,
             ])
             ->values()
             ->all();

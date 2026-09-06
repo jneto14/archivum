@@ -7,6 +7,7 @@ namespace Tests\Feature\Documents;
 use App\Actions\Documents\CountIntakeReview;
 use App\Actions\Documents\CreateDocument;
 use App\Actions\Documents\SuggestDocumentMetadata;
+use App\Enums\OcrStatus;
 use App\Enums\WorkspaceRole;
 use App\Models\Document;
 use App\Models\DocumentAttachment;
@@ -246,6 +247,74 @@ class IntakeReviewTest extends TestCase
                 // Two documents with suggestions, plus the flagged attachment.
                 ->where('intakeReviewCount', 3),
             );
+    }
+
+    // Refusing to store a bad reading keeps it out of the search index, and
+    // creates a silence: no text means no suggestions, and the queue selects
+    // on suggestions, so a page nobody could read would leave no trace anybody
+    // opens (ARC-118).
+    public function test_the_queue_lists_scans_that_could_not_be_read_and_the_sidebar_counts_them()
+    {
+        $workspace = $this->workspace();
+        $document = $this->reviewable($workspace, 'Recibo manuscrito');
+
+        $scan = $this->attachment($document, 'handwritten.png');
+        $scan->markOcrPoorlyRead();
+
+        $this->actingAs($this->member($workspace))
+            ->get(route('documents.review', $workspace))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('unreadable.0.id', $scan->id)
+                ->where('unreadable.0.filename', 'handwritten.png')
+                ->where('unreadable.0.document_title', 'Recibo manuscrito')
+                // The one document with suggestions, plus the unread scan.
+                ->where('intakeReviewCount', 2),
+            );
+    }
+
+    // Handwriting never improves, so without a way out the queue would count a
+    // page nobody can do anything more about for the life of the archive, and
+    // the badge would stop meaning anything.
+    public function test_dismissing_an_unreadable_scan_takes_it_off_the_queue_for_good()
+    {
+        $workspace = $this->workspace();
+        $document = $this->reviewable($workspace, 'Recibo manuscrito');
+
+        $scan = $this->attachment($document, 'handwritten.png');
+        $scan->markOcrPoorlyRead();
+
+        $this->actingAs($this->member($workspace))
+            ->delete(route('attachments.unreadable.dismiss', $scan))
+            ->assertRedirect();
+
+        $this->actingAs($this->member($workspace))
+            ->get(route('documents.review', $workspace))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('unreadable', [])
+                ->where('intakeReviewCount', 1),
+            );
+
+        // Dismissing says somebody has seen it, not that it turned out to be
+        // readable. The document page goes on saying what happened to the file.
+        $this->assertSame(OcrStatus::PoorlyRead, $scan->refresh()->ocr_status);
+    }
+
+    public function test_an_outsider_cannot_dismiss_an_unreadable_scan()
+    {
+        $workspace = $this->workspace();
+        $document = $this->reviewable($workspace, 'Recibo manuscrito');
+        $scan = $this->attachment($document, 'handwritten.png');
+        $scan->markOcrPoorlyRead();
+
+        $outsider = WorkspaceUser::factory()->create(['role' => WorkspaceRole::Admin]);
+
+        $this->actingAs($outsider->user)
+            ->delete(route('attachments.unreadable.dismiss', $scan))
+            ->assertForbidden();
+
+        $this->assertNull($scan->refresh()->ocr_review_dismissed_at);
     }
 
     /**

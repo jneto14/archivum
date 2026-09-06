@@ -161,6 +161,12 @@ export default {
     'documents.review.duplicate_of': ':filename parece “:document”',
     'documents.review.open_original': 'Abrir o original',
     'documents.review.keep_both': 'Manter os dois',
+    'documents.review.unreadable_title':
+        'Digitalizações que não foi possível ler',
+    'documents.review.unreadable_description':
+        'Havia escrita nestas, mas veio pouca com nitidez suficiente para guardar, por isso não são pesquisáveis pelo conteúdo. Uma fotografia mais nítida pode ler-se; letra à mão não, e vale a pena escrever à mão.',
+    'documents.review.open_document': 'Abrir o documento',
+    'documents.review.dismiss': 'Dispensar',
     'documents.review.labels_title': 'Palavras que este arquivo usa',
     'documents.review.labels_description':
         'Os teus próprios documentos foram vistos a escrever isto à frente de um valor. Aceita uma e o leitor passa a reconhecer esse campo por ela, neste workspace e em mais nenhum.',
