@@ -195,6 +195,8 @@ export default {
     'documents.show.ocr_processing': 'Reading text…',
     'documents.show.ocr_skipped': 'No readable text',
     'documents.show.ocr_unavailable': 'Text extraction unavailable',
+    'documents.show.ocr_poorly_read':
+        'Read, but too little of it clearly enough to keep',
     'documents.show.ocr_failed': 'Could not read text',
     'documents.show.physical_location_title': 'Physical location',
     'documents.show.location_not_assigned': 'Not yet assigned.',

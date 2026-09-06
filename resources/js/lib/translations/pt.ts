@@ -197,6 +197,8 @@ export default {
     'documents.show.ocr_processing': 'A ler o texto…',
     'documents.show.ocr_skipped': 'Sem texto legível',
     'documents.show.ocr_unavailable': 'Extração de texto indisponível',
+    'documents.show.ocr_poorly_read':
+        'Lido, mas pouco dele com nitidez suficiente para guardar',
     'documents.show.ocr_failed': 'Não foi possível ler o texto',
     'documents.show.physical_location_title': 'Localização física',
     'documents.show.location_not_assigned': 'Ainda não atribuída.',
