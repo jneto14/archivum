@@ -11,6 +11,55 @@ release. Read this file before upgrading.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-06
+
+About trusting what text extraction reads off a page. It used to store whatever
+came back; it now knows how sure it was, keeps only what it stands behind, and
+asks a person about the rest.
+
+Worth taking if anybody photographs pages to file them. Handwriting is the case
+that prompted it — the shipped Tesseract models are trained on printed text and
+read it badly — but a poor photograph of a printed page fails the same way.
+
+### Added
+
+- **Text extraction keeps Tesseract's per-word confidence, and drops the words
+  it was unsure of.** Every word is scored during the same recognition pass at
+  no extra cost, and that score was previously discarded, so a guess was stored
+  as if it were a reading. Measured on this project, printed text scores 91-96
+  while ink carrying no legible text at all comes back between 0 and 63.
+  Filtering is per word rather than per page, so a printed form filled in by
+  hand keeps its printed labels and loses the handwriting — which is what
+  matters, since a value is recognised by the words in front of it.
+- **A page that could not be read is recorded as such**, rather than as a blank
+  page that was read perfectly. No text is stored for it, so it reaches neither
+  the search index nor the duplicate comparison.
+- **The review queue asks about readings that went badly**, showing the
+  extracted text itself beside the file it came from, and how many words were
+  too unclear to keep. Keep the reading, or throw it away — in which case the
+  text is deleted along with its duplicate fingerprint, because text nobody
+  believes is worse than none: it becomes a search result for words nobody
+  wrote. A page nothing legible came off only wants acknowledging.
+- `OCR_MIN_WORD_CONFIDENCE` (default `60`) and `OCR_MIN_CONFIDENT_WORD_RATIO`
+  (default `0.3`), for the word floor and the share of a page that must clear it
+  before the reading is stored at all.
+
+### Changed
+
+- Confidence is not correctness, so the queue asks rather than decides. The
+  floor catches words the engine was unsure of; it cannot catch a confident
+  misreading, and no threshold can. Only the readings that went badly are
+  asked about — a page where every word cleared the floor is never raised.
+- `document_attachments` gains `ocr_reviewed_at`, `ocr_word_count` and
+  `ocr_confident_word_count`. The migrations run on upgrade and need nothing
+  from an operator.
+
+### Upgrading
+
+Text extracted before this release is left exactly as it is. The filter applies
+to new extractions, and there is no command to re-run OCR over an existing
+archive.
+
 ## [0.3.2] - 2026-09-06
 
 All about scanning a page with the phone's own camera, and specifically about
@@ -408,7 +457,8 @@ The first tagged release. Everything below shipped in it.
 - A brand-new user invited on a single-workspace installation is added with the
   role the admin chose, rather than failing with "already a member".
 
-[Unreleased]: https://github.com/jneto14/archivum/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/jneto14/archivum/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/jneto14/archivum/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/jneto14/archivum/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/jneto14/archivum/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/jneto14/archivum/compare/v0.2.1...v0.3.0
