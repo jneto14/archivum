@@ -12,10 +12,15 @@ import {
 import { useTranslation } from '@/hooks/use-translation';
 import {
     VIEWFINDER_DETECTION_WIDTH,
+    VIEWFINDER_MIN_AREA_RATIO,
+    VIEWFINDER_MISS_TOLERANCE,
+    VIEWFINDER_SMOOTHING,
     canvasToFile,
     cornersToPolygon,
+    isDifferentSubject,
     loadScanner,
     scaleCorners,
+    smoothCorners,
 } from '@/lib/document-scan';
 import type { DocumentCorners } from '@/lib/document-scan';
 
@@ -98,6 +103,11 @@ function Viewfinder({
     const streamRef = useRef<MediaStream | null>(null);
     // One canvas reused for every detection pass, rather than one per frame.
     const detectionCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    // The outline as last drawn, and how many passes in a row have found
+    // nothing since. Refs rather than state: the detection loop reads both on
+    // every pass, and putting them in its dependencies would restart it.
+    const lastCornersRef = useRef<DocumentCorners | null>(null);
+    const missedPassesRef = useRef(0);
     const [frameSize, setFrameSize] = useState<Size | null>(null);
     const [corners, setCorners] = useState<DocumentCorners | null>(null);
     const [cameraFailed, setCameraFailed] = useState(false);
@@ -158,6 +168,9 @@ function Viewfinder({
         let stopped = false;
         let timer: number | undefined;
 
+        lastCornersRef.current = null;
+        missedPassesRef.current = 0;
+
         const detect = async () => {
             const video = videoRef.current;
 
@@ -183,20 +196,69 @@ function Viewfinder({
                         return;
                     }
 
-                    const detected = scanner.detectCorners(frame);
+                    // A lower floor than a framed photo gets: a page is
+                    // legitimately small in the frame while it is still being
+                    // aimed at, which is exactly when the outline helps.
+                    const detected = scanner.detectCorners(
+                        frame,
+                        VIEWFINDER_MIN_AREA_RATIO,
+                    );
+
+                    if (stopped) {
+                        return;
+                    }
 
                     setFrameSize(size);
-                    setCorners(
-                        detected === null
-                            ? null
-                            : scaleCorners(
-                                  detected,
-                                  { width: frame.width, height: frame.height },
-                                  size,
-                              ),
-                    );
+
+                    if (detected === null) {
+                        missedPassesRef.current += 1;
+
+                        // Hold the last outline through a miss or two. A frame
+                        // caught mid-exposure, or a hand crossing a corner,
+                        // finds nothing for reasons that say nothing about
+                        // where the page is.
+                        if (
+                            missedPassesRef.current >= VIEWFINDER_MISS_TOLERANCE
+                        ) {
+                            lastCornersRef.current = null;
+                            setCorners(null);
+                        }
+                    } else {
+                        const scaled = scaleCorners(
+                            detected,
+                            { width: frame.width, height: frame.height },
+                            size,
+                        );
+                        const previous = lastCornersRef.current;
+                        // Averaging is for the same page drifting under the
+                        // camera. Across a real change of subject it would
+                        // drag the outline through the space between two
+                        // documents, matching neither.
+                        const next =
+                            previous === null ||
+                            isDifferentSubject(
+                                previous,
+                                scaled,
+                                size.width,
+                                size.height,
+                            )
+                                ? scaled
+                                : smoothCorners(
+                                      previous,
+                                      scaled,
+                                      VIEWFINDER_SMOOTHING,
+                                  );
+
+                        missedPassesRef.current = 0;
+                        lastCornersRef.current = next;
+                        setCorners(next);
+                    }
                 } catch {
                     // Aiming without a guide is the fallback, not a dead end.
+                    // Unlike a miss, this is the scanner itself failing, so
+                    // there is nothing to hold on to.
+                    lastCornersRef.current = null;
+                    missedPassesRef.current = 0;
                     setCorners(null);
                 }
             }

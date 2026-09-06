@@ -1,7 +1,17 @@
 /**
  * Detect a document in a photo and straighten it, for the phone capture page
- * (ARC-105). Detection and warping are jscanify's
- * (https://github.com/ColonelParrot/jscanify, MIT License).
+ * (ARC-105).
+ *
+ * Detection is ours, over OpenCV.js — see `document-scan-runtime.ts`. It was
+ * jscanify's until ARC-117; that library names corners by which quadrant of the
+ * shape they land in, which loses a corner outright on a rotated page. The
+ * perspective warp is still jscanify's
+ * (https://github.com/ColonelParrot/jscanify, MIT License), which was never the
+ * part that was wrong.
+ *
+ * The geometry lives here and the OpenCV calls live in the runtime, so
+ * everything that decides *whether a quad is a document* can be tested without
+ * a 13MB WASM module: this module is safe to import anywhere.
  *
  * Nothing here imports OpenCV.js: it lives in `document-scan-runtime.ts`,
  * loaded on demand by `loadScanner()`, so the ~13MB only arrives once a
@@ -27,11 +37,15 @@ export type ScanImage = HTMLImageElement | HTMLCanvasElement;
 export type Scanner = {
     /**
      * @param image The photo or frame to search.
+     * @param minAreaRatio Smallest share of the image a detection may cover; defaults to the framed-photo floor, which the viewfinder lowers.
      *
      * @returns The document's four corners in `image`'s own pixel
      * coordinates, or `null` if nothing convincing was found.
      */
-    detectCorners(image: ScanImage): DocumentCorners | null;
+    detectCorners(
+        image: ScanImage,
+        minAreaRatio?: number,
+    ): DocumentCorners | null;
 
     /**
      * @param image The photo to straighten.
@@ -100,11 +114,11 @@ export function defaultCorners(width: number, height: number): DocumentCorners {
     };
 }
 
-/** Above this share of the frame, jscanify found the photo's edge, not a document. */
+/** Above this share of the frame, the detector found the photo's edge, not a document. */
 const SUSPICIOUS_FULL_FRAME_AREA_RATIO = 0.92;
 
 /**
- * Below this share of the frame, jscanify found something printed on the
+ * Below this share of the frame, the detector found something printed on the
  * document rather than the document.
  *
  * Deliberately low. Somebody photographing a page to file it fills most of the
@@ -116,6 +130,26 @@ const SUSPICIOUS_FULL_FRAME_AREA_RATIO = 0.92;
  * filed as a fragment of itself.
  */
 const SUSPICIOUS_INNER_DETAIL_AREA_RATIO = 0.25;
+
+/**
+ * The same floor for the live viewfinder, which is a different situation.
+ *
+ * A photo is framed before it is taken, so a page occupying a quarter of it is
+ * already suspicious. A viewfinder is aimed: the page crosses every size on
+ * the way in, and refusing it until it is nearly framed means the outline only
+ * appears once it is no longer needed. The full-frame ceiling is shared —
+ * that one means the same thing in both.
+ */
+export const VIEWFINDER_MIN_AREA_RATIO = 0.1;
+
+/**
+ * Beyond this ratio between the longest and shortest side, the quad is a band
+ * rather than a page — a rule under a letterhead, the edge of a desk.
+ *
+ * Loose on purpose: perspective alone stretches a page a long way, and a
+ * document that is genuinely narrow is somebody's receipt.
+ */
+const MAX_SIDE_RATIO = 8;
 
 /** @returns The area of the quadrilateral `corners`, via the shoelace formula. */
 function quadArea(corners: DocumentCorners): number {
@@ -136,24 +170,157 @@ function quadArea(corners: DocumentCorners): number {
     return Math.abs(sum) / 2;
 }
 
+/** @returns The four side lengths of `corners`, walking the perimeter. */
+function sideLengths(corners: DocumentCorners): number[] {
+    const points = [
+        corners.topLeft,
+        corners.topRight,
+        corners.bottomRight,
+        corners.bottomLeft,
+    ];
+
+    return points.map((point, index) => {
+        const next = points[(index + 1) % points.length];
+
+        return Math.hypot(next.x - point.x, next.y - point.y);
+    });
+}
+
 /**
- * Whether a detected quad is too big or too small to be the document.
+ * Whether a quad's corners are named in an order that walks a convex
+ * perimeter.
  *
- * jscanify answers "the largest closed shape in this photo", which is not the
- * same question as "the page". It misses in both directions, and neither miss
- * announces itself — four clean corners come back either way:
+ * Every candidate is four points that approximate *some* closed contour, which
+ * is not the same as four points that bound a page. A hand, a folded corner or
+ * a shadow spilling off the sheet all approximate to four points; what they do
+ * not do is come back convex. Turning consistently in one direction at all
+ * four corners is the cheapest description of "a sheet of paper seen from an
+ * angle" there is, and perspective cannot break it — a projected rectangle
+ * stays convex from every viewpoint.
  *
- * - Too big: the photo's own border wins, and confirming crops nothing.
+ * It also catches an ordering mistake, which is worth as much: four good points
+ * named in the wrong order are a bowtie, and a bowtie reverses its turn twice.
+ *
+ * @param corners The quad to test, named in perimeter order.
+ *
+ * @returns Whether all four corners turn the same way.
+ */
+export function isConvexQuad(corners: DocumentCorners): boolean {
+    const points = [
+        corners.topLeft,
+        corners.topRight,
+        corners.bottomRight,
+        corners.bottomLeft,
+    ];
+    let winding = 0;
+
+    for (let index = 0; index < points.length; index++) {
+        const from = points[index];
+        const at = points[(index + 1) % points.length];
+        const to = points[(index + 2) % points.length];
+        const cross =
+            (at.x - from.x) * (to.y - at.y) - (at.y - from.y) * (to.x - at.x);
+
+        // Exactly straight is three points on a line: a triangle wearing a
+        // fourth vertex, or two corners that landed on top of each other.
+        if (cross === 0) {
+            return false;
+        }
+
+        const turn = Math.sign(cross);
+
+        if (winding === 0) {
+            winding = turn;
+        } else if (turn !== winding) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Name four unordered points topLeft/topRight/bottomLeft/bottomRight.
+ *
+ * The corners come off a contour in whatever order the tracer walked it, and
+ * naming them by which quadrant of the shape they fall in — the way jscanify
+ * does — fails exactly when a page is rotated: a true corner sits on a quadrant
+ * boundary, a pixel of jitter moves it across, and a quadrant left empty
+ * produces a quad with a corner missing (ARC-117).
+ *
+ * Sorting by angle around the centroid has no such boundary. With y pointing
+ * down, ascending `atan2` walks left, top, right, bottom — the perimeter,
+ * clockwise on screen — for any rotation at all. Which vertex is *called*
+ * top-left is then whichever sits nearest the image origin.
+ *
+ * At exactly 45° there is genuinely no top-left, and two vertices tie. Either
+ * answer is a correct quad; the outline is identical, and a straightened page
+ * comes out turned a quarter. That is inherent to the question, not to this.
+ *
+ * @param points Four points bounding the document, in any order.
+ *
+ * @returns The same four points named, or `null` if there were not exactly four.
+ */
+export function orderCorners(points: Point[]): DocumentCorners | null {
+    if (points.length !== 4) {
+        return null;
+    }
+
+    const centre = {
+        x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+        y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
+    };
+
+    const clockwise = [...points].sort(
+        (first, second) =>
+            Math.atan2(first.y - centre.y, first.x - centre.x) -
+            Math.atan2(second.y - centre.y, second.x - centre.x),
+    );
+
+    let start = 0;
+
+    for (let index = 1; index < clockwise.length; index++) {
+        const candidate = clockwise[index];
+
+        if (
+            candidate.x + candidate.y <
+            clockwise[start].x + clockwise[start].y
+        ) {
+            start = index;
+        }
+    }
+
+    const [topLeft, topRight, bottomRight, bottomLeft] = clockwise.map(
+        (_, offset) => clockwise[(start + offset) % clockwise.length],
+    );
+
+    return { topLeft, topRight, bottomRight, bottomLeft };
+}
+
+/**
+ * Whether a detected quad is the wrong size or the wrong shape to be the
+ * document.
+ *
+ * The detector answers "the largest four-sided convex contour in this image",
+ * which is closer to "the page" than the largest contour of any shape was, but
+ * still not the same question. It misses in three ways, and none of them
+ * announces itself — four clean corners come back every time:
+ *
+ * - Too big: the image's own border wins, and confirming crops nothing.
  * - Too small: a box printed on the page — a totals table, a framed payment
- *   block — has crisper edges than a sheet of paper on a desk does, so it wins
- *   on area, and confirming files that box instead of the document (ARC-110).
+ *   block — is a crisp convex rectangle, so it wins on area, and confirming
+ *   files that box instead of the document (ARC-110).
+ * - The wrong shape: a rule under a letterhead, or the edge of the desk, is a
+ *   convex quadrilateral of respectable area whose sides are too far apart in
+ *   length to be a sheet of paper.
  *
  * Refusing here puts the corners back at their default for the user to drag,
- * which is what a photo with no detection at all already does.
+ * which is what an image with no detection at all already does.
  *
  * @param corners A detected quad, in the image's own pixel coordinates.
  * @param imageWidth The image's width, in pixels.
  * @param imageHeight The image's height, in pixels.
+ * @param minAreaRatio Smallest share of the image the quad may cover; the viewfinder allows less than a framed photo does.
  *
  * @returns Whether the quad should be refused rather than offered.
  */
@@ -161,13 +328,18 @@ export function isImplausibleDocument(
     corners: DocumentCorners,
     imageWidth: number,
     imageHeight: number,
+    minAreaRatio: number = SUSPICIOUS_INNER_DETAIL_AREA_RATIO,
 ): boolean {
     const share = quadArea(corners) / (imageWidth * imageHeight);
 
-    return (
-        share > SUSPICIOUS_FULL_FRAME_AREA_RATIO ||
-        share < SUSPICIOUS_INNER_DETAIL_AREA_RATIO
-    );
+    if (share > SUSPICIOUS_FULL_FRAME_AREA_RATIO || share < minAreaRatio) {
+        return true;
+    }
+
+    const sides = sideLengths(corners);
+    const shortest = Math.min(...sides);
+
+    return shortest === 0 || Math.max(...sides) / shortest > MAX_SIDE_RATIO;
 }
 
 /**
@@ -180,6 +352,107 @@ export function isImplausibleDocument(
  * be slower than the frames it is trying to describe.
  */
 export const VIEWFINDER_DETECTION_WIDTH = 480;
+
+/**
+ * Consecutive passes that may find nothing before the outline is taken down.
+ *
+ * Detection is a fresh guess every pass, and a guess about a moving picture
+ * misses for reasons that have nothing to do with the page: a frame caught
+ * mid-exposure, a hand crossing a corner, the paper leaving the frame for an
+ * instant. Clearing on the first miss turns that into a strobe.
+ *
+ * Holding the last accepted quad through a miss or two costs an outline that
+ * lags reality for a fraction of a second, which is what a viewfinder outline
+ * is anyway — it is a guide for aiming, and the crop is decided later, on the
+ * frame the shutter keeps.
+ */
+export const VIEWFINDER_MISS_TOLERANCE = 3;
+
+/**
+ * How far the drawn outline moves toward each new detection, 0 to 1.
+ *
+ * Detection on successive frames of the same still page lands a few pixels
+ * apart, which reads as a jittering outline. Averaging against the previous
+ * one absorbs that. Too low and the outline swims after the page instead of
+ * sitting on it, which is why this is nearer a half than a tenth.
+ */
+export const VIEWFINDER_SMOOTHING = 0.5;
+
+/**
+ * Move `previous` a fraction of the way toward `next`.
+ *
+ * @param previous The outline currently drawn.
+ * @param next The quad just detected.
+ * @param weight Share of the distance to travel, 0 (stay) to 1 (jump).
+ *
+ * @returns The quad to draw.
+ */
+export function smoothCorners(
+    previous: DocumentCorners,
+    next: DocumentCorners,
+    weight: number,
+): DocumentCorners {
+    const blend = (from: Point, to: Point): Point => ({
+        x: from.x + (to.x - from.x) * weight,
+        y: from.y + (to.y - from.y) * weight,
+    });
+
+    return {
+        topLeft: blend(previous.topLeft, next.topLeft),
+        topRight: blend(previous.topRight, next.topRight),
+        bottomLeft: blend(previous.bottomLeft, next.bottomLeft),
+        bottomRight: blend(previous.bottomRight, next.bottomRight),
+    };
+}
+
+/**
+ * Whether two quads are far enough apart that the outline should jump rather
+ * than slide.
+ *
+ * Smoothing is right for the same page drifting under the camera and wrong for
+ * a different page: averaging across a genuine change drags the outline through
+ * the space between two documents, drawing a quad that matches neither. Past
+ * this share of the frame, the detection is treated as a new subject.
+ *
+ * @param previous The outline currently drawn.
+ * @param next The quad just detected.
+ * @param frameWidth Width of the frame both are expressed in, in pixels.
+ * @param frameHeight Height of the frame both are expressed in, in pixels.
+ *
+ * @returns Whether `next` describes something other than what `previous` did.
+ */
+export function isDifferentSubject(
+    previous: DocumentCorners,
+    next: DocumentCorners,
+    frameWidth: number,
+    frameHeight: number,
+): boolean {
+    const diagonal = Math.hypot(frameWidth, frameHeight);
+
+    if (diagonal === 0) {
+        return true;
+    }
+
+    const keys: (keyof DocumentCorners)[] = [
+        'topLeft',
+        'topRight',
+        'bottomLeft',
+        'bottomRight',
+    ];
+
+    return keys.some(
+        (key) =>
+            Math.hypot(
+                next[key].x - previous[key].x,
+                next[key].y - previous[key].y,
+            ) /
+                diagonal >
+            VIEWFINDER_JUMP_RATIO,
+    );
+}
+
+/** Past this share of the frame diagonal, a corner has moved to a different subject. */
+const VIEWFINDER_JUMP_RATIO = 0.25;
 
 /**
  * Move a quad from one image's pixel coordinates into another's.
