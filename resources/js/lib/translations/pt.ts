@@ -127,6 +127,10 @@ export default {
     'documents.form.suggestion_ignore_label': 'Ignorar a sugestão para :field',
     'documents.form.metadata_key_placeholder': 'Chave',
     'documents.form.metadata_value_placeholder': 'Valor',
+    'documents.form.metadata_key_suggestions_label':
+        'Campos já usados neste espaço de trabalho',
+    'documents.form.metadata_value_suggestions_label':
+        'Valores já registados neste campo',
     'documents.form.add_field_button': 'Adicionar campo',
     'documents.form.cancel_button': 'Cancelar',
     'documents.form.submit_button_edit': 'Guardar alterações',
