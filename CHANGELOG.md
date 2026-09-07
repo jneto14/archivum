@@ -11,6 +11,61 @@ release. Read this file before upgrading.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-07
+
+About the archive naming its own fields. Metadata has always been free-form
+key/value pairs, which is what lets an installation hold insurance policies,
+clinical records or building permits without anybody having anticipated them —
+and also what lets the same field drift into `NIF` on one document, `nif` on the
+next and `Contribuinte` on the one after. Once that has happened the three are
+unrelated as far as search and comparison are concerned, and nothing ever said
+so. The form now shows what the workspace already says, at the one moment the
+drift is cheap to avoid: while the row is being typed.
+
+Also fixes a published installation titling itself Laravel, which no setting
+could change.
+
+### Added
+
+- **Metadata rows suggest the keys the workspace already uses**, ranked by how
+  often each is filed and narrowed as you type. Picking one files the key under
+  the spelling already in use, so it matches the documents that came before.
+  Suggestions are a hint and never a closed list: a key nobody has used before
+  can always be typed.
+- **Spellings of one field are offered as one.** Keys are grouped by the same
+  normalisation the scan reader already uses, so `NIF`, `nif` and `Contribuinte`
+  collapse into a single suggestion under whichever spelling the workspace
+  writes most often. Offering all three would hand the drift back as a menu.
+- **The value input offers what has been filed under that key before** — useful
+  where a key has a small repeating set, like an issuer, a category or an
+  account, and harmless where every value is distinct.
+- Keys already on the document are not offered again, and the selected document
+  type ranks the suggestions rather than filtering them: a key common on
+  invoices is noise on a contract, but hiding it leaves a workspace filing its
+  first contract with nothing at all.
+
+### Fixed
+
+- **A published installation titled itself Laravel**, and neither `APP_NAME` nor
+  a redeploy changed it. The interface read the name from `VITE_APP_NAME`, which
+  Vite resolves when the bundle is built — and the production image builds its
+  assets in CI with no environment at all, so the framework's default shipped. A
+  build-time name cannot vary per installation in any case, since one image
+  serves everybody who pulls it. The name now comes from the server with the
+  page, and the fallback is Archivum.
+
+### Changed
+
+- `VITE_APP_NAME` leaves `.env.example`, where it read as though setting it
+  would work. `APP_NAME` governs the name everywhere.
+
+### Upgrading
+
+Nothing to do. There are no schema changes and no new environment variables.
+An installation that set `VITE_APP_NAME` can drop it; `APP_NAME` now takes
+effect on the interface as well as the server-rendered shell, so a name that
+never appeared before will start to.
+
 ## [0.4.0] - 2026-09-06
 
 About trusting what text extraction reads off a page. It used to store whatever
@@ -457,7 +512,8 @@ The first tagged release. Everything below shipped in it.
 - A brand-new user invited on a single-workspace installation is added with the
   role the admin chose, rather than failing with "already a member".
 
-[Unreleased]: https://github.com/jneto14/archivum/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/jneto14/archivum/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/jneto14/archivum/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/jneto14/archivum/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/jneto14/archivum/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/jneto14/archivum/compare/v0.3.0...v0.3.1
