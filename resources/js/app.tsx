@@ -8,7 +8,20 @@ import SettingsLayout from '@/layouts/settings/layout';
 import { applyPathPrefix } from '@/lib/path-prefix';
 import { registerServiceWorker } from '@/lib/service-worker';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+/**
+ * The installation's own name, taken from the server on the first render.
+ *
+ * Not `import.meta.env.VITE_APP_NAME`, which is resolved when the bundle is
+ * built. The published image is built once, in CI, with no `.env` of its own —
+ * `.dockerignore` excludes it deliberately — so a build-time name is the same
+ * for every installation that pulls the image, and setting `APP_NAME` on a
+ * server does nothing. It shipped as the framework's default, which is how a
+ * demo came to call itself Laravel.
+ *
+ * `config('app.name')` already reaches the page as the shared `name` prop, and
+ * `withApp` runs before anything renders a title (ARC-120).
+ */
+let appName = 'Archivum';
 
 // Before anything renders, so no URL is read at its build-time value first.
 // Eager on purpose: a lazily loaded route module would be the one that got
@@ -41,7 +54,9 @@ createInertiaApp({
         }
     },
     strictMode: true,
-    withApp(app) {
+    withApp(app, { page }) {
+        appName = page.props.name || appName;
+
         return (
             <TooltipProvider delayDuration={0}>
                 {app}

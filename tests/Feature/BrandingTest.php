@@ -86,12 +86,38 @@ class BrandingTest extends TestCase
     {
         $this->assertSame('Archivum', config('app.name'));
 
-        foreach (['config/app.php', 'resources/views/app.blade.php'] as $file) {
+        foreach (['config/app.php', 'resources/views/app.blade.php', 'resources/js/app.tsx'] as $file) {
             $this->assertStringNotContainsString(
                 "'Laravel'",
                 (string) file_get_contents(base_path($file)),
                 "[{$file}] still falls back to Laravel's name.",
             );
         }
+    }
+
+    /**
+     * The title the interface sets has to come from the server, not the build.
+     *
+     * `.dockerignore` excludes `.env`, so the published image is built once in
+     * CI with no environment of its own. A name resolved at build time is
+     * therefore the same for every installation that pulls that image, and
+     * setting `APP_NAME` on a server changes nothing — which is how a demo
+     * came to call itself Laravel while its own `<title>` said Archivum.
+     */
+    public function test_the_interface_takes_the_app_name_from_the_server_rather_than_the_bundle()
+    {
+        $boot = (string) file_get_contents(base_path('resources/js/app.tsx'));
+
+        // Asserted positively: the negative reads badly here, since the reason
+        // the build-time variable is not used is worth naming in a comment.
+        $this->assertStringContainsString(
+            'page.props.name',
+            $boot,
+            'A build-time name cannot vary per installation; take it from the shared props.',
+        );
+
+        $this->get(route('login'))->assertInertia(
+            fn ($page) => $page->where('name', config('app.name')),
+        );
     }
 }
