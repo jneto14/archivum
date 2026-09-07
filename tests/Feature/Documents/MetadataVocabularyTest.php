@@ -79,12 +79,34 @@ class MetadataVocabularyTest extends TestCase
         $this->assertSame([$contract->id], $keys['Contraparte']);
     }
 
-    public function test_it_ignores_blank_values_and_another_workspace_entirely()
+    public function test_it_keeps_a_key_whose_value_was_left_empty()
+    {
+        $workspace = Workspace::factory()->create();
+
+        Document::factory()->for($workspace)->create(['metadata' => ['Fornecedor' => 'EDP', 'Processo' => null]]);
+
+        $vocabulary = app(SuggestMetadataVocabulary::class)->handle($workspace);
+        $values = array_column($vocabulary, 'values', 'key');
+
+        // A field somebody filed and left empty is still a field this
+        // workspace uses. Dropping the key with its value is what emptied the
+        // one row the suggestions are for: the row being added excludes every
+        // key the document already holds, so the vocabulary has to carry the
+        // ones it does not.
+        // Canonicalised: MySQL normalises the key order inside a JSON object,
+        // so which of two keys filed on the same document ranks first is not
+        // something this can assert.
+        $this->assertEqualsCanonicalizing(['Fornecedor', 'Processo'], array_keys($values));
+        $this->assertSame(['EDP'], $values['Fornecedor']);
+        $this->assertSame([], $values['Processo']);
+    }
+
+    public function test_it_ignores_another_workspace_entirely()
     {
         $workspace = Workspace::factory()->create();
         $other = Workspace::factory()->create();
 
-        Document::factory()->for($workspace)->create(['metadata' => ['Fornecedor' => 'EDP', 'Vazio' => '']]);
+        Document::factory()->for($workspace)->create(['metadata' => ['Fornecedor' => 'EDP']]);
         Document::factory()->for($other)->create(['metadata' => ['Segredo' => 'Alheio']]);
 
         $vocabulary = app(SuggestMetadataVocabulary::class)->handle($workspace);

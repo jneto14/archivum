@@ -44,6 +44,12 @@ export function fold(value: string): string {
  *
  * Candidates arrive ranked by how often the workspace uses them, and a stable
  * sort is what keeps that ranking inside each of the two groups.
+ *
+ * What is already in the field is never offered back. Without that, opening a
+ * document whose rows are already filled in pops a list under every one of them
+ * whose only entry is the value being looked at — the suggestions turn up
+ * exactly where there is nothing to suggest, and the row being added, which is
+ * the one that needed them, is the row they are missing from.
  */
 function narrow(candidates: string[], typed: string): string[] {
     const query = fold(typed);
@@ -52,8 +58,9 @@ function narrow(candidates: string[], typed: string): string[] {
         return candidates;
     }
 
-    const matching = candidates.filter((candidate) =>
-        fold(candidate).includes(query),
+    const matching = candidates.filter(
+        (candidate) =>
+            fold(candidate) !== query && fold(candidate).includes(query),
     );
 
     return [

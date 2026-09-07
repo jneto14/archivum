@@ -23,17 +23,29 @@ describe('suggestKeys', () => {
     it('matches without regard to case or accents', () => {
         const vocabulary = [entry('Matrícula')];
 
-        expect(
-            suggestKeys(vocabulary, { typed: 'matricula', ...noType }),
-        ).toEqual(['Matrícula']);
+        expect(suggestKeys(vocabulary, { typed: 'matric', ...noType })).toEqual(
+            ['Matrícula'],
+        );
     });
 
     it('matches a word inside the key, but ranks what starts with it first', () => {
         const vocabulary = [entry('Nº de apólice'), entry('Apólice')];
 
+        expect(suggestKeys(vocabulary, { typed: 'apol', ...noType })).toEqual([
+            'Apólice',
+            'Nº de apólice',
+        ]);
+    });
+
+    it('never offers back what is already in the field', () => {
+        const vocabulary = [entry('Fornecedor'), entry('Fornecedor externo')];
+
+        // Otherwise every already-filled row on an edited document opens a list
+        // under itself offering its own key, which is where the suggestions are
+        // useless — and the empty row being added is where they are missing.
         expect(
-            suggestKeys(vocabulary, { typed: 'apolice', ...noType }),
-        ).toEqual(['Apólice', 'Nº de apólice']);
+            suggestKeys(vocabulary, { typed: 'Fornecedor', ...noType }),
+        ).toEqual(['Fornecedor externo']);
     });
 
     it('leaves out keys the document is already filing by', () => {
@@ -95,5 +107,56 @@ describe('suggestValues', () => {
         expect(
             suggestValues(vocabulary, { key: 'Fornecedor', typed: 'ga' }),
         ).toEqual(['Galp']);
+    });
+
+    it('never offers back the value already in the field', () => {
+        const vocabulary = [entry('Fornecedor', ['EDP', 'Galp'])];
+
+        expect(
+            suggestValues(vocabulary, { key: 'Fornecedor', typed: 'Galp' }),
+        ).toEqual([]);
+    });
+});
+
+/**
+ * The shape that was broken on a real archive: a workspace knowing three keys,
+ * on a document already filing by two of them.
+ */
+describe('a document already filing by most of what the workspace knows', () => {
+    const vocabulary = [
+        entry('teste'),
+        entry('amount', ['315.00']),
+        entry('tax_id', ['501 234 567']),
+    ];
+    const rows = [
+        { key: 'amount', value: '315.00' },
+        { key: 'tax_id', value: '501 234 567' },
+    ];
+    const others = (index: number) =>
+        rows.filter((_, other) => other !== index).map((row) => row.key);
+
+    it('says nothing on the rows that are already filled in', () => {
+        rows.forEach((row, index) => {
+            expect(
+                suggestKeys(vocabulary, {
+                    typed: row.key,
+                    documentTypeId: '',
+                    usedKeys: others(index),
+                }),
+            ).toEqual([]);
+            expect(
+                suggestValues(vocabulary, { key: row.key, typed: row.value }),
+            ).toEqual([]);
+        });
+    });
+
+    it('offers the key the document is not using yet on the row being added', () => {
+        expect(
+            suggestKeys(vocabulary, {
+                typed: '',
+                documentTypeId: '',
+                usedKeys: rows.map((row) => row.key),
+            }),
+        ).toEqual(['teste']);
     });
 });
