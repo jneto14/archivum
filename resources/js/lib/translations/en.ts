@@ -125,6 +125,10 @@ export default {
         'Ignore the suggestion for :field',
     'documents.form.metadata_key_placeholder': 'Key',
     'documents.form.metadata_value_placeholder': 'Value',
+    'documents.form.metadata_key_suggestions_label':
+        'Fields already used in this workspace',
+    'documents.form.metadata_value_suggestions_label':
+        'Values already filed under this field',
     'documents.form.add_field_button': 'Add field',
     'documents.form.cancel_button': 'Cancel',
     'documents.form.submit_button_edit': 'Save changes',

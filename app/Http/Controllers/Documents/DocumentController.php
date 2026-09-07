@@ -8,6 +8,7 @@ use App\Actions\Documents\CreateDocument;
 use App\Actions\Documents\DeleteDocument;
 use App\Actions\Documents\SearchDocuments;
 use App\Actions\Documents\SuggestDocumentMetadata;
+use App\Actions\Documents\SuggestMetadataVocabulary;
 use App\Actions\Documents\UpdateDocument;
 use App\Actions\Organization\ListSchemeLocations;
 use App\Actions\Organization\SuggestDocumentLocations;
@@ -86,12 +87,13 @@ class DocumentController extends Controller
      * Show the form for registering a new document in the given workspace.
      *
      * @param Workspace $workspace The workspace the new document will belong to.
+     * @param SuggestMetadataVocabulary $vocabulary Reads the keys and values the workspace already files by.
      *
      * @return Response The rendered document form page.
      *
      * @throws AuthorizationException If the current user cannot create documents in $workspace.
      */
-    public function create(Workspace $workspace): Response
+    public function create(Workspace $workspace, SuggestMetadataVocabulary $vocabulary): Response
     {
         $this->authorize('create', [Document::class, $workspace]);
 
@@ -100,6 +102,7 @@ class DocumentController extends Controller
             'document' => null,
             'documentTypes' => $this->workspaceDocumentTypes($workspace),
             'tags' => $this->workspaceTags($workspace),
+            'metadataVocabulary' => $vocabulary->handle($workspace),
         ]);
     }
 
@@ -168,12 +171,13 @@ class DocumentController extends Controller
      *
      * @param Document $document The document being edited.
      * @param SuggestDocumentMetadata $suggest Reads values out of the document's extracted text.
+     * @param SuggestMetadataVocabulary $vocabulary Reads the keys and values the workspace already files by.
      *
      * @return Response The rendered document form page.
      *
      * @throws AuthorizationException If the current user cannot update $document.
      */
-    public function edit(Document $document, SuggestDocumentMetadata $suggest): Response
+    public function edit(Document $document, SuggestDocumentMetadata $suggest, SuggestMetadataVocabulary $vocabulary): Response
     {
         $this->authorize('update', $document);
 
@@ -188,6 +192,7 @@ class DocumentController extends Controller
             // in hand, the heuristics cost microseconds against it, and storing
             // them would mean a backfill every time one of them improves.
             'metadataSuggestions' => $suggest->handle($document),
+            'metadataVocabulary' => $vocabulary->handle($document->workspace),
         ]);
     }
 

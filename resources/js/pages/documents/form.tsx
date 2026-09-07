@@ -9,6 +9,7 @@ import { MetadataSuggestions } from '@/components/metadata-suggestions';
 import type { MetadataSuggestion } from '@/components/metadata-suggestions';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
+import { SuggestionInput } from '@/components/suggestion-input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -31,6 +32,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useTranslation } from '@/hooks/use-translation';
+import type { MetadataVocabularyEntry } from '@/lib/metadata-vocabulary';
+import { suggestKeys, suggestValues } from '@/lib/metadata-vocabulary';
 import { randomId } from '@/lib/utils';
 import {
     edit as documentEdit,
@@ -57,6 +60,8 @@ type Props = {
     tags: Tag[];
     /** Absent when registering a document: there are no attachments to read yet. */
     metadataSuggestions?: MetadataSuggestion[];
+    /** The keys and values this workspace already files by, most used first. */
+    metadataVocabulary: MetadataVocabularyEntry[];
 };
 
 export default function DocumentForm({
@@ -65,6 +70,7 @@ export default function DocumentForm({
     documentTypes,
     tags: workspaceTags,
     metadataSuggestions = [],
+    metadataVocabulary,
 }: Props) {
     const isEditing = document !== null;
 
@@ -408,36 +414,64 @@ export default function DocumentForm({
                                     key={pair.id}
                                     className="flex items-center gap-2"
                                 >
-                                    <Input
+                                    <SuggestionInput
                                         placeholder={t(
                                             'documents.form.metadata_key_placeholder',
                                         )}
                                         value={pair.key}
-                                        onChange={(event) =>
+                                        onChange={(value) =>
                                             updateMetadataPair(
                                                 index,
                                                 'key',
-                                                event.target.value,
+                                                value,
                                             )
                                         }
+                                        suggestions={suggestKeys(
+                                            metadataVocabulary,
+                                            {
+                                                typed: pair.key,
+                                                documentTypeId:
+                                                    form.data.document_type_id,
+                                                usedKeys: metadataPairs
+                                                    .filter(
+                                                        (_, other) =>
+                                                            other !== index,
+                                                    )
+                                                    .map((other) => other.key),
+                                            },
+                                        )}
+                                        suggestionsLabel={t(
+                                            'documents.form.metadata_key_suggestions_label',
+                                        )}
                                     />
-                                    <Input
+                                    <SuggestionInput
                                         placeholder={t(
                                             'documents.form.metadata_value_placeholder',
                                         )}
                                         value={pair.value}
-                                        onChange={(event) =>
+                                        onChange={(value) =>
                                             updateMetadataPair(
                                                 index,
                                                 'value',
-                                                event.target.value,
+                                                value,
                                             )
                                         }
+                                        suggestions={suggestValues(
+                                            metadataVocabulary,
+                                            {
+                                                key: pair.key,
+                                                typed: pair.value,
+                                            },
+                                        )}
+                                        suggestionsLabel={t(
+                                            'documents.form.metadata_value_suggestions_label',
+                                        )}
                                     />
                                     <Button
                                         type="button"
                                         variant="ghost"
                                         size="sm"
+                                        className="shrink-0"
                                         onClick={() =>
                                             removeMetadataPair(index)
                                         }
