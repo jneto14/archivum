@@ -42,7 +42,7 @@
         "prettier-plugin-tailwindcss": "^0.8.1",
         "typescript": "npm:@typescript/typescript6@^6.0.2",
         "typescript-eslint": "^8.23.0",
-        "vitest": "^4.1.11"
+        "vitest": "^5.0.0"
     },
     "dependencies": {
         "@inertiajs/react": "^3.0.0",
