@@ -9,9 +9,9 @@ use App\Actions\Documents\PurgeDocument;
 use App\Models\Document;
 use App\Models\DocumentAttachment;
 use App\Models\Workspace;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Carbon;
 
 class EmptyWorkspaceTrash
 {
@@ -36,18 +36,21 @@ class EmptyWorkspaceTrash
      * unlinks a file per attachment.
      *
      * @param Workspace $workspace The workspace whose trash is emptied.
-     * @param Carbon|null $trashedBefore Only purge items trashed before this moment; everything when null.
+     * @param CarbonInterface|null $trashedBefore Only purge items trashed before this moment; everything when null.
      *
      * @return array{documents: int, attachments: int} How many of each were destroyed.
      */
-    public function handle(Workspace $workspace, ?Carbon $trashedBefore = null): array
+    public function handle(Workspace $workspace, ?CarbonInterface $trashedBefore = null): array
     {
         $purgedDocuments = 0;
         $purgedAttachments = 0;
 
         Document::onlyTrashed()
             ->where('workspace_id', $workspace->id)
-            ->when($trashedBefore, fn (Builder $query, Carbon $cutoff) => $query->where('deleted_at', '<=', $cutoff))
+            ->when(
+                $trashedBefore !== null,
+                fn (Builder $query): Builder => $query->where('deleted_at', '<=', $trashedBefore),
+            )
             ->chunkById(100, function (Collection $documents) use (&$purgedDocuments): void {
                 foreach ($documents as $document) {
                     $this->purgeDocument->handle($document);
@@ -56,8 +59,11 @@ class EmptyWorkspaceTrash
             });
 
         DocumentAttachment::onlyTrashed()
-            ->whereHas('document', fn (Builder $query) => $query->where('workspace_id', $workspace->id))
-            ->when($trashedBefore, fn (Builder $query, Carbon $cutoff) => $query->where('deleted_at', '<=', $cutoff))
+            ->whereHas('document', fn (Builder $query): Builder => $query->where('workspace_id', $workspace->id))
+            ->when(
+                $trashedBefore !== null,
+                fn (Builder $query): Builder => $query->where('deleted_at', '<=', $trashedBefore),
+            )
             ->chunkById(100, function (Collection $attachments) use (&$purgedAttachments): void {
                 foreach ($attachments as $attachment) {
                     $this->purgeAttachment->handle($attachment);

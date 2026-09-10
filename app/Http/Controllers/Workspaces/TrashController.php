@@ -46,7 +46,7 @@ class TrashController extends Controller
         $documents = Document::onlyTrashed()
             ->where('workspace_id', $workspace->id)
             ->with('documentType')
-            ->withCount(['attachments' => fn (Builder $query) => $query->onlyTrashed()])
+            ->withCount(['attachments' => fn ($query) => $query->onlyTrashed()])
             ->latest('deleted_at')
             ->paginate(15, ['*'], 'documents')
             ->withQueryString();
@@ -238,7 +238,10 @@ class TrashController extends Controller
     private function trashedAttachment(Workspace $workspace, string $id): DocumentAttachment
     {
         return DocumentAttachment::onlyTrashed()
-            ->whereHas('document', fn (Builder $query) => $query->withTrashed()->where('workspace_id', $workspace->id))
+            ->whereIn(
+                'document_id',
+                Document::withTrashed()->where('workspace_id', $workspace->id)->select('id'),
+            )
             ->findOrFail($id);
     }
 }

@@ -212,13 +212,20 @@ class CalculateWorkspaceUsage
      */
     private function attachmentsQuery(Workspace $workspace, bool $withTrashed = false): Builder
     {
-        return DocumentAttachment::query()
-            ->when($withTrashed, fn (Builder $query) => $query->withTrashed())
-            ->whereHas(
-                'document',
-                fn (Builder $query) => $query
-                    ->when($withTrashed, fn (Builder $documents) => $documents->withTrashed())
-                    ->where('workspace_id', $workspace->id),
-            );
+        $attachments = DocumentAttachment::query();
+        $documents = Document::query();
+
+        if ($withTrashed) {
+            $attachments->withTrashed();
+            $documents->withTrashed();
+        }
+
+        // A subquery rather than `whereHas`, so the trashed-document case can
+        // be expressed at all: inside a `whereHas` closure the builder is
+        // typed against the base model and `withTrashed()` is not on it.
+        return $attachments->whereIn(
+            'document_id',
+            $documents->where('workspace_id', $workspace->id)->select('id'),
+        );
     }
 }
