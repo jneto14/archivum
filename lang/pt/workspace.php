@@ -20,4 +20,9 @@ return [
     'export_retried' => 'Exportação reiniciada.',
     'only_failed_tasks_can_retry' => 'Só é possível repetir tarefas falhadas.',
     'attachment_no_longer_exists' => 'O anexo a que esta tarefa dizia respeito entretanto foi apagado.',
+    'reextraction_cannot_retry' => 'Uma reextração de texto não se repete. Inicie uma nova.',
+    'reextraction_failed' => 'A reextração parou antes de conseguir pôr algum ficheiro em fila.',
+    'reextraction_already_running' => 'Já existe uma reextração de texto em curso para este workspace.',
+    'nothing_to_reextract' => 'Não há nada de onde reextrair texto.',
+    'reextraction_started' => 'A reextrair o texto de :count anexo(s). Corre em segundo plano e pode demorar horas.',
 ];

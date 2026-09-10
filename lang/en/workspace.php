@@ -20,4 +20,9 @@ return [
     'export_retried' => 'Export restarted.',
     'only_failed_tasks_can_retry' => 'Only failed tasks can be retried.',
     'attachment_no_longer_exists' => 'The attachment this task was for has since been deleted.',
+    'reextraction_cannot_retry' => 'A text re-extraction cannot be retried. Start a new one instead.',
+    'reextraction_failed' => 'The re-extraction stopped before it could queue any files.',
+    'reextraction_already_running' => 'A text re-extraction is already running for this workspace.',
+    'nothing_to_reextract' => 'There is nothing to re-extract text from.',
+    'reextraction_started' => 'Re-extracting text from :count attachment(s). This runs in the background and may take hours.',
 ];
