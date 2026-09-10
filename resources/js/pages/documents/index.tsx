@@ -48,11 +48,17 @@ const LAYOUT_STORAGE_KEY = 'archivum.documents.layout';
 type Layout = 'table' | 'cards';
 
 /**
- * How the typed query is matched. `exact` matches whole words inside attachment
- * text; `broad` also matches the start of a word, so "fatur" finds "faturas".
- * Both are substring matches against the title.
+ * How the typed query is matched. Every mode but `title` searches the title
+ * and the text read from the scans together; they differ in how the words are
+ * combined. See App\Enums\SearchMode.
  */
-type SearchMode = 'exact' | 'broad';
+type SearchMode = 'all' | 'any' | 'phrase' | 'title';
+
+/**
+ * The modes in the order the select offers them: from the one almost everyone
+ * wants, out to the two that narrow a search that returned too much.
+ */
+const SEARCH_MODES: SearchMode[] = ['all', 'any', 'phrase', 'title'];
 
 type DocumentRow = {
     id: string;
@@ -267,17 +273,20 @@ export default function DocumentIndex({
                         >
                             <SelectTrigger
                                 className="w-full @4xl/filters:col-span-2"
-                                title={t('documents.index.search_mode_hint')}
+                                aria-label={t(
+                                    'documents.index.search_mode_label',
+                                )}
                             >
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="exact">
-                                    {t('documents.index.search_mode_exact')}
-                                </SelectItem>
-                                <SelectItem value="broad">
-                                    {t('documents.index.search_mode_broad')}
-                                </SelectItem>
+                                {SEARCH_MODES.map((mode) => (
+                                    <SelectItem key={mode} value={mode}>
+                                        {t(
+                                            `documents.index.search_mode_${mode}`,
+                                        )}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                         <Select
@@ -340,6 +349,16 @@ export default function DocumentIndex({
                             className="w-full @4xl/filters:col-span-2"
                         />
                     </div>
+                    {/*
+                     * The mode's label names it; this says what it does. It was
+                     * a `title` tooltip on the select, which a touch device
+                     * never shows and nobody hovers a control they have already
+                     * decided about — so the one sentence explaining the search
+                     * reached almost no one (ARC-125).
+                     */}
+                    <p className="mt-2 text-sm text-muted-foreground">
+                        {t(`documents.index.search_mode_hint_${filters.mode}`)}
+                    </p>
                 </div>
 
                 {filteredLocation && (

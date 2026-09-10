@@ -67,10 +67,19 @@ export default {
     'documents.index.view_cards': 'Cards',
     'documents.index.new_document': 'New document',
     'documents.index.search_placeholder': 'Search…',
-    'documents.index.search_mode_exact': 'Whole words',
-    'documents.index.search_mode_broad': 'Word starts with',
-    'documents.index.search_mode_hint':
-        'Attachment text is matched by whole word. Switch to "Word starts with" so "fatur" also finds "faturas".',
+    'documents.index.search_mode_label': 'Search mode',
+    'documents.index.search_mode_all': 'All words',
+    'documents.index.search_mode_any': 'Any word',
+    'documents.index.search_mode_phrase': 'Exact phrase',
+    'documents.index.search_mode_title': 'Title only',
+    'documents.index.search_mode_hint_all':
+        'Every word must appear — in the title or in the scans — in any order.',
+    'documents.index.search_mode_hint_any':
+        'One of the words is enough. Use it when you are unsure what the document calls something.',
+    'documents.index.search_mode_hint_phrase':
+        'The words together, in this order, in the title or in the scans.',
+    'documents.index.search_mode_hint_title':
+        'Searches titles only, ignoring the text read from the scans.',
     'documents.index.filter_type_placeholder': 'Type',
     'documents.index.filter_all_types': 'All types',
     'documents.index.filter_tag_placeholder': 'Tag',
