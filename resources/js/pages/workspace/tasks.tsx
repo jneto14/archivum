@@ -1,4 +1,5 @@
 import { Head, router, setLayoutProps } from '@inertiajs/react';
+import { RefreshCwIcon } from 'lucide-react';
 import { EmptyState } from '@/components/empty-state';
 import { PageContainer } from '@/components/page-container';
 import { PageHeader } from '@/components/page-header';
@@ -24,7 +25,7 @@ import {
 import { useDateFormatter } from '@/hooks/use-date-formatter';
 import { useTranslation } from '@/hooks/use-translation';
 import type { TranslationKey } from '@/lib/translations';
-import { download, index, retry } from '@/routes/workspaces/tasks';
+import { download, index, reextract, retry } from '@/routes/workspaces/tasks';
 
 type TaskRow = {
     id: string;
@@ -33,7 +34,14 @@ type TaskRow = {
     triggered_by: string;
     /** What the task acted on — an attachment's filename, where it has one. */
     subject: string | null;
-    result: { documents_count?: number; error?: string } | null;
+    /** How far a running bulk re-extraction has got, read off its job batch. */
+    progress: { processed: number; total: number } | null;
+    result: {
+        documents_count?: number;
+        attachments?: number;
+        failed?: number;
+        error?: string;
+    } | null;
     started_at: string | null;
     finished_at: string | null;
     created_at: string | null;
@@ -58,6 +66,8 @@ const TYPE_LABELS: Record<string, TranslationKey> = {
     bulk_document_move: 'workspace.tasks.type_bulk_document_move',
     attachment_text_extraction:
         'workspace.tasks.type_attachment_text_extraction',
+    bulk_attachment_text_extraction:
+        'workspace.tasks.type_bulk_attachment_text_extraction',
 };
 
 const STATUS_LABELS: Record<TaskRow['status'], TranslationKey> = {
@@ -99,6 +109,14 @@ export default function WorkspaceTasks({ workspace, sort, tasks }: Props) {
         },
     ]);
 
+    const reextractText = () => {
+        if (!window.confirm(t('workspace.tasks.reextract_confirm'))) {
+            return;
+        }
+
+        router.post(reextract.url(workspace.id), {}, { preserveScroll: true });
+    };
+
     const retryTask = (task: TaskRow) => {
         router.post(
             retry.url({ workspace: workspace.id, task: task.id }),
@@ -116,6 +134,14 @@ export default function WorkspaceTasks({ workspace, sort, tasks }: Props) {
                     title={t('workspace.tasks.title')}
                     description={t('workspace.tasks.description')}
                 >
+                    <Button
+                        variant="outline"
+                        onClick={reextractText}
+                        title={t('workspace.tasks.reextract_description')}
+                    >
+                        <RefreshCwIcon />
+                        {t('workspace.tasks.reextract_button')}
+                    </Button>
                     {tasks.data.length > 0 && <SortMenu sorting={sorting} />}
                 </PageHeader>
 
@@ -184,6 +210,40 @@ export default function WorkspaceTasks({ workspace, sort, tasks }: Props) {
                                             >
                                                 {t(STATUS_LABELS[task.status])}
                                             </Badge>
+                                            {task.progress && (
+                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                    {t(
+                                                        'workspace.tasks.reextract_progress',
+                                                        {
+                                                            processed:
+                                                                task.progress
+                                                                    .processed,
+                                                            total: task.progress
+                                                                .total,
+                                                        },
+                                                    )}
+                                                </p>
+                                            )}
+                                            {task.status === 'completed' &&
+                                                task.result?.attachments !==
+                                                    undefined && (
+                                                    <p className="mt-1 text-xs text-muted-foreground">
+                                                        {t(
+                                                            task.result.failed
+                                                                ? 'workspace.tasks.reextract_result_failed'
+                                                                : 'workspace.tasks.reextract_result',
+                                                            {
+                                                                count: task
+                                                                    .result
+                                                                    .attachments,
+                                                                failed:
+                                                                    task.result
+                                                                        .failed ??
+                                                                    0,
+                                                            },
+                                                        )}
+                                                    </p>
+                                                )}
                                             {task.status === 'failed' &&
                                                 task.result?.error && (
                                                     <p
@@ -228,19 +288,21 @@ export default function WorkspaceTasks({ workspace, sort, tasks }: Props) {
                                                         </a>
                                                     </Button>
                                                 )}
-                                            {task.status === 'failed' && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        retryTask(task)
-                                                    }
-                                                >
-                                                    {t(
-                                                        'workspace.tasks.retry_button',
-                                                    )}
-                                                </Button>
-                                            )}
+                                            {task.status === 'failed' &&
+                                                task.type !==
+                                                    'bulk_attachment_text_extraction' && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            retryTask(task)
+                                                        }
+                                                    >
+                                                        {t(
+                                                            'workspace.tasks.retry_button',
+                                                        )}
+                                                    </Button>
+                                                )}
                                         </TableCell>
                                     </TableRow>
                                 ))}

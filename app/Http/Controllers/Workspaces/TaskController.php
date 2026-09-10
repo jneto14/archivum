@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Workspaces;
 
 use App\Actions\Workspace\RetryTask;
+use App\Actions\Workspace\StartBulkTextExtraction;
 use App\Actions\Workspace\StartDocumentExport;
 use App\Enums\TaskStatus;
 use App\Enums\TaskType;
@@ -16,6 +17,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -67,12 +69,50 @@ class TaskController extends Controller
                 'status' => $task->status->value,
                 'triggered_by' => $task->user->name,
                 'subject' => $task->payload['filename'] ?? null,
+                'progress' => $this->progress($task),
                 'result' => $task->result,
                 'started_at' => $task->started_at?->toIso8601String(),
                 'finished_at' => $task->finished_at?->toIso8601String(),
                 'created_at' => $task->created_at?->toIso8601String(),
             ]),
         ]);
+    }
+
+    /**
+     * How far a bulk re-extraction has got, for the one row standing for it.
+     *
+     * Read from the batch rather than written to the task as the sweep runs:
+     * updating a row once per extraction would be one write per attachment,
+     * ten thousand of them on a large archive, to produce a number nobody is
+     * looking at unless this page is open. Asked for here it costs one query,
+     * and only while a sweep is actually running.
+     *
+     * @param Task $task The task being rendered.
+     *
+     * @return array{processed: int, total: int}|null The sweep's progress, or null if this task is not a running sweep.
+     */
+    private function progress(Task $task): ?array
+    {
+        if ($task->type !== TaskType::BulkAttachmentTextExtraction || $task->status !== TaskStatus::Processing) {
+            return null;
+        }
+
+        $batch = is_string($task->payload['batch_id'] ?? null)
+            ? Bus::findBatch($task->payload['batch_id'])
+            : null;
+
+        if ($batch === null) {
+            return null;
+        }
+
+        // Both counts exclude the loader job, which is in the batch to fill it
+        // and is not an attachment. The total climbs as the loader adds
+        // chunks, so it is the count from the task's payload — settled before
+        // the sweep started — that the progress is measured against.
+        return [
+            'processed' => max(0, $batch->processedJobs() - 1),
+            'total' => (int) ($task->payload['total'] ?? max(0, $batch->totalJobs - 1)),
+        ];
     }
 
     /**
@@ -94,6 +134,40 @@ class TaskController extends Controller
         $action->handle($workspace, $request->user());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('workspace.export_started')]);
+
+        return back();
+    }
+
+    /**
+     * Re-read every stored attachment in the workspace.
+     *
+     * The counterpart of `ocr:reextract` for an installation nobody has shell
+     * access to. Unfiltered on purpose: the console command exists for the
+     * narrow cases, and a form of checkboxes here would be answering a
+     * question an admin pressing this button is not asking — they have changed
+     * something about extraction and want the archive to reflect it.
+     *
+     * One task row stands for the whole sweep; see StartBulkTextExtraction.
+     *
+     * @param Workspace $workspace The workspace whose attachments are re-read.
+     * @param Request $request The incoming request; used to resolve the current user.
+     * @param StartBulkTextExtraction $action Creates the sweep's task and batches the extractions.
+     *
+     * @return RedirectResponse Redirect back to the previous page.
+     *
+     * @throws AuthorizationException If the current user cannot trigger a task for $workspace.
+     * @throws ValidationException If a re-extraction is already running for $workspace, or it holds no attachments.
+     */
+    public function reextract(Workspace $workspace, Request $request, StartBulkTextExtraction $action): RedirectResponse
+    {
+        $this->authorize('create', [Task::class, $workspace]);
+
+        $task = $action->handle($workspace, $request->user());
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('workspace.reextraction_started', ['count' => $task->payload['total'] ?? 0]),
+        ]);
 
         return back();
     }

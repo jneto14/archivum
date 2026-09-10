@@ -246,6 +246,7 @@ export default {
         'Nenhuma localização corresponde a essa procura.',
     'documents.show.cancel_button': 'Cancelar',
     'documents.show.preview_button': 'Pré-visualizar',
+    'documents.show.reextract_button': 'Ler o ficheiro outra vez',
     'documents.show.preview_not_supported':
         'Não é possível pré-visualizar este tipo de ficheiro.',
     'documents.show.preview_failed': 'Falha ao carregar a pré-visualização.',
@@ -585,6 +586,18 @@ export default {
     'workspace.tasks.status_failed': 'Falhou',
     'workspace.tasks.download_button': 'Transferir',
     'workspace.tasks.retry_button': 'Repetir',
+    'workspace.tasks.type_bulk_attachment_text_extraction':
+        'Reextração de texto',
+    'workspace.tasks.reextract_button': 'Reextrair texto',
+    'workspace.tasks.reextract_description':
+        'Ler outra vez todos os ficheiros guardados, para que o texto extraído por uma versão anterior do processo acompanhe a atual. Num arquivo grande são horas de trabalho e corre atrás de tudo o resto.',
+    'workspace.tasks.reextract_confirm':
+        'Ler outra vez todos os ficheiros guardados neste workspace? Qualquer leitura já confirmada ou rejeitada por alguém volta à fila de revisão.',
+    'workspace.tasks.reextract_progress':
+        ':processed de :total ficheiros lidos',
+    'workspace.tasks.reextract_result': ':count ficheiro(s) lidos',
+    'workspace.tasks.reextract_result_failed':
+        ':count ficheiro(s) lidos, :failed falharam',
 
     'workspace.activity.title': 'Atividade',
     'workspace.activity.description':
