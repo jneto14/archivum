@@ -98,10 +98,9 @@ export default function WorkspaceTrash({
                                 confirmAnd(
                                     t('workspace.trash.confirm_empty'),
                                     () =>
-                                        router.delete(
-                                            empty.url(workspace.id),
-                                            { preserveScroll: true },
-                                        ),
+                                        router.delete(empty.url(workspace.id), {
+                                            preserveScroll: true,
+                                        }),
                                 )
                             }
                         >
@@ -121,9 +120,7 @@ export default function WorkspaceTrash({
                             <Panel>
                                 <PanelHeader>
                                     <span className="text-sm font-medium">
-                                        {t(
-                                            'workspace.trash.documents_heading',
-                                        )}
+                                        {t('workspace.trash.documents_heading')}
                                     </span>
                                 </PanelHeader>
                                 <Table className="min-w-[40rem] table-fixed">
@@ -200,8 +197,7 @@ export default function WorkspaceTrash({
                                                                     ),
                                                                     {},
                                                                     {
-                                                                        preserveScroll:
-                                                                            true,
+                                                                        preserveScroll: true,
                                                                     },
                                                                 )
                                                             }
@@ -231,8 +227,7 @@ export default function WorkspaceTrash({
                                                                                     },
                                                                                 ),
                                                                                 {
-                                                                                    preserveScroll:
-                                                                                        true,
+                                                                                    preserveScroll: true,
                                                                                 },
                                                                             ),
                                                                     )
@@ -331,8 +326,7 @@ export default function WorkspaceTrash({
                                                                     ),
                                                                     {},
                                                                     {
-                                                                        preserveScroll:
-                                                                            true,
+                                                                        preserveScroll: true,
                                                                     },
                                                                 )
                                                             }
@@ -362,8 +356,7 @@ export default function WorkspaceTrash({
                                                                                     },
                                                                                 ),
                                                                                 {
-                                                                                    preserveScroll:
-                                                                                        true,
+                                                                                    preserveScroll: true,
                                                                                 },
                                                                             ),
                                                                     )

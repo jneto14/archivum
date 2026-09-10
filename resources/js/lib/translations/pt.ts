@@ -554,8 +554,7 @@ export default {
     'workspace.trash.column_file': 'Ficheiro',
     'workspace.trash.column_type': 'Tipo',
     'workspace.trash.column_deleted': 'Eliminado',
-    'workspace.trash.attachments_count':
-        ':count scan(s) eliminado(s) com ele',
+    'workspace.trash.attachments_count': ':count scan(s) eliminado(s) com ele',
     'workspace.trash.restore': 'Repor',
     'workspace.trash.purge': 'Eliminar definitivamente',
     'workspace.trash.empty_action': 'Esvaziar o lixo',
