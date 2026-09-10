@@ -179,7 +179,12 @@ class DocumentAttachment extends Model
     }
 
     /**
-     * Mark that text extraction has started on this attachment.
+     * Mark that text extraction has started on this attachment, discarding
+     * everything the previous reading produced.
+     *
+     * `recordOcr()` clears the derived columns too, keyed off this status
+     * rather than off the caller, so that every path into extraction voids
+     * them and none of them can forget (ARC-122).
      *
      * @return void No return value; persists the status as a side effect.
      */
@@ -364,13 +369,23 @@ class DocumentAttachment extends Model
         ?int $wordCount = null,
         ?int $confidentWordCount = null,
     ): void {
+        // Starting a reading voids everything derived from the last one: a
+        // fingerprint of text about to be replaced, a duplicate match that
+        // may not survive the second reading, and a person's verdict on a
+        // reading they have not seen. Null on a first extraction anyway.
+        $starting = $status === OcrStatus::Processing;
+
         $this->forceFill([
             'ocr_status' => $status,
             'ocr_text' => $text,
             'ocr_error' => $error,
             'ocr_word_count' => $wordCount,
             'ocr_confident_word_count' => $confidentWordCount,
-            'ocr_extracted_at' => $status === OcrStatus::Processing ? null : now(),
-        ])->save();
+            'ocr_extracted_at' => $starting ? null : now(),
+        ] + ($starting ? [
+            'ocr_reviewed_at' => null,
+            'text_simhash' => null,
+            'duplicate_of_attachment_id' => null,
+        ] : []))->save();
     }
 }
