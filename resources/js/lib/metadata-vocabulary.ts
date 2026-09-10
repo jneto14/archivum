@@ -25,7 +25,11 @@ export type MetadataVocabularyEntry = {
  * Mirrors `IntakeVocabulary::fold()` on the server — the two have to agree, or
  * a key the server considers a duplicate is offered here as a new one.
  */
-export function fold(value: string): string {
+export function fold(value: string | null | undefined): string {
+    if (typeof value !== 'string') {
+        return '';
+    }
+
     return value
         .normalize('NFD')
         .replace(/\p{Diacritic}/gu, '')
