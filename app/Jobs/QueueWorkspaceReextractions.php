@@ -44,13 +44,11 @@ class QueueWorkspaceReextractions implements ShouldQueue
      * @param Task $task The bulk task standing for this sweep on the Tasks page.
      * @param ReextractionFilter $filter Which of the workspace's attachments are re-read.
      * @param int|null $limit Stop after this many attachments, or null for all of them.
-     * @param string|null $extractionQueue The queue the extractions are pushed onto, so a sweep cannot outrank an upload.
      */
     public function __construct(
         public readonly Task $task,
         public readonly ReextractionFilter $filter,
         public readonly ?int $limit = null,
-        public readonly ?string $extractionQueue = null,
     ) {}
 
     /**
@@ -82,9 +80,10 @@ class QueueWorkspaceReextractions implements ShouldQueue
                     $attachments = $attachments->take($limit - $queued);
                 }
 
+                // No `onQueue()` here: the batch carries it, and `add()`
+                // would override a per-job one anyway.
                 $batch->add($attachments->map(
-                    fn (DocumentAttachment $attachment) => (new ExtractAttachmentText($attachment))
-                        ->onQueue($this->extractionQueue),
+                    fn (DocumentAttachment $attachment) => new ExtractAttachmentText($attachment),
                 )->all());
 
                 $queued += $attachments->count();

@@ -86,13 +86,19 @@ class StartBulkTextExtraction
         $lockOwner = $lock->owner();
 
         $batch = Bus::batch([
-            new QueueWorkspaceReextractions($task, $filter, $limit, config('archivum.ocr.bulk_queue')),
+            new QueueWorkspaceReextractions($task, $filter, $limit),
         ])
             // One unreadable file among ten thousand must not stop the other
             // 9,999 — and every extraction records its own failure on the
             // attachment either way, which is where somebody would look.
             ->allowFailures()
             ->name("Re-extract text: {$workspace->name}")
+            // On the batch rather than on each job. `Batch::add()` pushes with
+            // `bulk($jobs, '', $this->options['queue'])` and never reads a
+            // job's own `queue` property, so calling `onQueue()` on the
+            // extractions looked right, passed a test that asserted the
+            // property, and put all five thousand of them on `default`.
+            ->onQueue((string) config('archivum.ocr.bulk_queue'))
             ->finally(function (Batch $batch) use ($taskId, $lockKey, $lockOwner): void {
                 Cache::restoreLock($lockKey, $lockOwner)->release();
 

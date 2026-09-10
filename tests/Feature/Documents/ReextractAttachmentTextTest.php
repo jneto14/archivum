@@ -8,6 +8,7 @@ use App\Actions\Documents\CreateDocument;
 use App\Actions\Documents\FindDuplicateAttachment;
 use App\Actions\Documents\SuggestDocumentMetadata;
 use App\Actions\Workspace\RetryTask;
+use App\Actions\Workspace\StartBulkTextExtraction;
 use App\Enums\OcrStatus;
 use App\Enums\TaskStatus;
 use App\Enums\TaskType;
@@ -29,6 +30,7 @@ use App\Support\ReextractionFilter;
 use Illuminate\Bus\PendingBatch;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -228,7 +230,7 @@ class ReextractAttachmentTextTest extends TestCase
             && $batch->jobs->first() instanceof QueueWorkspaceReextractions);
     }
 
-    public function test_the_sweep_queues_one_extraction_per_attachment_on_the_low_priority_queue()
+    public function test_the_sweep_queues_one_extraction_per_attachment()
     {
         $document = $this->document();
 
@@ -236,24 +238,52 @@ class ReextractAttachmentTextTest extends TestCase
             $this->attachment($document, $filename, 'image/png');
         }
 
-        $this->fakeEngine('Alguma coisa legivel');
-
         [$job, $batch] = (new QueueWorkspaceReextractions(
             $this->sweepTask($document->workspace, $document->creator),
             new ReextractionFilter(),
-            null,
-            'ocr-bulk',
         ))->withFakeBatch();
 
         $job->handle();
 
-        $queued = collect($batch->added)->flatten();
+        $this->assertCount(2, collect($batch->added)->flatten());
+    }
 
-        $this->assertCount(2, $queued);
+    public function test_every_job_a_sweep_pushes_lands_on_the_low_priority_queue()
+    {
+        // Driven through the real database queue rather than a fake, because
+        // the thing being asserted is which queue a row lands in. `Batch::add()`
+        // pushes with the batch's queue and ignores each job's own, so a sweep
+        // that set `onQueue()` on the extractions put all of them on `default`
+        // while a test reading the job objects' `queue` property passed.
+        config(['queue.default' => 'database']);
+
+        $document = $this->document();
+
+        foreach (['a.png', 'b.png', 'c.png'] as $filename) {
+            $this->attachment($document, $filename, 'image/png');
+        }
+
+        app(StartBulkTextExtraction::class)->handle($document->workspace, $document->creator);
+
         $this->assertSame(
-            'ocr-bulk',
-            $queued->first()->queue,
-            'A sweep of the whole archive must sit behind ordinary uploads, not in front of them.',
+            ['ocr-bulk'],
+            DB::table('jobs')->distinct()->pluck('queue')->all(),
+            'The loader itself must be on the sweep queue.',
+        );
+
+        // Run the loader, so the extractions it adds are pushed for real.
+        $this->artisan('queue:work', [
+            '--once' => true,
+            '--queue' => 'ocr-bulk',
+            '--no-interaction' => true,
+        ])->assertSuccessful();
+
+        $queues = DB::table('jobs')->selectRaw('queue, count(*) as n')->groupBy('queue')->pluck('n', 'queue')->all();
+
+        $this->assertSame(
+            ['ocr-bulk' => 3],
+            $queues,
+            'Re-reading a whole archive must sit behind ordinary uploads, not in front of them.',
         );
     }
 
