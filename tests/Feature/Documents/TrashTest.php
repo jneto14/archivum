@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Documents;
 
 use App\Actions\Documents\CreateDocument;
+use App\Actions\Documents\RestoreDocument;
 use App\Actions\Documents\TrashAttachment;
 use App\Actions\Documents\TrashDocument;
 use App\Actions\Documents\UploadAttachment;
@@ -76,7 +77,7 @@ class TrashTest extends TestCase
         app(TrashDocument::class)->handle($document);
         $this->assertSame(0, Document::query()->where('workspace_id', $workspace->id)->count());
 
-        app(\App\Actions\Documents\RestoreDocument::class)->handle($document->fresh());
+        app(RestoreDocument::class)->handle($document->fresh());
         $this->assertSame(1, Document::query()->where('workspace_id', $workspace->id)->count());
     }
 

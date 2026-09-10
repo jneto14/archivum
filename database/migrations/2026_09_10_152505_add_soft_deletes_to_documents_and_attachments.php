@@ -30,7 +30,7 @@ use Illuminate\Support\Facades\Schema;
  * somebody had already thrown away. A flag says what happened instead of
  * inferring it from a coincidence.
  */
-return new class extends Migration
+return new class() extends Migration
 {
     /**
      * @return void
@@ -66,7 +66,7 @@ return new class extends Migration
             ->contains(fn (array $index): bool => $index['columns'] === ['workspace_id']);
 
         Schema::table('documents', function (Blueprint $table) use ($indexesWorkspaceIdAlone): void {
-            if (! $indexesWorkspaceIdAlone) {
+            if (!$indexesWorkspaceIdAlone) {
                 $table->index('workspace_id', 'documents_workspace_id_foreign');
             }
 

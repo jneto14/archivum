@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Documents;
 
 use App\Actions\Documents\CreateDocument;
-use App\Actions\Documents\TrashDocument;
 use App\Actions\Documents\SearchDocuments;
 use App\Actions\Documents\SuggestDocumentMetadata;
 use App\Actions\Documents\SuggestMetadataVocabulary;
+use App\Actions\Documents\TrashDocument;
 use App\Actions\Documents\UpdateDocument;
 use App\Actions\Organization\ListSchemeLocations;
 use App\Actions\Organization\SuggestDocumentLocations;
