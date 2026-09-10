@@ -59,13 +59,19 @@ class SearchDocuments
      * Workspace scoping is hard-enforced here and is never client-controlled
      * — this is the critical isolation guarantee for this Action.
      *
-     * In `Exact` mode the matching is Scout's: `LIKE` over the title, and the
-     * full-text index in natural language mode over `ocr_text`. In `Broad` mode
-     * Scout is handed an empty query — which matches everything — and the text
-     * predicate is built here instead, because Scout's strategy per column is a
-     * static attribute on `Document::toSearchableArray()` and cannot vary per
-     * request. Everything else, the workspace scoping and the filters included,
-     * runs through one path either way.
+     * Scout is always handed an empty query — which matches everything — and
+     * the text predicate is built here instead, because Scout's strategy per
+     * column is a static attribute on `Document::toSearchableArray()` and
+     * cannot vary per request. Everything else, the workspace scoping and the
+     * filters included, runs through one path whatever the mode.
+     *
+     * Leaving one mode to Scout is what produced the two defects ARC-125 fixed.
+     * Scout matches a non-full-text column with `LIKE '%<the entire query>%'`
+     * (`DatabaseEngine::addTextSearchConstraints`), so `contrato arrendamento`
+     * never matched a document titled *Contrato de arrendamento*; and it
+     * queried `ocr_text` in natural language mode, which ORs the terms, so a
+     * two-word search returned documents carrying only one of them. Building
+     * every mode from the same per-term parts removes both by construction.
      *
      * @param Workspace $workspace The workspace results are restricted to.
      * @param string|null $query Free-text search term; null/empty matches all.
@@ -79,15 +85,16 @@ class SearchDocuments
         Workspace $workspace,
         ?string $query,
         array $filters,
-        SearchMode $mode = SearchMode::Exact,
+        ?SearchMode $mode = null,
         ?TableSort $sort = null,
     ): LengthAwarePaginator {
         $tagIds = $this->scopedTagIds($workspace, $filters['tag_ids'] ?? []);
         $nodeIds = $this->scopedNodeIds($workspace, $filters['node_id'] ?? null);
-        $terms = $mode === SearchMode::Broad ? $this->terms($query) : [];
+        $mode ??= SearchMode::default();
+        $terms = $this->terms($query);
         $sort ??= self::defaultSort();
 
-        $paginator = Document::search($mode === SearchMode::Broad ? '' : ($query ?? ''))
+        $paginator = Document::search('')
             ->where('workspace_id', $workspace->id)
             ->query(fn (Builder $builder) => $builder
                 // Every column except `ocr_text`, which holds the full text of
@@ -109,7 +116,7 @@ class SearchDocuments
                 ])
                 ->when(
                     $terms !== [],
-                    fn (Builder $q) => $this->applyBroadSearch($q, $terms),
+                    fn (Builder $q) => $this->applyFreeText($q, $mode, $terms),
                 )
                 ->when(
                     $filters['document_type_id'] ?? null,
@@ -173,6 +180,35 @@ class SearchDocuments
     }
 
     /**
+     * Constrain the query to the documents the typed words should match, in
+     * the way the chosen mode means.
+     *
+     * All four modes are assembled from the same two clauses — a substring
+     * `LIKE` on the title and a boolean-mode full-text predicate on
+     * `ocr_text` — and differ only in how those are combined. Keeping one set
+     * of parts is what stops the modes drifting into matching different
+     * columns from one another, which is the state ARC-125 found them in.
+     *
+     * Typed against the base model rather than Document because that is what
+     * Scout's `query()` callback hands over, and nothing here needs more.
+     *
+     * @param Builder<Model> $query The query to constrain.
+     * @param SearchMode $mode How the terms are combined.
+     * @param list<string> $terms Sanitised search terms; see `terms()`.
+     *
+     * @return void No return value; the builder is constrained in place.
+     */
+    private function applyFreeText(Builder $query, SearchMode $mode, array $terms): void
+    {
+        match ($mode) {
+            SearchMode::AllWords => $this->applyEveryTerm($query, $terms),
+            SearchMode::AnyWord => $this->applyAnyTerm($query, $terms),
+            SearchMode::Phrase => $this->applyPhrase($query, $terms),
+            SearchMode::TitleOnly => $this->applyTitleOnly($query, $terms),
+        };
+    }
+
+    /**
      * Require every term to appear somewhere in the document — in its title, or
      * in the text extracted from one of its attachments.
      *
@@ -187,23 +223,107 @@ class SearchDocuments
      * and would scan every stored page. The cost of that choice is that only the
      * start of a word matches: "atura" will not find "fatura".
      *
+     * The trailing wildcard is not a mode of its own any more. Measured on a
+     * corpus built for ARC-125, it changes very little — "contrato" does not
+     * start matching "contratada", nor "seguro" "segurado" — and what it does
+     * add is longer words sharing a root, so "fatura" also finds "faturação".
+     * In an archive that is wanted, which is why it is behaviour rather than a
+     * question put to the user.
+     *
      * The title clause is also what rescues terms the full-text index refuses —
      * anything shorter than `innodb_ft_min_token_size`, 3 characters by default.
-     *
-     * Typed against the base model rather than Document because that is what
-     * Scout's `query()` callback hands over, and nothing here needs more.
      *
      * @param Builder<Model> $query The query to constrain.
      * @param list<string> $terms Sanitised search terms; see `terms()`.
      *
      * @return void No return value; the builder is constrained in place.
      */
-    private function applyBroadSearch(Builder $query, array $terms): void
+    private function applyEveryTerm(Builder $query, array $terms): void
     {
         foreach ($terms as $term) {
             $query->where(fn (Builder $q) => $q
                 ->where('documents.title', 'like', '%' . $term . '%')
                 ->orWhereFullText('documents.ocr_text', $term . '*', ['mode' => 'boolean']));
+        }
+    }
+
+    /**
+     * Match a document carrying any one of the terms.
+     *
+     * The same two clauses as `applyEveryTerm()`, ORed across terms as well as
+     * across columns. Deliberately broad: this is the mode for a search where
+     * the archive's own wording is unknown, and narrowing it would defeat the
+     * only reason to pick it.
+     *
+     * The whole disjunction is wrapped in one `where` group so it cannot leak
+     * out and OR itself against the workspace scoping or the structured
+     * filters, which would return the entire installation.
+     *
+     * @param Builder<Model> $query The query to constrain.
+     * @param list<string> $terms Sanitised search terms; see `terms()`.
+     *
+     * @return void No return value; the builder is constrained in place.
+     */
+    private function applyAnyTerm(Builder $query, array $terms): void
+    {
+        $query->where(function (Builder $q) use ($terms): void {
+            foreach ($terms as $term) {
+                $q->orWhere('documents.title', 'like', '%' . $term . '%')
+                    ->orWhereFullText('documents.ocr_text', $term . '*', ['mode' => 'boolean']);
+            }
+        });
+    }
+
+    /**
+     * Match the terms adjacent and in the order they were typed.
+     *
+     * The phrase is rebuilt from the sanitised terms rather than taken from the
+     * raw query, which both normalises the spacing and keeps `%` and `_` out of
+     * the `LIKE` pattern — `terms()` has already dropped everything that is not
+     * a letter or a digit. The consequence is that punctuation inside a phrase
+     * is not matched literally: searching for the phrase "fatura edp" finds a
+     * title reading "fatura edp" but not one reading "fatura, edp". Punctuation
+     * is a separator everywhere else in this Action, and this is that same rule.
+     *
+     * No trailing wildcard here: a phrase that matched prefixes would not be the
+     * phrase that was typed.
+     *
+     * MySQL's phrase search still goes through the index, so a phrase whose
+     * words are shorter than `innodb_ft_min_token_size` cannot match inside
+     * scan text. The title's `LIKE` is unaffected and covers the common case,
+     * which is a phrase somebody remembers from a document's name.
+     *
+     * @param Builder<Model> $query The query to constrain.
+     * @param list<string> $terms Sanitised search terms; see `terms()`.
+     *
+     * @return void No return value; the builder is constrained in place.
+     */
+    private function applyPhrase(Builder $query, array $terms): void
+    {
+        $phrase = implode(' ', $terms);
+
+        $query->where(fn (Builder $q) => $q
+            ->where('documents.title', 'like', '%' . $phrase . '%')
+            ->orWhereFullText('documents.ocr_text', '"' . $phrase . '"', ['mode' => 'boolean']));
+    }
+
+    /**
+     * Require every term in the title, ignoring what the scans say.
+     *
+     * The mode for an archive large enough that matching the text of every
+     * stored page returns more than it helps. Terms are ANDed and each is a
+     * substring, so "contrato arrendamento" finds *Contrato de arrendamento*
+     * whichever order they were typed in.
+     *
+     * @param Builder<Model> $query The query to constrain.
+     * @param list<string> $terms Sanitised search terms; see `terms()`.
+     *
+     * @return void No return value; the builder is constrained in place.
+     */
+    private function applyTitleOnly(Builder $query, array $terms): void
+    {
+        foreach ($terms as $term) {
+            $query->where('documents.title', 'like', '%' . $term . '%');
         }
     }
 

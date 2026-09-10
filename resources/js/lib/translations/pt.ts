@@ -69,10 +69,19 @@ export default {
     'documents.index.view_cards': 'Cartões',
     'documents.index.new_document': 'Novo documento',
     'documents.index.search_placeholder': 'Pesquisar…',
-    'documents.index.search_mode_exact': 'Palavras inteiras',
-    'documents.index.search_mode_broad': 'Começa por',
-    'documents.index.search_mode_hint':
-        'O texto dos anexos é procurado por palavra inteira. Muda para "Começa por" e "fatur" também encontra "faturas".',
+    'documents.index.search_mode_label': 'Modo de pesquisa',
+    'documents.index.search_mode_all': 'Todas as palavras',
+    'documents.index.search_mode_any': 'Qualquer palavra',
+    'documents.index.search_mode_phrase': 'Frase exata',
+    'documents.index.search_mode_title': 'Só no título',
+    'documents.index.search_mode_hint_all':
+        'Todas as palavras têm de aparecer — no título ou nos scans — por qualquer ordem.',
+    'documents.index.search_mode_hint_any':
+        'Basta uma das palavras. Usa quando não sabes como o documento trata o assunto.',
+    'documents.index.search_mode_hint_phrase':
+        'As palavras juntas, por esta ordem, no título ou nos scans.',
+    'documents.index.search_mode_hint_title':
+        'Procura só nos títulos, ignorando o texto lido dos scans.',
     'documents.index.filter_type_placeholder': 'Tipo',
     'documents.index.filter_all_types': 'Todos os tipos',
     'documents.index.filter_tag_placeholder': 'Etiqueta',

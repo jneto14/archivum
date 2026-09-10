@@ -59,7 +59,7 @@ class DocumentController extends Controller
             'node_id' => $request->validated('node_id'),
         ];
 
-        $mode = SearchMode::tryFrom((string) $request->validated('mode')) ?? SearchMode::Exact;
+        $mode = SearchMode::fromRequestValue($request->validated('mode'));
 
         $sort = TableSort::fromRequest(
             $request,

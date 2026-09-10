@@ -34,27 +34,59 @@ would never be matched by a document search.
 Deleting an attachment rebuilds that mirror, so a removed scan stops being
 findable by its contents.
 
-## The two modes
+## The four modes
 
-MySQL's full-text index matches **whole words**. That is the right default for a
-large archive and the wrong answer for someone typing a prefix, so the search
-offers both:
+The mode says how the words someone typed are combined. It is a question about
+intent — "every word", "the words together" — and deliberately not a question
+about the index underneath, which is what the two modes it replaced were.
 
-| Mode | Attachment text | Title |
-| --- | --- | --- |
-| **Whole words** (default) | Whole-word match, natural language mode | Substring |
-| **Word starts with** | Prefix match, boolean mode with a trailing wildcard | Substring |
+| Mode | What it matches |
+| --- | --- |
+| **All words** (default) | Every term, in the title or the text, in any order |
+| **Any word** | One term is enough |
+| **Exact phrase** | The terms adjacent and in order |
+| **Title only** | Every term in the title; the text is not read |
 
-Both stay on the index, so neither scans the stored pages. The cost is that
-neither matches the *middle* of a word: `atura` will not find `fatura`.
+Three of the four search the title **and** the extracted text together. That is
+the part the old modes never said: they named how the *text* was matched while
+the title quietly matched a substring in both, so `voice` found a document
+titled `Invoice` under a mode labelled "Word starts with".
 
-In the broader mode every typed term must appear somewhere — title or text —
-because ORing them returns most of the archive as soon as someone types three
-words.
+Underneath, each mode is built from the same two clauses — a substring `LIKE`
+on the title, and a boolean-mode predicate on `ocr_text` — combined
+differently. One set of parts is what keeps the modes describing the same
+search rather than drifting into matching different columns from one another.
+
+### What is not a mode
+
+**The trailing wildcard.** `fatura` also finds `faturação`, and this is now
+behaviour rather than a choice. Measured on a purpose-built corpus, offering it
+as a mode bought almost nothing: `contrato` does not begin matching
+`contratada`, nor `seguro` `segurado`. What it does add is longer words sharing
+a root, which in an archive is wanted. Exact phrase is the exception — a phrase
+matching prefixes would not be the phrase that was typed.
+
+**The middle of a word.** No mode matches it: `atura` will not find `fatura` in
+scan text. Matching an infix means `LIKE '%term%'`, which cannot use the index
+and would scan every stored page. The title is short enough to afford it, and
+does.
+
+**Terms shorter than three characters.** InnoDB ignores tokens below
+`innodb_ft_min_token_size`, so the title's `LIKE` clause is what rescues them.
+Every mode that reads the title therefore still finds `IA`.
 
 Punctuation is a separator, not syntax. Boolean mode reads `+ - * " ( ) ~` as
 operators, so `edp-2026` is split into two terms rather than being read as
-"edp but not 2026".
+"edp but not 2026". The same sanitising is what keeps `%` and `_` out of the
+`LIKE` patterns.
+
+### Links written before the rename
+
+Filter state lives in the URL and a filtered view is meant to survive being
+bookmarked, so `mode=exact` and `mode=broad` still resolve — both onto **All
+words**, which is what `broad` already was and what `exact` was trying to be.
+A mode that is neither current nor legacy is rejected rather than silently
+searched some other way.
 
 ## Filters
 
