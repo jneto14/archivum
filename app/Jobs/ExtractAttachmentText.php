@@ -12,6 +12,7 @@ use App\Models\Task;
 use App\Services\Ocr\AttachmentTextExtractor;
 use App\Services\Ocr\TextFingerprint;
 use App\Services\Ocr\UnreadableAttachment;
+use Illuminate\Bus\Batchable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -33,10 +34,16 @@ use Throwable;
  *
  * Unlike those other task types this one takes no workspace lock: extraction is
  * scoped to a single file, so several may run at once (see `TaskType::lockKey`).
+ *
+ * The task is optional because a bulk re-extraction has one already: the sweep
+ * that queued this job owns a single `BulkAttachmentTextExtraction` row
+ * standing for the whole run, and a row per attachment would bury the Tasks
+ * page under ten thousand of them (ARC-122). Those runs batch this job instead,
+ * and read their progress off the batch.
  */
 class ExtractAttachmentText implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
      * OCR is slow by nature, so the usual short job timeout does not apply.
@@ -57,11 +64,11 @@ class ExtractAttachmentText implements ShouldQueue
 
     /**
      * @param DocumentAttachment $attachment The attachment whose text is extracted.
-     * @param Task $task The task row tracking this extraction on the Tasks page.
+     * @param Task|null $task The task row tracking this extraction on the Tasks page, or null when a bulk sweep tracks it instead.
      */
     public function __construct(
         public readonly DocumentAttachment $attachment,
-        public readonly Task $task,
+        public readonly ?Task $task = null,
     ) {
         $this->timeout = (int) config('archivum.ocr.job_timeout');
     }
@@ -81,7 +88,7 @@ class ExtractAttachmentText implements ShouldQueue
         SuggestDocumentMetadata $suggest,
     ): void {
         $this->attachment->markOcrProcessing();
-        $this->task->markProcessing();
+        $this->task?->markProcessing();
 
         try {
             $extracted = $extractor->handle($this->attachment);
@@ -140,7 +147,7 @@ class ExtractAttachmentText implements ShouldQueue
             LearnDocumentIntakeLabels::dispatch($document);
         }
 
-        $this->task->markCompleted([
+        $this->task?->markCompleted([
             'filename' => $this->attachment->filename,
             'document_id' => $this->attachment->document_id,
             'outcome' => $extracted->status->value,
@@ -207,6 +214,6 @@ class ExtractAttachmentText implements ShouldQueue
     {
         $this->attachment->markOcrFailed($message);
 
-        $this->task->markFailed($message);
+        $this->task?->markFailed($message);
     }
 }
