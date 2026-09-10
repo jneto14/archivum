@@ -19,7 +19,12 @@ class SearchDocumentsRequest extends FormRequest
     {
         return [
             'q' => ['nullable', 'string', 'max:255'],
-            'mode' => ['nullable', Rule::enum(SearchMode::class)],
+            // Not `Rule::enum`, because the values this enum answered to before
+            // ARC-125 still have to resolve: a bookmarked search URL carrying
+            // `mode=exact` is something docs/search.md promises keeps working.
+            // Anything that is neither current nor legacy is still rejected
+            // rather than silently searched some other way.
+            'mode' => ['nullable', Rule::in(SearchMode::acceptedValues())],
             'document_type_id' => ['nullable', 'uuid', 'exists:document_types,id'],
             'tag_ids' => ['nullable', 'array'],
             'tag_ids.*' => ['uuid', 'exists:tags,id'],
