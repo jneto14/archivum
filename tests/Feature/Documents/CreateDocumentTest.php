@@ -42,6 +42,25 @@ class CreateDocumentTest extends TestCase
         $this->assertTrue($document->tags->contains($tag));
     }
 
+    public function test_a_metadata_value_that_is_not_text_is_rejected()
+    {
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $type = DocumentType::factory()->for($workspace)->create();
+
+        // The keys are whatever the workspace types, but the value has to be
+        // text. Validating only the array let a null through, and a stored
+        // null reached the form's folding as `null.normalize()` and rendered
+        // no page at all (ARC-126).
+        $this->actingAs($member->user)
+            ->post(route('documents.store', $workspace), [
+                'document_type_id' => $type->id,
+                'title' => 'Invoice',
+                'metadata' => ['teste' => ['not' => 'text']],
+            ])
+            ->assertSessionHasErrors('metadata.teste');
+    }
+
     public function test_document_type_from_another_workspace_is_rejected()
     {
         $workspace = Workspace::factory()->create();
