@@ -20,6 +20,11 @@ class StoreDocumentRequest extends FormRequest
             'title' => ['required', 'string', 'max:255'],
             'document_date' => ['nullable', 'date'],
             'metadata' => ['nullable', 'array'],
+            // The keys are whatever the workspace types, but a value has to be
+            // text. Validating only the array let a null through, and a null
+            // value reached the form's folding as `null.normalize()` and took
+            // the page down.
+            'metadata.*' => ['nullable', 'string'],
             'tag_ids' => ['nullable', 'array'],
             'tag_ids.*' => ['uuid', 'exists:tags,id'],
         ];

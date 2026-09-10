@@ -160,3 +160,46 @@ describe('a document already filing by most of what the workspace knows', () => 
         ).toEqual(['teste']);
     });
 });
+
+describe('a value stored as null', () => {
+    // A real archive held `teste => NULL`, and opening that document for
+    // editing threw "Cannot read properties of null (reading 'normalize')"
+    // and rendered nothing at all — not the row, the page. Metadata values
+    // were never validated as strings, so the declared `Record<string,
+    // string>` was a claim the server had no way of keeping (ARC-126).
+    it('does not throw when it reaches the key suggestions', () => {
+        expect(() =>
+            suggestKeys([entry('nif')], {
+                ...noType,
+                typed: null as unknown as string,
+            }),
+        ).not.toThrow();
+    });
+
+    it('does not throw when it reaches the value suggestions', () => {
+        expect(() =>
+            suggestValues([entry('nif', ['123'])], {
+                key: 'nif',
+                typed: null as unknown as string,
+            }),
+        ).not.toThrow();
+    });
+
+    it('is treated as an empty query rather than as a filter', () => {
+        expect(
+            suggestValues([entry('nif', ['123', '456'])], {
+                key: 'nif',
+                typed: null as unknown as string,
+            }),
+        ).toEqual(['123', '456']);
+    });
+
+    it('does not throw when a vocabulary key itself is null', () => {
+        expect(() =>
+            suggestKeys([entry(null as unknown as string)], {
+                ...noType,
+                typed: 'nif',
+            }),
+        ).not.toThrow();
+    });
+});
