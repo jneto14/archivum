@@ -10,6 +10,7 @@ import {
     LayoutGrid,
     Layers,
     ListChecks,
+    Trash2,
     Settings,
     SlidersHorizontal,
     Tag,
@@ -40,6 +41,7 @@ import {
 } from '@/routes/organization/schemes';
 import { edit as editProfile } from '@/routes/profile';
 import { index as tagsIndex } from '@/routes/tags';
+import { index as trashIndex } from '@/routes/trash';
 import {
     index as workspacesIndex,
     usage as workspaceUsage,
@@ -104,6 +106,16 @@ export function AppSidebar() {
                 : '#',
             icon: Archive,
             disabled: !organizationSchemeId,
+        },
+        // Not admin-gated: whoever could delete a document can put it back, so
+        // hiding the trash from them would leave them able to make a mistake
+        // and unable to undo it. Only destroying for good is admin-only, and
+        // the page decides that for itself.
+        {
+            title: t('nav.trash'),
+            href: workspace ? trashIndex.url(workspace.id) : '#',
+            icon: Trash2,
+            disabled: !workspace,
         },
     ];
 

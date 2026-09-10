@@ -43,6 +43,7 @@ export default {
     'nav.physical_storage': 'Physical storage',
     'nav.activity': 'Activity',
     'nav.tasks': 'Tasks',
+    'nav.trash': 'Trash',
     'nav.workspaces': 'Workspaces',
     'nav.document_types': 'Document types',
     'nav.tags': 'Tags',
@@ -524,6 +525,32 @@ export default {
         ':name will lose access to this workspace. This can be undone through a new invite.',
     'workspace.users.remove_confirm_button': 'Remove member',
 
+    'workspace.trash.title': 'Trash',
+    'workspace.trash.description':
+        'Deleted documents and scans are kept here for :days days, then destroyed. Until then nothing has left the disk, so they still count towards the workspace\u2019s storage.',
+    'workspace.trash.description_no_retention':
+        'Deleted documents and scans are kept here until somebody empties the trash. Nothing has left the disk, so they still count towards the workspace\u2019s storage.',
+    'workspace.trash.empty_title': 'The trash is empty',
+    'workspace.trash.empty_description':
+        'Deleted documents and scans land here, and can be put back.',
+    'workspace.trash.documents_heading': 'Documents',
+    'workspace.trash.attachments_heading': 'Scans',
+    'workspace.trash.attachments_description':
+        'Deleted on their own; their document is still in the archive.',
+    'workspace.trash.column_document': 'Document',
+    'workspace.trash.column_file': 'File',
+    'workspace.trash.column_type': 'Type',
+    'workspace.trash.column_deleted': 'Deleted',
+    'workspace.trash.attachments_count': ':count scan(s) deleted with it',
+    'workspace.trash.restore': 'Restore',
+    'workspace.trash.purge': 'Delete for good',
+    'workspace.trash.empty_action': 'Empty the trash',
+    'workspace.trash.confirm_empty':
+        'Destroy everything in the trash? The files are removed from disk and this cannot be undone.',
+    'workspace.trash.confirm_purge_document':
+        'Destroy this document for good? Its scans are removed from disk and this cannot be undone.',
+    'workspace.trash.confirm_purge_attachment':
+        'Destroy this scan for good? The file is removed from disk and this cannot be undone.',
     'workspace.tasks.title': 'Tasks',
     'workspace.tasks.description':
         'Track background jobs triggered in this workspace.',

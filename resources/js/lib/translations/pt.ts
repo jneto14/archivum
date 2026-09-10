@@ -44,6 +44,7 @@ export default {
     'nav.physical_storage': 'Armazenamento físico',
     'nav.activity': 'Atividade',
     'nav.tasks': 'Tarefas',
+    'nav.trash': 'Lixo',
     'nav.workspaces': 'Workspaces',
     'nav.document_types': 'Tipos de documento',
     'nav.tags': 'Etiquetas',
@@ -537,6 +538,33 @@ export default {
         ':name vai perder o acesso a este espaço de trabalho. Isto pode ser revertido com um novo convite.',
     'workspace.users.remove_confirm_button': 'Remover membro',
 
+    'workspace.trash.title': 'Lixo',
+    'workspace.trash.description':
+        'Os documentos e scans eliminados ficam aqui :days dias e depois s\u00e3o destru\u00eddos. At\u00e9 l\u00e1 nada saiu do disco, por isso continuam a contar para o armazenamento do workspace.',
+    'workspace.trash.description_no_retention':
+        'Os documentos e scans eliminados ficam aqui at\u00e9 algu\u00e9m esvaziar o lixo. Nada saiu do disco, por isso continuam a contar para o armazenamento do workspace.',
+    'workspace.trash.empty_title': 'O lixo est\u00e1 vazio',
+    'workspace.trash.empty_description':
+        'Os documentos e scans eliminados v\u00eam parar aqui e podem ser repostos.',
+    'workspace.trash.documents_heading': 'Documentos',
+    'workspace.trash.attachments_heading': 'Scans',
+    'workspace.trash.attachments_description':
+        'Eliminados sozinhos; o documento continua no arquivo.',
+    'workspace.trash.column_document': 'Documento',
+    'workspace.trash.column_file': 'Ficheiro',
+    'workspace.trash.column_type': 'Tipo',
+    'workspace.trash.column_deleted': 'Eliminado',
+    'workspace.trash.attachments_count':
+        ':count scan(s) eliminado(s) com ele',
+    'workspace.trash.restore': 'Repor',
+    'workspace.trash.purge': 'Eliminar definitivamente',
+    'workspace.trash.empty_action': 'Esvaziar o lixo',
+    'workspace.trash.confirm_empty':
+        'Destruir tudo o que est\u00e1 no lixo? Os ficheiros s\u00e3o removidos do disco e isto n\u00e3o pode ser desfeito.',
+    'workspace.trash.confirm_purge_document':
+        'Destruir este documento definitivamente? Os seus scans s\u00e3o removidos do disco e isto n\u00e3o pode ser desfeito.',
+    'workspace.trash.confirm_purge_attachment':
+        'Destruir este scan definitivamente? O ficheiro \u00e9 removido do disco e isto n\u00e3o pode ser desfeito.',
     'workspace.tasks.title': 'Tarefas',
     'workspace.tasks.description':
         'Acompanha os trabalhos em segundo plano despoletados neste workspace.',
