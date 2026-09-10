@@ -244,6 +244,16 @@ return [
             'OCR_JOB_TIMEOUT',
             ((int) env('OCR_MAX_PAGES', 20) * (int) env('OCR_TIMEOUT', 120)) + 300,
         ),
+
+        /*
+        | The queue a bulk re-extraction pushes its work onto, kept separate
+        | from the one uploads use. The worker is started with
+        | `--queue=default,ocr-bulk`, and a worker given several queues drains
+        | them in order — so re-reading an archive of ten thousand scans, which
+        | is days of CPU, never puts itself in front of the file somebody just
+        | uploaded and is waiting on. Set it to `default` to switch that off.
+        */
+        'bulk_queue' => env('OCR_BULK_QUEUE', 'ocr-bulk'),
     ],
 
     /*

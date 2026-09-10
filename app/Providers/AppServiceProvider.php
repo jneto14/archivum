@@ -16,6 +16,7 @@ use App\Services\Ocr\Contracts\OcrEngine;
 use App\Services\Ocr\TesseractEngine;
 use App\Support\DemoMode;
 use Carbon\CarbonImmutable;
+use Illuminate\Foundation\DevCommands;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
@@ -76,6 +77,34 @@ class AppServiceProvider extends ServiceProvider
         $this->configurePlatformAdminAccess();
         $this->configureActivityLog();
         $this->configureDemoMode();
+        $this->configureDevQueues();
+    }
+
+    /**
+     * Tell `composer dev`'s queue worker about the bulk OCR queue.
+     *
+     * The framework registers `queue:listen` with no `--queue`, which consumes
+     * `default` and nothing else — so a bulk re-extraction would sit in
+     * `ocr-bulk` forever on a developer's machine while working perfectly in
+     * production, where the compose worker names both. Registering the same
+     * command name from the application overrides the framework's, since a
+     * later registration of equal or higher priority wins.
+     *
+     * The order matters as much as the list: a worker drains its queues left
+     * to right, which is what keeps a sweep of the archive behind the file
+     * somebody just uploaded.
+     *
+     * @return void No return value; replaces the "queue" dev command as a side effect.
+     */
+    protected function configureDevQueues(): void
+    {
+        $bulk = (string) config('archivum.ocr.bulk_queue');
+
+        if ($bulk === '' || $bulk === 'default') {
+            return;
+        }
+
+        DevCommands::artisan("queue:listen --queue=default,{$bulk} --tries=1 --timeout=0", 'queue');
     }
 
     /**
