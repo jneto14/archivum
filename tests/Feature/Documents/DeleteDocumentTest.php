@@ -34,7 +34,7 @@ class DeleteDocumentTest extends TestCase
         $response = $this->actingAs($creator->user)->delete(route('documents.destroy', $document));
 
         $response->assertRedirect(route('documents.index', $workspace));
-        $this->assertDatabaseMissing('documents', ['id' => $document->id]);
+        $this->assertSoftDeleted('documents', ['id' => $document->id]);
     }
 
     public function test_non_creator_member_cannot_delete_a_document()
@@ -51,7 +51,7 @@ class DeleteDocumentTest extends TestCase
         $this->assertDatabaseHas('documents', ['id' => $document->id]);
     }
 
-    public function test_deleting_a_document_cascades_tags_and_locations()
+    public function test_deleting_a_document_keeps_its_tags_and_location_history()
     {
         $workspace = Workspace::factory()->create();
         $creator = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
@@ -67,11 +67,13 @@ class DeleteDocumentTest extends TestCase
 
         $this->actingAs($creator->user)->delete(route('documents.destroy', $document))->assertRedirect();
 
-        $this->assertDatabaseMissing('document_tags', ['document_id' => $document->id]);
-        $this->assertDatabaseMissing('document_locations', ['document_id' => $document->id]);
+        // The location history is the reason the trash exists: it cannot be
+        // reconstructed from the paper, so trashing must not touch it.
+        $this->assertDatabaseHas('document_tags', ['document_id' => $document->id]);
+        $this->assertDatabaseHas('document_locations', ['document_id' => $document->id]);
     }
 
-    public function test_deleting_a_document_purges_its_attachment_files_from_disk()
+    public function test_deleting_a_document_leaves_its_attachment_files_on_disk()
     {
         Storage::fake(config('archivum.attachments.disk'));
         $workspace = Workspace::factory()->create();
@@ -82,6 +84,10 @@ class DeleteDocumentTest extends TestCase
 
         $this->actingAs($creator->user)->delete(route('documents.destroy', $document))->assertRedirect();
 
-        Storage::disk($attachment->disk)->assertMissing($attachment->path);
+        // Trashing is reversible, so nothing leaves the disk until the item is
+        // purged. The attachment goes down with the document, stamped with the
+        // document's own timestamp so the restore can tell them apart.
+        Storage::disk($attachment->disk)->assertExists($attachment->path);
+        $this->assertSoftDeleted('document_attachments', ['id' => $attachment->id]);
     }
 }
