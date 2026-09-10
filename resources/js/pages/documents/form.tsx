@@ -112,10 +112,17 @@ export default function DocumentForm({
     const [metadataPairs, setMetadataPairs] = useState<
         { id: string; key: string; value: string }[]
     >(
+        // `value ?? ''` because the prop's declared shape is not a guarantee.
+        // Metadata is a free-form JSON column and its values were never
+        // validated as strings, so archives carry keys filed with a null —
+        // which reached `fold()` and took the whole form down with
+        // "Cannot read properties of null (reading 'normalize')". The
+        // validation now refuses new ones; this is what keeps the ones
+        // already stored from white-screening the page they are edited on.
         Object.entries(document?.metadata ?? {}).map(([key, value]) => ({
             id: `existing:${key}`,
             key,
-            value,
+            value: value ?? '',
         })),
     );
     const [newTagName, setNewTagName] = useState('');
