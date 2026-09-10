@@ -146,6 +146,22 @@ of CPU and the cases worth redoing are usually narrow. `--unscored` is how an
 archive predating 0.4.0 is found: those attachments have no `ocr_word_count`,
 because nothing was recording one.
 
+A sweep queues one job per **run** of `OCR_BULK_CHUNK` attachments (25), not
+one per file. A job costs a reserve, a delete and a batch write whatever it
+does, and on PDFs carrying a text layer — where reading the file is under
+10ms — that overhead was a third of the total. Measured over 500 attachments:
+41.5ms each at one per job, 29.3 at ten, 27.5 at twenty-five, 26.9 at fifty.
+Flat past 25, which is also what the job timeout affords: a chunk stops
+starting new files at 60% of it and hands the rest back as a fresh chunk, so
+the size cannot make a sweep incorrect, only faster or slower. A file that
+cannot be read is caught inside the chunk and stepped over, because retrying
+the chunk would re-read everything in it that worked — the failure is on the
+attachment, and `--status=failed` picks it up.
+
+Note that the framework is **not** started per job: `queue:work` boots once and
+loops. (`queue:listen`, which `composer dev` runs locally, does restart per
+job — so a sweep is far slower on a developer's machine than in production.)
+
 A sweep is pushed onto its own queue, `OCR_BULK_QUEUE` (`ocr-bulk`), and the
 worker is started with `--queue=default,ocr-bulk`. A worker drains its queues
 left to right, so re-reading ten thousand scans never gets in front of the file

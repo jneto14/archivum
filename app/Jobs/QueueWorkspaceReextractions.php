@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Models\DocumentAttachment;
 use App\Models\Task;
 use App\Support\ReextractionFilter;
 use Illuminate\Bus\Batchable;
@@ -17,8 +16,8 @@ use Illuminate\Queue\SerializesModels;
 use LogicException;
 
 /**
- * Fills a bulk re-extraction's batch with one `ExtractAttachmentText` per
- * matching attachment.
+ * Fills a bulk re-extraction's batch with one `ExtractAttachmentTexts` per
+ * run of matching attachments.
  *
  * A loader job rather than a batch built at dispatch time, which is the
  * pattern the framework documents for batching thousands of jobs — and here it
@@ -33,12 +32,12 @@ class QueueWorkspaceReextractions implements ShouldQueue
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * How many extractions are added to the batch per round trip. Large
-     * enough that a ten-thousand-attachment archive is a score of writes
-     * rather than ten thousand, small enough that no chunk holds an
-     * unreasonable number of hydrated models at once.
+     * How many attachment ids are read out of the database per round trip.
+     * Large enough that a ten-thousand-attachment archive is a score of
+     * queries rather than ten thousand, and a whole multiple of every
+     * sensible extraction chunk, so none of them comes out ragged.
      */
-    private const CHUNK = 500;
+    private const READ = 500;
 
     /**
      * @param Task $task The bulk task standing for this sweep on the Tasks page.
@@ -64,11 +63,13 @@ class QueueWorkspaceReextractions implements ShouldQueue
 
         $workspace = $this->task->workspace;
         $limit = $this->limit;
+        $size = max(1, (int) config('archivum.ocr.bulk_chunk'));
+        $task = $this->task;
         $queued = 0;
 
         $this->filter->apply($workspace)
-            ->select(['id', 'document_id'])
-            ->chunkById(self::CHUNK, function (Collection $attachments) use ($batch, $limit, &$queued): bool {
+            ->select(['id'])
+            ->chunkById(self::READ, function (Collection $attachments) use ($batch, $limit, $size, $task, &$queued): bool {
                 if ($batch->cancelled()) {
                     return false;
                 }
@@ -80,11 +81,18 @@ class QueueWorkspaceReextractions implements ShouldQueue
                     $attachments = $attachments->take($limit - $queued);
                 }
 
+                // One job per run of attachments, not per attachment: the
+                // queue round trip costs more than reading a text-layer PDF.
+                //
                 // No `onQueue()` here: the batch carries it, and `add()`
                 // would override a per-job one anyway.
-                $batch->add($attachments->map(
-                    fn (DocumentAttachment $attachment) => new ExtractAttachmentText($attachment),
-                )->all());
+                $jobs = [];
+
+                foreach (array_chunk($attachments->pluck('id')->all(), $size) as $ids) {
+                    $jobs[] = new ExtractAttachmentTexts(array_map(strval(...), $ids), $task);
+                }
+
+                $batch->add($jobs);
 
                 $queued += $attachments->count();
 

@@ -14,6 +14,7 @@ use App\Enums\TaskStatus;
 use App\Enums\TaskType;
 use App\Enums\WorkspaceRole;
 use App\Jobs\ExtractAttachmentText;
+use App\Jobs\ExtractAttachmentTexts;
 use App\Jobs\QueueWorkspaceReextractions;
 use App\Models\Document;
 use App\Models\DocumentAttachment;
@@ -230,11 +231,13 @@ class ReextractAttachmentTextTest extends TestCase
             && $batch->jobs->first() instanceof QueueWorkspaceReextractions);
     }
 
-    public function test_the_sweep_queues_one_extraction_per_attachment()
+    public function test_the_sweep_queues_one_job_per_chunk_rather_than_one_per_file()
     {
+        config(['archivum.ocr.bulk_chunk' => 2]);
+
         $document = $this->document();
 
-        foreach (['a.png', 'b.png'] as $filename) {
+        foreach (['a.png', 'b.png', 'c.png', 'd.png', 'e.png'] as $filename) {
             $this->attachment($document, $filename, 'image/png');
         }
 
@@ -245,7 +248,99 @@ class ReextractAttachmentTextTest extends TestCase
 
         $job->handle();
 
-        $this->assertCount(2, collect($batch->added)->flatten());
+        $chunks = collect($batch->added)->flatten();
+
+        $this->assertCount(3, $chunks, 'Five attachments in chunks of two is three jobs.');
+        $this->assertSame(
+            [2, 2, 1],
+            $chunks->map(fn (ExtractAttachmentTexts $chunk): int => count($chunk->attachmentIds))->all(),
+        );
+        $this->assertSame(
+            5,
+            $chunks->flatMap(fn (ExtractAttachmentTexts $chunk) => $chunk->attachmentIds)->unique()->count(),
+            'Every attachment must be in exactly one chunk.',
+        );
+    }
+
+    public function test_a_chunk_reads_every_attachment_in_it_and_counts_them_on_the_task()
+    {
+        $document = $this->document();
+        $attachments = collect(['a.png', 'b.png', 'c.png'])
+            ->map(fn (string $filename) => $this->attachment($document, $filename, 'image/png'));
+
+        $this->fakeEngine(self::INVOICE);
+
+        $task = $this->sweepTask($document->workspace, $document->creator);
+
+        (new ExtractAttachmentTexts($attachments->pluck('id')->all(), $task))->handle(
+            app(AttachmentTextExtractor::class),
+            app(TextFingerprint::class),
+            app(FindDuplicateAttachment::class),
+            app(SuggestDocumentMetadata::class),
+        );
+
+        foreach ($attachments as $attachment) {
+            $this->assertSame(self::INVOICE, $attachment->refresh()->ocr_text);
+        }
+
+        $this->assertSame(3, $task->refresh()->payload['processed']);
+    }
+
+    public function test_one_unreadable_file_does_not_stop_the_rest_of_its_chunk()
+    {
+        $document = $this->document();
+        $good = $this->attachment($document, 'good.png', 'image/png');
+        $missing = $this->attachment($document, 'gone.png', 'image/png');
+        $alsoGood = $this->attachment($document, 'also-good.png', 'image/png');
+
+        // The row survives, the bytes do not: the file was purged from the
+        // disk behind the archive's back.
+        Storage::disk('local')->delete($missing->path);
+
+        $this->fakeEngine(self::INVOICE);
+
+        $task = $this->sweepTask($document->workspace, $document->creator);
+
+        (new ExtractAttachmentTexts([$good->id, $missing->id, $alsoGood->id], $task))->handle(
+            app(AttachmentTextExtractor::class),
+            app(TextFingerprint::class),
+            app(FindDuplicateAttachment::class),
+            app(SuggestDocumentMetadata::class),
+        );
+
+        $this->assertSame(self::INVOICE, $good->refresh()->ocr_text);
+        $this->assertSame(
+            self::INVOICE,
+            $alsoGood->refresh()->ocr_text,
+            'A chunk must carry on past a file it cannot read; retrying the whole chunk would re-read the ones that worked.',
+        );
+        $this->assertSame(OcrStatus::Failed, $missing->refresh()->ocr_status);
+        $this->assertSame(3, $task->refresh()->payload['processed']);
+    }
+
+    public function test_an_attachment_trashed_mid_sweep_is_skipped_by_its_chunk()
+    {
+        $document = $this->document();
+        $kept = $this->attachment($document, 'kept.png', 'image/png');
+        $trashed = $this->attachment($document, 'thrown-away.png', 'image/png');
+
+        $this->fakeEngine(self::INVOICE);
+
+        $ids = [$kept->id, $trashed->id];
+        $trashed->delete();
+
+        (new ExtractAttachmentTexts($ids))->handle(
+            app(AttachmentTextExtractor::class),
+            app(TextFingerprint::class),
+            app(FindDuplicateAttachment::class),
+            app(SuggestDocumentMetadata::class),
+        );
+
+        $this->assertSame(self::INVOICE, $kept->refresh()->ocr_text);
+        $this->assertNull(
+            DocumentAttachment::withTrashed()->find($trashed->id)->ocr_text,
+            'A chunk queued minutes ago must not read a file somebody has since thrown away.',
+        );
     }
 
     public function test_every_job_a_sweep_pushes_lands_on_the_low_priority_queue()
@@ -281,7 +376,7 @@ class ReextractAttachmentTextTest extends TestCase
         $queues = DB::table('jobs')->selectRaw('queue, count(*) as n')->groupBy('queue')->pluck('n', 'queue')->all();
 
         $this->assertSame(
-            ['ocr-bulk' => 3],
+            ['ocr-bulk' => 1],
             $queues,
             'Re-reading a whole archive must sit behind ordinary uploads, not in front of them.',
         );
@@ -403,7 +498,12 @@ class ReextractAttachmentTextTest extends TestCase
 
         $job->handle();
 
-        $this->assertCount(2, collect($batch->added)->flatten());
+        $this->assertSame(
+            2,
+            collect($batch->added)->flatten()
+                ->flatMap(fn (ExtractAttachmentTexts $chunk) => $chunk->attachmentIds)
+                ->count(),
+        );
     }
 
     public function test_a_trashed_attachment_is_left_out_of_a_sweep()

@@ -17,7 +17,6 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -81,11 +80,11 @@ class TaskController extends Controller
     /**
      * How far a bulk re-extraction has got, for the one row standing for it.
      *
-     * Read from the batch rather than written to the task as the sweep runs:
-     * updating a row once per extraction would be one write per attachment,
-     * ten thousand of them on a large archive, to produce a number nobody is
-     * looking at unless this page is open. Asked for here it costs one query,
-     * and only while a sweep is actually running.
+     * Counted in attachments rather than in queued jobs: a job is a chunk of
+     * them, so "8 of 200" would be a number about the queue rather than about
+     * the archive. Each chunk adds its own tally to the payload as it
+     * finishes, which is one write per chunk and not one per attachment —
+     * per-attachment bookkeeping being the thing the chunk exists to avoid.
      *
      * @param Task $task The task being rendered.
      *
@@ -97,21 +96,19 @@ class TaskController extends Controller
             return null;
         }
 
-        $batch = is_string($task->payload['batch_id'] ?? null)
-            ? Bus::findBatch($task->payload['batch_id'])
-            : null;
+        $total = (int) ($task->payload['total'] ?? 0);
 
-        if ($batch === null) {
+        if ($total < 1) {
             return null;
         }
 
-        // Both counts exclude the loader job, which is in the batch to fill it
-        // and is not an attachment. The total climbs as the loader adds
-        // chunks, so it is the count from the task's payload — settled before
-        // the sweep started — that the progress is measured against.
+        // Capped at the total, which was settled before the sweep started: a
+        // chunk that ran out of clock hands its remainder back as a fresh
+        // chunk, so the jobs can outnumber the attachments even though the
+        // attachments do not.
         return [
-            'processed' => max(0, $batch->processedJobs() - 1),
-            'total' => (int) ($task->payload['total'] ?? max(0, $batch->totalJobs - 1)),
+            'processed' => min($total, (int) ($task->payload['processed'] ?? 0)),
+            'total' => $total,
         ];
     }
 
