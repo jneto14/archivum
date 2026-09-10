@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Documents;
 
 use App\Actions\Documents\CreateDocument;
-use App\Actions\Documents\DeleteDocument;
+use App\Actions\Documents\TrashDocument;
 use App\Actions\Documents\SearchDocuments;
 use App\Actions\Documents\SuggestDocumentMetadata;
 use App\Actions\Documents\SuggestMetadataVocabulary;
@@ -263,16 +263,16 @@ class DocumentController extends Controller
     }
 
     /**
-     * Delete a document.
+     * Move a document to the workspace's trash.
      *
-     * @param Document $document The document to delete.
-     * @param DeleteDocument $action Deletes the document and its cascading records.
+     * @param Document $document The document to trash.
+     * @param TrashDocument $action Trashes the document and cascades over its attachments.
      *
-     * @return RedirectResponse Redirect to the deleted document's (now former) workspace's documents index — its own show/edit page no longer exists to go "back" to.
+     * @return RedirectResponse Redirect to the workspace's documents index — the document's own show/edit page is no longer reachable to go "back" to.
      *
      * @throws AuthorizationException If the current user cannot delete $document.
      */
-    public function destroy(Document $document, DeleteDocument $action): RedirectResponse
+    public function destroy(Document $document, TrashDocument $action): RedirectResponse
     {
         $this->authorize('delete', $document);
 
@@ -280,7 +280,7 @@ class DocumentController extends Controller
 
         $action->handle($document);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('document.deleted')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('document.trashed')]);
 
         return redirect()->route('documents.index', $workspace);
     }
