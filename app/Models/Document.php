@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -32,12 +33,13 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property array<int, array{kind: string, value: string}>|null $metadata_suggestions
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
  */
 #[Fillable(['workspace_id', 'document_type_id', 'created_by', 'title', 'document_date', 'metadata'])]
 class Document extends Model
 {
     /** @use HasFactory<DocumentFactory> */
-    use HasFactory, HasUuids, LogsWorkspaceActivity, Searchable;
+    use HasFactory, HasUuids, LogsWorkspaceActivity, Searchable, SoftDeletes;
 
     /**
      * @return LogOptions Logs title/type/date changes under the 'document' log name.
