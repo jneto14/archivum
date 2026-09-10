@@ -105,7 +105,14 @@ class QueryBudgetTest extends TestCase
     {
         $workspace = $this->seedWorkspace();
 
-        $this->assertLessThanOrEqual(10, $this->queriesFor(route('workspaces.usage', $workspace)));
+        // 12 rather than 10 since ARC-123: the page reports what the trash
+        // holds alongside the totals, which is two more aggregates. Counted
+        // separately from the totals they break down, because a trashed
+        // document is charged for its bytes and not for a slot, so neither
+        // number can be derived from the other. Only this page pays it —
+        // the sidebar badge and the dashboard read the metrics one by one
+        // and none of them changed.
+        $this->assertLessThanOrEqual(12, $this->queriesFor(route('workspaces.usage', $workspace)));
     }
 
     /**

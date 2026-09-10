@@ -6,6 +6,7 @@ namespace App\Actions\Documents;
 
 use App\Actions\Workspace\CalculateWorkspaceUsage;
 use App\Models\Document;
+use App\Models\DocumentAttachment;
 use Illuminate\Support\Facades\DB;
 
 class TrashDocument
@@ -40,12 +41,22 @@ class TrashDocument
         DB::transaction(function () use ($document): void {
             $document->delete();
 
-            // `attachments()` excludes the already-trashed, so this flags and
-            // stamps exactly the set this deletion is taking with it.
+            // `attachments()` excludes the already-trashed, so this is exactly
+            // the set this deletion is taking with it.
+            $cascaded = $document->attachments()->pluck('id')->all();
+
             $document->attachments()->update([
                 'deleted_at' => $document->deleted_at,
                 'trashed_with_document' => true,
             ]);
+
+            // Duplicate warnings elsewhere in the workspace point at files
+            // that just left the archive; see the note in `TrashAttachment`.
+            if ($cascaded !== []) {
+                DocumentAttachment::withTrashed()
+                    ->whereIn('duplicate_of_attachment_id', $cascaded)
+                    ->update(['duplicate_of_attachment_id' => null]);
+            }
         });
 
         $this->calculateUsage->forget($document->workspace);

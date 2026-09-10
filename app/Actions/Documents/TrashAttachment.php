@@ -25,6 +25,18 @@ class TrashAttachment
 
         $attachment->delete();
 
+        // A duplicate warning names the file this one repeats. That file is
+        // now in the trash and nothing in the interface can show it, so the
+        // warning has nothing left to say. The column's `nullOnDelete` only
+        // fires on a real delete, which trashing is not.
+        //
+        // Not restored when the original is: the warning is an intake signal
+        // raised once, at upload, and is dismissible by hand. Bringing a
+        // stale one back weeks later would be worse than leaving it gone.
+        DocumentAttachment::withTrashed()
+            ->where('duplicate_of_attachment_id', $attachment->id)
+            ->update(['duplicate_of_attachment_id' => null]);
+
         // The document's searchable text is a concatenation of its attachments'
         // extracted text, and `attachments()` no longer returns this one, so
         // rebuilding drops its words. Without it the document stays findable by

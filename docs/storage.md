@@ -46,6 +46,16 @@ on the dashboard and the Usage page. It is served from the
 `(document_id, size)` index rather than by reading rows — see
 [database.md](database.md).
 
+**The trash counts towards bytes and not towards the counts.** A trashed
+document's files are still on the disk, and `storage_bytes` exists to protect
+that disk — reporting the space as freed would let a workspace fill a volume
+behind a number saying it had room. The `documents` and `attachments` limits
+answer a different question, "what does this archive hold", and something in
+the trash is not held: it is gone from every listing and from search, so
+counting it there would contradict what is on screen, and a deleted document
+would go on occupying a slot nobody could see. The Usage page reports what the
+trash accounts for separately, so the space is visible rather than hidden.
+
 ## In production
 
 Attachments need a volume that outlives the container:
