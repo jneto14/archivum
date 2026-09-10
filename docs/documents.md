@@ -140,6 +140,40 @@ The index reads the same relationship from the other end: it can be filtered by
 location, which is how the physical archive links through to what is on a
 shelf. See [search.md](search.md).
 
+## Deleting
+
+Deleting a document or an attachment moves it to the workspace's **trash**. The
+row stays, the file stays on disk, and either can be put back. That matters
+because deleting a document takes its metadata, its tags and its location
+history with it, and the history is the part no amount of looking at the paper
+reconstructs.
+
+A trashed document leaves the archive completely: it is absent from the index,
+from search, from the tag counts and from the sidebar badge. Only the trash page
+shows it.
+
+Deleting a document trashes its attachments alongside it, marked
+`trashed_with_document`, and restoring it brings back exactly that set. An
+attachment somebody had already deleted on its own is not marked and stays where
+they put it. The marker exists rather than a comparison of `deleted_at` values
+because that column has one-second resolution — deleting an attachment and then
+its document within the same second made the two indistinguishable.
+
+A duplicate warning pointing at a trashed file is cleared, since the interface
+can no longer show what it refers to. It is not restored along with the file:
+the warning is an intake signal raised once, at upload, and a stale one
+resurfacing weeks later is worse than none.
+
+Two things end a stay in the trash. **Emptying it** destroys everything at once,
+and **the scheduled prune** destroys whatever has been there longer than
+`TRASH_RETENTION_DAYS` (30 by default; 0 keeps items until somebody empties the
+trash by hand). Both go through the same purge, which is the only path that
+unlinks a file.
+
+Restoring is open to whoever could have deleted the item — gating it more
+tightly would leave somebody able to make a mistake and unable to undo it.
+Destroying for good is admin-only, because that one has no way back.
+
 ## Activity
 
 Important operations are recorded through `spatie/laravel-activitylog`, scoped

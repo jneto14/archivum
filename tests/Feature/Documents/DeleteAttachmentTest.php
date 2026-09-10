@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Documents;
 
 use App\Actions\Documents\CreateDocument;
+use App\Actions\Documents\PurgeAttachment;
 use App\Actions\Documents\UploadAttachment;
 use App\Enums\WorkspaceRole;
 use App\Models\DocumentAttachment;
@@ -32,7 +33,7 @@ class DeleteAttachmentTest extends TestCase
         $response = $this->actingAs($member->user)->delete(route('attachments.destroy', $attachment));
 
         $response->assertRedirect();
-        $this->assertDatabaseMissing('document_attachments', ['id' => $attachment->id]);
+        $this->assertSoftDeleted('document_attachments', ['id' => $attachment->id]);
     }
 
     public function test_admin_can_delete_another_members_attachment()
@@ -47,7 +48,7 @@ class DeleteAttachmentTest extends TestCase
         $response = $this->actingAs($admin->user)->delete(route('attachments.destroy', $attachment));
 
         $response->assertRedirect();
-        $this->assertDatabaseMissing('document_attachments', ['id' => $attachment->id]);
+        $this->assertSoftDeleted('document_attachments', ['id' => $attachment->id]);
     }
 
     public function test_non_uploader_non_admin_member_cannot_delete_attachment()
@@ -65,7 +66,7 @@ class DeleteAttachmentTest extends TestCase
         $this->assertDatabaseHas('document_attachments', ['id' => $attachment->id]);
     }
 
-    public function test_deleting_an_attachment_removes_the_underlying_file()
+    public function test_deleting_an_attachment_leaves_the_underlying_file_until_it_is_purged()
     {
         Storage::fake('local');
 
@@ -75,6 +76,12 @@ class DeleteAttachmentTest extends TestCase
         $path = $attachment->path;
 
         $this->actingAs($member->user)->delete(route('attachments.destroy', $attachment))->assertRedirect();
+
+        // The file stays until the trash is emptied or pruned, which is the
+        // only reason a restore can bring the scan back rather than the row.
+        Storage::disk('local')->assertExists($path);
+
+        app(PurgeAttachment::class)->handle($attachment->fresh());
 
         Storage::disk('local')->assertMissing($path);
     }

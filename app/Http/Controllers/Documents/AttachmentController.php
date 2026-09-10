@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Documents;
 
-use App\Actions\Documents\DeleteAttachment;
+use App\Actions\Documents\TrashAttachment;
 use App\Actions\Documents\UploadAttachment;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Documents\StoreAttachmentRequest;
@@ -101,22 +101,23 @@ class AttachmentController extends Controller
     }
 
     /**
-     * Delete an attachment and its underlying stored file.
+     * Move an attachment to the workspace's trash, leaving its stored file
+     * on disk until the trash is emptied or pruned.
      *
-     * @param DocumentAttachment $attachment The attachment to delete.
-     * @param DeleteAttachment $action Deletes the stored file and the attachment record.
+     * @param DocumentAttachment $attachment The attachment to trash.
+     * @param TrashAttachment $action Trashes the attachment and re-indexes its document.
      *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws AuthorizationException If the current user cannot delete $attachment.
      */
-    public function destroy(DocumentAttachment $attachment, DeleteAttachment $action): RedirectResponse
+    public function destroy(DocumentAttachment $attachment, TrashAttachment $action): RedirectResponse
     {
         $this->authorize('delete', $attachment);
 
         $action->handle($attachment);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('document.attachment_deleted')]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('document.attachment_trashed')]);
 
         return back();
     }

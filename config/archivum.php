@@ -114,6 +114,33 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Trash
+    |--------------------------------------------------------------------------
+    |
+    | Deleting a document or an attachment moves it to the workspace's trash
+    | rather than destroying it. The record stays, the file stays on disk, and
+    | either can be restored — which matters because deleting a document also
+    | takes its metadata, its tags and its location history, and that history
+    | is the expensive thing to lose.
+    |
+    | A trashed item still occupies the disk, so it still counts against the
+    | workspace's storage limit. Reporting freed space that was not freed
+    | would leave an operator's disk filling up behind a quota that says
+    | otherwise; the usage page shows what the trash holds separately, so the
+    | space is accounted for rather than hidden.
+    |
+    | The prune command deletes what has been in the trash longer than the
+    | retention window, and that is the point at which files leave the disk.
+    | Set to 0 to keep trashed items until somebody empties the trash by hand.
+    |
+    */
+
+    'trash' => [
+        'retention_days' => (int) env('TRASH_RETENTION_DAYS', 30),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Attachment Text Extraction
     |--------------------------------------------------------------------------
     |

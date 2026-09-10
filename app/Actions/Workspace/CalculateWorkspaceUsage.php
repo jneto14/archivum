@@ -29,6 +29,18 @@ use Illuminate\Database\Eloquent\Builder;
  * `AddWorkspaceUser`), which are checked *before* the write — so a stale memo
  * would both let a workspace exceed its limit on a second write in the same
  * request, and render a sidebar badge that is one behind.
+ *
+ * The trash is counted by the byte totals and not by the item counts, because
+ * the two answer different questions. `storageBytes()` measures a disk, and a
+ * trashed document's files are still on it — reporting that space as freed
+ * would let a workspace fill a volume behind a number saying it had room. The
+ * counts answer "how many documents does this archive hold", and one in the
+ * trash is not held: it is absent from every listing, from search and from the
+ * sidebar badge, so counting it there would contradict everything the user can
+ * see. The document and attachment limits follow the counts for the same
+ * reason — a deleted document should not stop somebody filing a new one, while
+ * its bytes genuinely do still occupy the disk they are charged against
+ * (ARC-123).
  */
 class CalculateWorkspaceUsage
 {
@@ -44,7 +56,7 @@ class CalculateWorkspaceUsage
      *
      * @param Workspace $workspace The workspace to compute usage for.
      *
-     * @return array{storage_bytes: int, users: int, documents: int, attachments: int} Current usage totals.
+     * @return array{storage_bytes: int, users: int, documents: int, attachments: int, trashed_documents: int, trashed_storage_bytes: int} Current usage totals, trash included, with what the trash accounts for broken out.
      */
     public function handle(Workspace $workspace): array
     {
@@ -53,6 +65,8 @@ class CalculateWorkspaceUsage
             'users' => $this->users($workspace),
             'documents' => $this->documents($workspace),
             'attachments' => $this->attachments($workspace),
+            'trashed_documents' => $this->trashedDocuments($workspace),
+            'trashed_storage_bytes' => $this->trashedStorageBytes($workspace),
         ];
     }
 
@@ -68,7 +82,7 @@ class CalculateWorkspaceUsage
         return $this->remember(
             $workspace,
             'storage_bytes',
-            fn (): int => (int) $this->attachmentsQuery($workspace)->sum('size'),
+            fn (): int => (int) $this->attachmentsQuery($workspace, withTrashed: true)->sum('size'),
         );
     }
 
@@ -121,6 +135,47 @@ class CalculateWorkspaceUsage
     }
 
     /**
+     * Count the workspace's trashed documents.
+     *
+     * Reported alongside the totals rather than subtracted from them: the
+     * space is genuinely occupied, and the honest way to say so is to show
+     * what the trash accounts for next to what everything accounts for. A
+     * total that quietly excluded it would be the same lie in the other
+     * direction.
+     *
+     * @param Workspace $workspace The workspace whose trash is counted.
+     *
+     * @return int The number of documents in the trash.
+     */
+    public function trashedDocuments(Workspace $workspace): int
+    {
+        return $this->remember(
+            $workspace,
+            'trashed_documents',
+            fn (): int => Document::onlyTrashed()->where('workspace_id', $workspace->id)->count(),
+        );
+    }
+
+    /**
+     * Sum the bytes held by attachments that are in the trash, whether they
+     * were trashed on their own or cascaded with their document.
+     *
+     * @param Workspace $workspace The workspace whose trash is measured.
+     *
+     * @return int Bytes recoverable by emptying the trash.
+     */
+    public function trashedStorageBytes(Workspace $workspace): int
+    {
+        return $this->remember(
+            $workspace,
+            'trashed_storage_bytes',
+            fn (): int => (int) $this->attachmentsQuery($workspace, withTrashed: true)
+                ->onlyTrashed()
+                ->sum('size'),
+        );
+    }
+
+    /**
      * Discard the memoised totals for a workspace.
      *
      * Call this after any write that changes them, so a later read in the same
@@ -151,12 +206,26 @@ class CalculateWorkspaceUsage
 
     /**
      * @param Workspace $workspace The workspace to scope the attachments query to.
+     * @param bool $withTrashed Whether to reach trashed attachments, and attachments hanging off trashed documents.
      *
      * @return Builder<DocumentAttachment> Query builder for attachments belonging to $workspace's documents.
      */
-    private function attachmentsQuery(Workspace $workspace): Builder
+    private function attachmentsQuery(Workspace $workspace, bool $withTrashed = false): Builder
     {
-        return DocumentAttachment::query()
-            ->whereHas('document', fn ($query) => $query->where('workspace_id', $workspace->id));
+        $attachments = DocumentAttachment::query();
+        $documents = Document::query();
+
+        if ($withTrashed) {
+            $attachments->withTrashed();
+            $documents->withTrashed();
+        }
+
+        // A subquery rather than `whereHas`, so the trashed-document case can
+        // be expressed at all: inside a `whereHas` closure the builder is
+        // typed against the base model and `withTrashed()` is not on it.
+        return $attachments->whereIn(
+            'document_id',
+            $documents->where('workspace_id', $workspace->id)->select('id'),
+        );
     }
 }

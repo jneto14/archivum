@@ -6,7 +6,9 @@ namespace Tests\Feature\Documents;
 
 use App\Actions\Documents\CreateDocument;
 use App\Actions\Documents\FindDuplicateAttachment;
+use App\Actions\Documents\PurgeAttachment;
 use App\Actions\Documents\SuggestDocumentMetadata;
+use App\Actions\Documents\TrashAttachment;
 use App\Enums\TaskStatus;
 use App\Enums\TaskType;
 use App\Enums\WorkspaceRole;
@@ -142,18 +144,33 @@ class AttachmentDuplicateTest extends TestCase
         $this->assertNotNull($copy->refresh()->duplicate_of_attachment_id);
     }
 
-    public function test_deleting_the_original_takes_the_warning_with_it()
+    public function test_trashing_the_original_takes_the_warning_with_it()
     {
         $workspace = $this->workspace();
         $original = $this->extracted($this->document($workspace, 'Manutencao agosto'), self::INVOICE);
         $copy = $this->extracted($this->document($workspace, 'Scan sem titulo'), self::INVOICE);
 
-        $original->delete();
+        app(TrashAttachment::class)->handle($original);
 
         $this->assertNull(
             $copy->refresh()->duplicate_of_attachment_id,
-            'A warning pointing at a file that no longer exists has nothing to show the user.',
+            'A warning pointing at a file the interface can no longer show has nothing to say.',
         );
+    }
+
+    public function test_purging_the_original_takes_the_warning_with_it()
+    {
+        Storage::fake('local');
+        $workspace = $this->workspace();
+        $original = $this->extracted($this->document($workspace, 'Manutencao agosto'), self::INVOICE);
+        $copy = $this->extracted($this->document($workspace, 'Scan sem titulo'), self::INVOICE);
+
+        app(TrashAttachment::class)->handle($original);
+        app(PurgeAttachment::class)->handle($original->fresh());
+
+        // Belt and braces: the column's `nullOnDelete` covers this one, and
+        // the assertion is here so a change to that constraint is noticed.
+        $this->assertNull($copy->refresh()->duplicate_of_attachment_id);
     }
 
     public function test_the_finder_leaves_the_attachment_alone_when_it_has_no_document()

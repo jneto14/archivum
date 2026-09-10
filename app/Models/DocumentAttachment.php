@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -37,12 +38,14 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string|null $duplicate_of_attachment_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
+ * @property bool $trashed_with_document
  */
 #[Fillable(['document_id', 'uploaded_by', 'disk', 'path', 'filename', 'mime_type', 'size', 'checksum'])]
 class DocumentAttachment extends Model
 {
     /** @use HasFactory<DocumentAttachmentFactory> */
-    use HasFactory, HasUuids, LogsWorkspaceActivity;
+    use HasFactory, HasUuids, LogsWorkspaceActivity, SoftDeletes;
 
     /**
      * The only content types this application will ever render in the browser,
@@ -105,6 +108,7 @@ class DocumentAttachment extends Model
             'ocr_extracted_at' => 'datetime',
             'ocr_reviewed_at' => 'datetime',
             'text_simhash' => 'integer',
+            'trashed_with_document' => 'boolean',
         ];
     }
 

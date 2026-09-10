@@ -67,4 +67,31 @@ class DocumentAttachmentPolicy
     {
         return $attachment->document->workspace->isAdmin($user) || $attachment->uploaded_by === $user->id;
     }
+
+    /**
+     * Whoever could have deleted it can take it back out of the trash.
+     *
+     * @param User $user The acting user.
+     * @param DocumentAttachment $attachment The trashed attachment being restored.
+     *
+     * @return bool True if $user is an admin of the attachment's document's workspace, or uploaded $attachment.
+     */
+    public function restore(User $user, DocumentAttachment $attachment): bool
+    {
+        return $this->delete($user, $attachment);
+    }
+
+    /**
+     * Only workspace admins may destroy an attachment for good, since unlike
+     * trashing it there is no way back from it.
+     *
+     * @param User $user The acting user.
+     * @param DocumentAttachment $attachment The trashed attachment being destroyed.
+     *
+     * @return bool True if $user is an admin of the attachment's document's workspace.
+     */
+    public function forceDelete(User $user, DocumentAttachment $attachment): bool
+    {
+        return $attachment->document->workspace->isAdmin($user);
+    }
 }

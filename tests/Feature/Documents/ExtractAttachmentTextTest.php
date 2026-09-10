@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Tests\Feature\Documents;
 
 use App\Actions\Documents\CreateDocument;
-use App\Actions\Documents\DeleteAttachment;
 use App\Actions\Documents\FindDuplicateAttachment;
 use App\Actions\Documents\SearchDocuments;
 use App\Actions\Documents\SuggestDocumentMetadata;
+use App\Actions\Documents\TrashAttachment;
 use App\Actions\Workspace\RetryTask;
 use App\Enums\OcrStatus;
 use App\Enums\TaskStatus;
@@ -204,7 +204,7 @@ class ExtractAttachmentTextTest extends TestCase
         $this->assertSame($document->id, $results->items()[0]->id);
     }
 
-    public function test_deleting_an_attachment_takes_its_text_out_of_the_document()
+    public function test_trashing_an_attachment_takes_its_text_out_of_the_document()
     {
         $this->fakeEngine('Aviso de corte referencia MMXCII');
 
@@ -214,7 +214,7 @@ class ExtractAttachmentTextTest extends TestCase
         $this->runExtraction($attachment);
         $this->assertNotNull($document->refresh()->ocr_text);
 
-        app(DeleteAttachment::class)->handle($attachment);
+        app(TrashAttachment::class)->handle($attachment);
 
         $this->assertNull(
             $document->refresh()->ocr_text,
