@@ -133,6 +133,7 @@ class UploadAttachment
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
             'checksum' => hash_file('sha256', $file->getRealPath()),
+            'file_uploaded_at' => now(),
         ]);
 
         $this->calculateUsage->forget($workspace);

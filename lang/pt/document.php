@@ -25,6 +25,7 @@ return [
     'attachment_uploaded' => 'Anexo carregado.',
     'attachments_uploaded' => ':count anexos carregados.',
     'attachment_trashed' => 'Anexo movido para o lixo.',
+    'attachment_replaced' => 'Ficheiro substituído. O anterior fica no histórico deste anexo.',
     'reextraction_queued' => 'A ler o ficheiro outra vez. O texto é atualizado quando terminar.',
     'ocr_disabled' => 'A extração de texto está desligada nesta instalação.',
     'ocr_already_running' => 'Este ficheiro já está a ser lido.',

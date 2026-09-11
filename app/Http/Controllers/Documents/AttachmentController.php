@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Documents;
 
 use App\Actions\Documents\ReextractAttachmentText;
+use App\Actions\Documents\ReplaceAttachmentFile;
 use App\Actions\Documents\TrashAttachment;
 use App\Actions\Documents\UploadAttachment;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Documents\ReplaceAttachmentRequest;
 use App\Http\Requests\Documents\StoreAttachmentRequest;
 use App\Models\Document;
 use App\Models\DocumentAttachment;
@@ -47,6 +49,35 @@ class AttachmentController extends Controller
                 ? __('document.attachment_uploaded')
                 : __('document.attachments_uploaded', ['count' => $count]),
         ]);
+
+        return back();
+    }
+
+    /**
+     * Put a different file in an attachment's place, keeping the one it
+     * replaces.
+     *
+     * Allowed to anyone who may edit the attachment, rather than to the
+     * uploader and admins as deleting one is. Deleting loses the file;
+     * replacing is the operation that exists precisely so nothing is lost,
+     * and it can be undone by restoring the version it just created (ARC-124).
+     *
+     * @param DocumentAttachment $attachment The attachment whose file is replaced.
+     * @param ReplaceAttachmentRequest $request The incoming request, carrying the replacement `file`.
+     * @param ReplaceAttachmentFile $action Archives the current file, stores the new one and queues a fresh reading.
+     *
+     * @return RedirectResponse Redirect back to the previous page.
+     *
+     * @throws AuthorizationException If the current user cannot update $attachment.
+     * @throws ValidationException If storing the file would exceed the workspace's storage limit.
+     */
+    public function replace(DocumentAttachment $attachment, ReplaceAttachmentRequest $request, ReplaceAttachmentFile $action): RedirectResponse
+    {
+        $this->authorize('update', $attachment);
+
+        $action->handle($attachment, $request->replacement(), $request->user());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('document.attachment_replaced')]);
 
         return back();
     }
