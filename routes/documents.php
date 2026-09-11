@@ -17,6 +17,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('workspaces/{workspace}/documents/create', [DocumentController::class, 'create'])->name('documents.create');
     Route::get('workspaces/{workspace}/documents/search', [DocumentSearchController::class, 'index'])->name('documents.search');
     Route::get('workspaces/{workspace}/documents/review', [IntakeReviewController::class, 'index'])->name('documents.review');
+    Route::post('workspaces/{workspace}/documents/review', [IntakeReviewController::class, 'store'])->name('documents.review.bulk');
     Route::post('documents/{document}/metadata-suggestions', [MetadataSuggestionController::class, 'store'])->name('documents.suggestions.accept');
     Route::get('documents/{document}', [DocumentController::class, 'show'])->name('documents.show');
     Route::get('documents/{document}/edit', [DocumentController::class, 'edit'])->name('documents.edit');

@@ -420,13 +420,40 @@ registration, so an archive is built one document at a time. Waiting for each
 document's own page to be revisited would mean nothing is ever confirmed.
 
 So the findings are collected on **To review** (`documents.review`), a
-workspace-wide queue: one row per document, its suggested values ticked by
-default, applied or dismissed in a click. Scans that could not be read are
-listed below it, then flagged duplicates, and below those — **for workspace
-admins only** — the words the archive is proposing to read by. The sidebar carries the count, which costs one query on
+workspace-wide queue. The sidebar carries the count, which costs one query on
 every request and is the reason the queue is used at all; the label half of it
 is counted only for the admins who are shown that section, so nobody is badged
 towards work they cannot do.
+
+**One row per document**, carrying everything waiting on it — suggested
+values, readings to confirm, duplicate warnings — collapsed to a summary and
+expanded for the individual answers. It used to be one section per *kind* of
+finding, which meant a document waiting for three reasons was three rows in
+three differently shaped lists. Tidy at three items; at four thousand, after a
+bulk re-extraction, most of why the page read as noise (ARC-127).
+
+**Answers can be given for many rows at once**, filtered by kind so that
+working through the duplicates does not mean scrolling past the readings.
+Selecting extends past the page on request, and the set is then resolved from
+the filter on the server rather than from a list of ids the page assembled.
+
+Three answers are offered in bulk, and two deliberately are not:
+
+| | |
+| --- | --- |
+| Accept suggested values | writes each document's findings, as the ticked boxes already offer |
+| Take readings off the queue | stops the asking, records that nobody read them |
+| Keep both copies | clears the duplicate warnings |
+| ~~Confirm a reading~~ | asserts a person read the text — see below |
+| ~~Refuse a reading~~ | **deletes** the text and the fingerprint |
+
+That third state is the point. `ocr_reviewed_at` says the question was
+answered; `ocr_review_outcome` says how, and only `Confirmed` means somebody
+vouched for the text. Without the distinction, clearing a thousand readings
+would be indistinguishable from a thousand people having read them — which is
+the one claim [Every reading is confirmed by a person](#every-reading-is-confirmed-by-a-person)
+exists to require. Confirming and refusing stay one at a time, with the page
+in front of somebody.
 
 What is stored is only *what the text said* — kind and value, on
 `documents.metadata_suggestions`. Which field each value belongs in, and whether

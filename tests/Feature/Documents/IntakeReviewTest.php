@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -238,15 +239,19 @@ class IntakeReviewTest extends TestCase
         $duplicate = $this->attachment($copy, 'copy.pdf');
         $duplicate->recordTextFingerprint(1234, $filed);
 
-        $this->actingAs($this->member($workspace))
+        $response = $this->actingAs($this->member($workspace))
             ->get(route('documents.review', $workspace))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('duplicates.0.id', $duplicate->id)
-                ->where('duplicates.0.duplicate_of.document_title', 'Manutencao agosto')
                 // Two documents with suggestions, plus the flagged attachment.
                 ->where('intakeReviewCount', 3),
             );
+
+        $flagged = $this->findings($response, 'duplicates');
+
+        $this->assertCount(1, $flagged);
+        $this->assertSame($duplicate->id, $flagged[0]['id']);
+        $this->assertSame('Manutencao agosto', $flagged[0]['duplicate_of']['document_title']);
     }
 
     // The engine's confidence says how sure it was of each word, which is not
@@ -261,16 +266,20 @@ class IntakeReviewTest extends TestCase
         $scan = $this->attachment($document, 'invoice.jpg');
         $scan->markOcrCompleted("Factura 2026/0044\n3  49051 242344062 1165797", 40, 36);
 
-        $this->actingAs($this->member($workspace))
+        $response = $this->actingAs($this->member($workspace))
             ->get(route('documents.review', $workspace))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('readings.0.id', $scan->id)
-                ->where('readings.0.text', "Factura 2026/0044\n3  49051 242344062 1165797")
-                ->where('readings.0.unread_word_count', 4)
                 // The one document with suggestions, plus the reading.
                 ->where('intakeReviewCount', 2),
             );
+
+        $readings = $this->findings($response, 'readings');
+
+        $this->assertCount(1, $readings);
+        $this->assertSame($scan->id, $readings[0]['id']);
+        $this->assertSame("Factura 2026/0044\n3  49051 242344062 1165797", $readings[0]['text']);
+        $this->assertSame(4, $readings[0]['unread_word_count']);
     }
 
     // The queue is for the readings that went badly. A page where every word
@@ -284,14 +293,15 @@ class IntakeReviewTest extends TestCase
         $scan = $this->attachment($document, 'clean.pdf');
         $scan->markOcrCompleted('Factura 2026/0044 total 98,80', 5, 5);
 
-        $this->actingAs($this->member($workspace))
+        $response = $this->actingAs($this->member($workspace))
             ->get(route('documents.review', $workspace))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->where('readings', [])
                 // Only the document's own suggestions are waiting.
                 ->where('intakeReviewCount', 1),
             );
+
+        $this->assertSame([], $this->findings($response, 'readings'));
     }
 
     public function test_a_page_the_engine_refused_is_listed_with_no_text_to_judge()
@@ -302,13 +312,15 @@ class IntakeReviewTest extends TestCase
         $scan = $this->attachment($document, 'handwritten.png');
         $scan->markOcrPoorlyRead();
 
-        $this->actingAs($this->member($workspace))
+        $response = $this->actingAs($this->member($workspace))
             ->get(route('documents.review', $workspace))
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page
-                ->where('readings.0.id', $scan->id)
-                ->where('readings.0.text', null),
-            );
+            ->assertOk();
+
+        $readings = $this->findings($response, 'readings');
+
+        $this->assertCount(1, $readings);
+        $this->assertSame($scan->id, $readings[0]['id']);
+        $this->assertNull($readings[0]['text'], 'There was no text to judge, so none is offered.');
     }
 
     public function test_confirming_a_reading_keeps_the_text_and_takes_it_off_the_queue()
@@ -327,10 +339,11 @@ class IntakeReviewTest extends TestCase
         $this->assertNotNull($scan->ocr_reviewed_at);
         $this->assertSame('Factura 2026/0044', $scan->ocr_text);
 
-        $this->actingAs($this->member($workspace))
+        $response = $this->actingAs($this->member($workspace))
             ->get(route('documents.review', $workspace))
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('readings', []));
+            ->assertOk();
+
+        $this->assertSame([], $this->findings($response, 'readings'));
     }
 
     // Refusing deletes the text rather than flagging it. `ocr_text` is what
@@ -429,6 +442,30 @@ class IntakeReviewTest extends TestCase
             ->get(route('documents.review', $workspace))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('labels', []));
+    }
+
+    /**
+     * Every finding of one kind on the page, across the document rows they are
+     * now grouped under.
+     *
+     * The queue lists documents rather than findings (ARC-127), so a test that
+     * cares about one reading should not have to know which row it landed in
+     * or where that row sorted.
+     *
+     * @param TestResponse $response The rendered review page.
+     * @param 'readings'|'duplicates'|'suggestions' $kind Which findings to collect.
+     *
+     * @return array<int, array<string, mixed>> The findings, in page order.
+     */
+    private function findings(TestResponse $response, string $kind): array
+    {
+        /** @var array<int, array<string, mixed>> $documents */
+        $documents = $response->viewData('page')['props']['documents'] ?? [];
+
+        return collect($documents)
+            ->flatMap(fn (array $row): array => $row[$kind] ?? [])
+            ->values()
+            ->all();
     }
 
     /**

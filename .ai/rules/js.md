@@ -34,3 +34,8 @@ Add a test whenever behaviour depends on something that is right by accident on 
 Two habits: assert the *difference* between locales rather than a fixed string (`expect(inPortuguese).not.toBe(inEnglish)` — pinning `31 de ago. de 2026` only pins ICU), and stub `TZ` with `vi.stubEnv` across several zones, because in one zone the naive implementation passes too.
 
 Before trusting a new test, revert the line it covers and watch it go red. Vitest reads the DOM, never the pixels — it does not replace opening the app and looking at it.
+
+## Generate Wayfinder routes inside Sail, never from the host
+`php artisan wayfinder:generate` on the host cannot reach MySQL, so it types route parameters from the model's declared key instead of the real one. `Passkey` is the case that bites: the vendor model documents `$id` as `int`, this app overrides it to a UUID, and host-generated routes come out as `passkey: number` — which makes `tsc` fail in `manage-passkeys.tsx` on a line nobody touched.
+
+Always `sail artisan wayfinder:generate --with-form`. The generated files are gitignored, so a wrong one only shows up as a type error in an unrelated file, and it is easy to write off as pre-existing. If `types:check` fails somewhere you did not edit, regenerate inside the container before believing it.

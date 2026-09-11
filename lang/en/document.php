@@ -32,4 +32,10 @@ return [
     'attachment_purged' => 'Attachment permanently deleted.',
     'trash_emptied' => 'Trash emptied.',
     'moved' => 'Document location updated.',
+    'review' => [
+        'accept_suggestions' => 'Accepted the suggested values on :count document(s).',
+        'dismiss_readings' => 'Took :count reading(s) off the queue. Nothing was marked as read.',
+        'dismiss_duplicates' => 'Cleared :count duplicate warning(s), keeping both copies.',
+        'nothing_selected' => 'Nothing was selected.',
+    ],
 ];
