@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Tests\Feature\Documents;
 
 use App\Actions\Documents\CreateDocument;
+use App\Actions\Documents\PurgeAttachment;
+use App\Actions\Documents\PurgeDocument;
+use App\Actions\Documents\TrashAttachment;
+use App\Actions\Documents\TrashDocument;
 use App\Actions\Documents\UploadAttachment;
 use App\Actions\Workspace\CalculateWorkspaceUsage;
 use App\Enums\OcrStatus;
@@ -186,6 +190,45 @@ class AttachmentVersionTest extends TestCase
         $this->assertSame(1, app(CalculateWorkspaceUsage::class)->attachments($workspace));
     }
 
+    public function test_a_superseded_file_still_counts_against_the_storage_total()
+    {
+        [$workspace, $member, , $attachment] = $this->archive();
+
+        $this->actingAs($member)->post(route('attachments.file.replace', $attachment), [
+            'file' => UploadedFile::fake()->create('better.pdf', 20, 'application/pdf'),
+        ]);
+
+        $usage = app(CalculateWorkspaceUsage::class);
+        $usage->forget($workspace);
+
+        // Both files are on the disk, so both are charged for.
+        $this->assertSame(
+            $attachment->fresh()->size + $attachment->versions()->sum('size'),
+            $usage->storageBytes($workspace),
+        );
+    }
+
+    public function test_trashing_an_attachment_counts_its_versions_as_recoverable()
+    {
+        [$workspace, $member, , $attachment] = $this->archive();
+
+        $this->actingAs($member)->post(route('attachments.file.replace', $attachment), [
+            'file' => UploadedFile::fake()->create('better.pdf', 20, 'application/pdf'),
+        ]);
+
+        app(TrashAttachment::class)->handle($attachment->fresh());
+
+        $usage = app(CalculateWorkspaceUsage::class);
+        $usage->forget($workspace);
+
+        // Purging the attachment unlinks its whole chain, so every byte of it
+        // is recoverable and not just the file it was holding.
+        $expected = $attachment->fresh()->size + $attachment->versions()->sum('size');
+
+        $this->assertSame($expected, $usage->trashedStorageBytes($workspace));
+        $this->assertSame($expected, $usage->storageBytes($workspace));
+    }
+
     public function test_an_earlier_version_can_be_downloaded()
     {
         [, $member, , $attachment] = $this->archive();
@@ -255,6 +298,44 @@ class AttachmentVersionTest extends TestCase
         $this->assertNull($attachment->ocr_text);
         $this->assertSame(OcrStatus::Processing, $attachment->ocr_status);
         Bus::assertDispatchedTimes(ExtractAttachmentText::class, 3);
+    }
+
+    public function test_purging_an_attachment_unlinks_every_file_it_ever_held()
+    {
+        [, $member, , $attachment] = $this->archive();
+
+        $originalPath = $attachment->path;
+
+        $this->actingAs($member)->post(route('attachments.file.replace', $attachment), [
+            'file' => UploadedFile::fake()->create('better.pdf', 20, 'application/pdf'),
+        ]);
+
+        $attachment->refresh();
+        $replacementPath = $attachment->path;
+
+        app(TrashAttachment::class)->handle($attachment);
+        app(PurgeAttachment::class)->handle($attachment->fresh());
+
+        Storage::disk('local')->assertMissing($originalPath);
+        Storage::disk('local')->assertMissing($replacementPath);
+        $this->assertDatabaseCount('document_attachment_versions', 0);
+    }
+
+    public function test_purging_a_document_unlinks_its_attachments_version_files()
+    {
+        [, $member, $document, $attachment] = $this->archive();
+
+        $originalPath = $attachment->path;
+
+        $this->actingAs($member)->post(route('attachments.file.replace', $attachment), [
+            'file' => UploadedFile::fake()->create('better.pdf', 20, 'application/pdf'),
+        ]);
+
+        app(TrashDocument::class)->handle($document);
+        app(PurgeDocument::class)->handle($document->fresh());
+
+        Storage::disk('local')->assertMissing($originalPath);
+        $this->assertDatabaseCount('document_attachment_versions', 0);
     }
 
     public function test_an_outsider_can_neither_replace_a_file_nor_reach_its_history()

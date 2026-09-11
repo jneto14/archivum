@@ -6,6 +6,7 @@ namespace App\Actions\Workspace;
 
 use App\Models\Document;
 use App\Models\DocumentAttachment;
+use App\Models\DocumentAttachmentVersion;
 use App\Models\Workspace;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
@@ -41,6 +42,10 @@ use Illuminate\Database\Eloquent\Builder;
  * reason — a deleted document should not stop somebody filing a new one, while
  * its bytes genuinely do still occupy the disk they are charged against
  * (ARC-123).
+ *
+ * A superseded attachment version is counted the same way and for the same
+ * reason: its file is still on the disk, and the archive still holds one
+ * attachment however many scans of that page it has been through (ARC-124).
  */
 class CalculateWorkspaceUsage
 {
@@ -56,7 +61,7 @@ class CalculateWorkspaceUsage
      *
      * @param Workspace $workspace The workspace to compute usage for.
      *
-     * @return array{storage_bytes: int, users: int, documents: int, attachments: int, trashed_documents: int, trashed_storage_bytes: int} Current usage totals, trash included, with what the trash accounts for broken out.
+     * @return array{storage_bytes: int, users: int, documents: int, attachments: int, trashed_documents: int, trashed_storage_bytes: int} Current usage totals, trash and superseded versions included, with what the trash accounts for broken out.
      */
     public function handle(Workspace $workspace): array
     {
@@ -71,18 +76,19 @@ class CalculateWorkspaceUsage
     }
 
     /**
-     * Sum the byte size of all attachments belonging to the workspace's documents.
+     * Sum the byte size of every file the workspace's documents hold — the
+     * attachments themselves and the versions they have superseded.
      *
-     * @param Workspace $workspace The workspace whose attachments are summed.
+     * @param Workspace $workspace The workspace whose files are summed.
      *
-     * @return int Total attachment size in bytes.
+     * @return int Total size in bytes.
      */
     public function storageBytes(Workspace $workspace): int
     {
         return $this->remember(
             $workspace,
             'storage_bytes',
-            fn (): int => (int) $this->attachmentsQuery($workspace, withTrashed: true)->sum('size'),
+            fn (): int => $this->fileBytesOf($this->attachmentsQuery($workspace, withTrashed: true)),
         );
     }
 
@@ -160,6 +166,10 @@ class CalculateWorkspaceUsage
      * Sum the bytes held by attachments that are in the trash, whether they
      * were trashed on their own or cascaded with their document.
      *
+     * Their superseded versions count too. Purging an attachment unlinks its
+     * whole chain, so those bytes are every bit as recoverable as the file the
+     * attachment is holding.
+     *
      * @param Workspace $workspace The workspace whose trash is measured.
      *
      * @return int Bytes recoverable by emptying the trash.
@@ -169,10 +179,41 @@ class CalculateWorkspaceUsage
         return $this->remember(
             $workspace,
             'trashed_storage_bytes',
-            fn (): int => (int) $this->attachmentsQuery($workspace, withTrashed: true)
-                ->onlyTrashed()
-                ->sum('size'),
+            fn (): int => $this->fileBytesOf(
+                $this->attachmentsQuery($workspace, withTrashed: true)->onlyTrashed(),
+            ),
         );
+    }
+
+    /**
+     * Sum every byte the attachments a query selects account for: the files
+     * they hold, and the files they have superseded.
+     *
+     * A `union all` of two sums rather than two calls, so the total stays one
+     * round trip. Both halves are index-only — `document_attachments` through
+     * its `(document_id, size)` covering index and the versions through their
+     * own — and the point of those indexes is lost if the total costs a query
+     * per table instead of a row read per table. The two rows are added in
+     * PHP because a derived table wrapping the union buys nothing but SQL.
+     *
+     * @param Builder<DocumentAttachment> $attachments The attachments to measure.
+     *
+     * @return int Bytes those attachments and their version history occupy.
+     */
+    private function fileBytesOf(Builder $attachments): int
+    {
+        $versions = DocumentAttachmentVersion::query()
+            ->whereIn('document_attachment_id', (clone $attachments)->select('document_attachments.id'))
+            ->toBase()
+            ->selectRaw('coalesce(sum(size), 0) as total');
+
+        $totals = $attachments
+            ->toBase()
+            ->selectRaw('coalesce(sum(size), 0) as total')
+            ->unionAll($versions)
+            ->get();
+
+        return (int) $totals->sum('total');
     }
 
     /**

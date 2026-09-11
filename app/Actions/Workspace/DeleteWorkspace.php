@@ -4,15 +4,17 @@ declare(strict_types=1);
 
 namespace App\Actions\Workspace;
 
+use App\Actions\Documents\UnlinkAttachmentFiles;
 use App\Models\DocumentAttachment;
 use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class DeleteWorkspace
 {
+    public function __construct(private readonly UnlinkAttachmentFiles $unlinkFiles) {}
+
     /**
      * Delete a Workspace, purging its documents' attachment files from disk
      * before letting the database cascade every dependent row (organization
@@ -30,9 +32,10 @@ class DeleteWorkspace
 
         DocumentAttachment::query()
             ->whereHas('document', fn ($query) => $query->where('workspace_id', $workspace->id))
+            ->with('versions')
             ->chunkById(100, function (Collection $attachments): void {
                 foreach ($attachments as $attachment) {
-                    Storage::disk($attachment->disk)->delete($attachment->path);
+                    $this->unlinkFiles->handle($attachment);
                 }
             });
 

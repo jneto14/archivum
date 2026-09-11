@@ -6,11 +6,13 @@ namespace App\Actions\Documents;
 
 use App\Actions\Workspace\CalculateWorkspaceUsage;
 use App\Models\Document;
-use Illuminate\Support\Facades\Storage;
 
 class PurgeDocument
 {
-    public function __construct(private readonly CalculateWorkspaceUsage $calculateUsage) {}
+    public function __construct(
+        private readonly CalculateWorkspaceUsage $calculateUsage,
+        private readonly UnlinkAttachmentFiles $unlinkFiles,
+    ) {}
 
     /**
      * Destroy a Document for good: its attachments' files leave the disk, and
@@ -35,8 +37,8 @@ class PurgeDocument
     {
         $workspace = $document->workspace;
 
-        foreach ($document->attachments()->withTrashed()->get() as $attachment) {
-            Storage::disk($attachment->disk)->delete($attachment->path);
+        foreach ($document->attachments()->withTrashed()->with('versions')->get() as $attachment) {
+            $this->unlinkFiles->handle($attachment);
         }
 
         $document->forceDelete();
