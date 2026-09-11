@@ -11,6 +11,13 @@ mysql
 redis
 ```
 
+The worker consumes two queues, in order: `default` and `ocr-bulk`. The second
+is where a bulk text re-extraction puts its work, and the order is what keeps a
+sweep of the whole archive behind the file somebody just uploaded. `compose.prod.yaml`
+already names both — a worker started by hand needs
+`--queue=default,ocr-bulk`, or its sweeps sit in the queue and never run. See
+[ocr.md](ocr.md#reading-a-file-again).
+
 ## Installing
 
 ```bash

@@ -60,6 +60,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('workspaces/{workspace}/tasks', [TaskController::class, 'index'])->name('workspaces.tasks.index');
     Route::post('workspaces/{workspace}/tasks', [TaskController::class, 'store'])->name('workspaces.tasks.store');
+    Route::post('workspaces/{workspace}/tasks/reextract', [TaskController::class, 'reextract'])->name('workspaces.tasks.reextract');
     Route::post('workspaces/{workspace}/tasks/{task}/retry', [TaskController::class, 'retry'])->name('workspaces.tasks.retry');
     Route::get('workspaces/{workspace}/tasks/{task}/download', [TaskController::class, 'download'])->name('workspaces.tasks.download');
     // `relative` so the signature does not cover the host or the path prefix,

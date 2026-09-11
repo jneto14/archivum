@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Workspaces;
 
 use App\Actions\Workspace\RetryTask;
+use App\Actions\Workspace\StartBulkTextExtraction;
 use App\Actions\Workspace\StartDocumentExport;
 use App\Enums\TaskStatus;
 use App\Enums\TaskType;
@@ -67,12 +68,48 @@ class TaskController extends Controller
                 'status' => $task->status->value,
                 'triggered_by' => $task->user->name,
                 'subject' => $task->payload['filename'] ?? null,
+                'progress' => $this->progress($task),
                 'result' => $task->result,
                 'started_at' => $task->started_at?->toIso8601String(),
                 'finished_at' => $task->finished_at?->toIso8601String(),
                 'created_at' => $task->created_at?->toIso8601String(),
             ]),
         ]);
+    }
+
+    /**
+     * How far a bulk re-extraction has got, for the one row standing for it.
+     *
+     * Counted in attachments rather than in queued jobs: a job is a chunk of
+     * them, so "8 of 200" would be a number about the queue rather than about
+     * the archive. Each chunk adds its own tally to the payload as it
+     * finishes, which is one write per chunk and not one per attachment —
+     * per-attachment bookkeeping being the thing the chunk exists to avoid.
+     *
+     * @param Task $task The task being rendered.
+     *
+     * @return array{processed: int, total: int}|null The sweep's progress, or null if this task is not a running sweep.
+     */
+    private function progress(Task $task): ?array
+    {
+        if ($task->type !== TaskType::BulkAttachmentTextExtraction || $task->status !== TaskStatus::Processing) {
+            return null;
+        }
+
+        $total = (int) ($task->payload['total'] ?? 0);
+
+        if ($total < 1) {
+            return null;
+        }
+
+        // Capped at the total, which was settled before the sweep started: a
+        // chunk that ran out of clock hands its remainder back as a fresh
+        // chunk, so the jobs can outnumber the attachments even though the
+        // attachments do not.
+        return [
+            'processed' => min($total, (int) ($task->payload['processed'] ?? 0)),
+            'total' => $total,
+        ];
     }
 
     /**
@@ -94,6 +131,40 @@ class TaskController extends Controller
         $action->handle($workspace, $request->user());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __('workspace.export_started')]);
+
+        return back();
+    }
+
+    /**
+     * Re-read every stored attachment in the workspace.
+     *
+     * The counterpart of `ocr:reextract` for an installation nobody has shell
+     * access to. Unfiltered on purpose: the console command exists for the
+     * narrow cases, and a form of checkboxes here would be answering a
+     * question an admin pressing this button is not asking — they have changed
+     * something about extraction and want the archive to reflect it.
+     *
+     * One task row stands for the whole sweep; see StartBulkTextExtraction.
+     *
+     * @param Workspace $workspace The workspace whose attachments are re-read.
+     * @param Request $request The incoming request; used to resolve the current user.
+     * @param StartBulkTextExtraction $action Creates the sweep's task and batches the extractions.
+     *
+     * @return RedirectResponse Redirect back to the previous page.
+     *
+     * @throws AuthorizationException If the current user cannot trigger a task for $workspace.
+     * @throws ValidationException If a re-extraction is already running for $workspace, or it holds no attachments.
+     */
+    public function reextract(Workspace $workspace, Request $request, StartBulkTextExtraction $action): RedirectResponse
+    {
+        $this->authorize('create', [Task::class, $workspace]);
+
+        $task = $action->handle($workspace, $request->user());
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => __('workspace.reextraction_started', ['count' => $task->payload['total'] ?? 0]),
+        ]);
 
         return back();
     }

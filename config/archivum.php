@@ -244,6 +244,27 @@ return [
             'OCR_JOB_TIMEOUT',
             ((int) env('OCR_MAX_PAGES', 20) * (int) env('OCR_TIMEOUT', 120)) + 300,
         ),
+
+        /*
+        | The queue a bulk re-extraction pushes its work onto, kept separate
+        | from the one uploads use. The worker is started with
+        | `--queue=default,ocr-bulk`, and a worker given several queues drains
+        | them in order — so re-reading an archive of ten thousand scans, which
+        | is days of CPU, never puts itself in front of the file somebody just
+        | uploaded and is waiting on. Set it to `default` to switch that off.
+        */
+        'bulk_queue' => env('OCR_BULK_QUEUE', 'ocr-bulk'),
+
+        /*
+        | How many attachments a bulk re-extraction reads per queued job. One
+        | job each costs a reserve, a delete and a batch write per file; a
+        | chunk pays that once. Gains flatten out past 25, which is also what
+        | the job timeout affords — it is sized for one attachment's worst
+        | case, and a chunk stops starting new files at 60% of it. A chunk that
+        | runs out of clock hands the rest back rather than being killed, so
+        | this is a throughput dial and not a correctness one.
+        */
+        'bulk_chunk' => (int) env('OCR_BULK_CHUNK', 25),
     ],
 
     /*

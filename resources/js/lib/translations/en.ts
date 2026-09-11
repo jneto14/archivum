@@ -242,6 +242,7 @@ export default {
     'documents.show.no_matching_locations': 'No location matches that search.',
     'documents.show.cancel_button': 'Cancel',
     'documents.show.preview_button': 'Preview',
+    'documents.show.reextract_button': 'Read this file again',
     'documents.show.preview_not_supported':
         'Preview is not available for this file type.',
     'documents.show.preview_failed': 'Failed to load the preview.',
@@ -571,6 +572,17 @@ export default {
     'workspace.tasks.status_failed': 'Failed',
     'workspace.tasks.download_button': 'Download',
     'workspace.tasks.retry_button': 'Retry',
+    'workspace.tasks.type_bulk_attachment_text_extraction':
+        'Text re-extraction',
+    'workspace.tasks.reextract_button': 'Re-extract text',
+    'workspace.tasks.reextract_description':
+        'Read every stored file again, so text extracted by an older version of the pipeline catches up with the current one. This is hours of work on a large archive and runs behind everything else.',
+    'workspace.tasks.reextract_confirm':
+        'Read every stored file in this workspace again? Any reading somebody has already confirmed or rejected goes back on the review queue.',
+    'workspace.tasks.reextract_progress': ':processed of :total files read',
+    'workspace.tasks.reextract_result': ':count file(s) read',
+    'workspace.tasks.reextract_result_failed':
+        ':count file(s) read, :failed failed',
 
     'workspace.activity.title': 'Activity',
     'workspace.activity.description':

@@ -98,6 +98,77 @@ They are not all the same, and the job treats them differently:
 A corrupt upload never fails the upload request, which matters on an
 installation running the `sync` queue driver where the job runs inline.
 
+## Reading a file again
+
+Extraction runs once, when a file is uploaded. Everything about the reading is
+therefore fixed at that moment: the pipeline of the day, the confidence floors
+then in force, the language packs then installed. Change any of them and the
+archive filed before the change keeps its old reading, searches differently
+from anything filed after, and never appears on the review queue.
+
+So any stored attachment can be read again, and the second reading **replaces**
+the first rather than being merged into it. `markOcrProcessing()` is what
+guarantees that: it clears the text, the counts, the error, the fingerprint,
+the duplicate match and `ocr_reviewed_at` before the engine is asked anything.
+Every path into extraction goes through it, so none of them can forget — and
+the last two are the ones that matter, because a fingerprint of text that no
+longer exists still flags duplicates, and a verdict left standing marks a
+reading nobody has seen as reviewed.
+
+That a confirmed reading goes back on the queue is deliberate. The person
+answered a question about text that has been thrown away; the new text is a new
+question (see [Every reading is confirmed by a person](#every-reading-is-confirmed-by-a-person)).
+
+**One file at a time.** The button next to a file on its document page, open to
+anyone who may edit the attachment — the same people who can already discard
+its reading outright. It creates the ordinary task row an upload creates, so it
+is visible and retryable on the Tasks page like any other extraction.
+
+**The whole workspace.** The button on the Tasks page, for admins. One task row
+stands for the sweep — a row per attachment would bury the page under however
+many files the archive holds — and the extractions are batched beneath it, with
+the row reporting `n of m files read` while it runs. A failed sweep is not
+retried from that row: what it leaves behind is however much of the archive it
+did read, and the answer is a fresh run, narrowed from the console to whatever
+the first one missed.
+
+**From the console**, for an operator upgrading an installation:
+
+```shell
+php artisan ocr:reextract --dry-run              # how many, before committing hours of CPU
+php artisan ocr:reextract --unscored             # only what predates the confidence filter
+php artisan ocr:reextract --status=failed        # only what fell over
+php artisan ocr:reextract --workspace="Arquivo" --limit=500
+```
+
+Filterable rather than all-or-nothing because on a large archive this is hours
+of CPU and the cases worth redoing are usually narrow. `--unscored` is how an
+archive predating 0.4.0 is found: those attachments have no `ocr_word_count`,
+because nothing was recording one.
+
+A sweep queues one job per **run** of `OCR_BULK_CHUNK` attachments (25), not
+one per file. A job costs a reserve, a delete and a batch write whatever it
+does, and on PDFs carrying a text layer — where reading the file is under
+10ms — that overhead was a third of the total. Measured over 500 attachments:
+41.5ms each at one per job, 29.3 at ten, 27.5 at twenty-five, 26.9 at fifty.
+Flat past 25, which is also what the job timeout affords: a chunk stops
+starting new files at 60% of it and hands the rest back as a fresh chunk, so
+the size cannot make a sweep incorrect, only faster or slower. A file that
+cannot be read is caught inside the chunk and stepped over, because retrying
+the chunk would re-read everything in it that worked — the failure is on the
+attachment, and `--status=failed` picks it up.
+
+Note that the framework is **not** started per job: `queue:work` boots once and
+loops. (`queue:listen`, which `composer dev` runs locally, does restart per
+job — so a sweep is far slower on a developer's machine than in production.)
+
+A sweep is pushed onto its own queue, `OCR_BULK_QUEUE` (`ocr-bulk`), and the
+worker is started with `--queue=default,ocr-bulk`. A worker drains its queues
+left to right, so re-reading ten thousand scans never gets in front of the file
+somebody just uploaded and is standing there waiting for. One sweep at a time
+per workspace, held by a lock, so a second cannot reset the attachments the
+first is part-way through.
+
 ## Timeouts
 
 Three numbers have to stay in order, or a long OCR run is handed to a second

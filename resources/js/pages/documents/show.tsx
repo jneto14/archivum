@@ -1,5 +1,11 @@
 import { Head, router, setLayoutProps, usePage } from '@inertiajs/react';
-import { DownloadIcon, EyeIcon, Trash2Icon, XIcon } from 'lucide-react';
+import {
+    DownloadIcon,
+    EyeIcon,
+    RefreshCwIcon,
+    Trash2Icon,
+    XIcon,
+} from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import AttachmentController from '@/actions/App/Http/Controllers/Documents/AttachmentController';
@@ -31,6 +37,7 @@ import {
     show as attachmentShow,
     store as attachmentStore,
 } from '@/routes/attachments';
+import { store as attachmentReextract } from '@/routes/attachments/extraction';
 import {
     edit as documentEdit,
     index as documentsIndex,
@@ -584,6 +591,35 @@ export default function DocumentShow({
                                                             <DownloadIcon />
                                                         </a>
                                                     </Button>
+                                                    {attachment.ocr_status !==
+                                                        'unavailable' && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            title={t(
+                                                                'documents.show.reextract_button',
+                                                            )}
+                                                            disabled={
+                                                                attachment.ocr_status ===
+                                                                    'pending' ||
+                                                                attachment.ocr_status ===
+                                                                    'processing'
+                                                            }
+                                                            onClick={() =>
+                                                                router.post(
+                                                                    attachmentReextract.url(
+                                                                        attachment.id,
+                                                                    ),
+                                                                    {},
+                                                                    {
+                                                                        preserveScroll: true,
+                                                                    },
+                                                                )
+                                                            }
+                                                        >
+                                                            <RefreshCwIcon />
+                                                        </Button>
+                                                    )}
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
