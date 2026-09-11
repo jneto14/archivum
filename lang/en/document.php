@@ -26,6 +26,7 @@ return [
     'attachments_uploaded' => ':count attachments uploaded.',
     'attachment_trashed' => 'Attachment moved to the trash.',
     'attachment_replaced' => 'File replaced. The one before it is kept in this attachment\'s history.',
+    'version_restored' => 'Earlier file restored. The one it replaced is kept in this attachment\'s history.',
     'reextraction_queued' => 'Reading this file again. The text will update when it finishes.',
     'ocr_disabled' => 'Text extraction is switched off on this installation.',
     'ocr_already_running' => 'This file is already being read.',

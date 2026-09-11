@@ -186,6 +186,98 @@ class AttachmentVersionTest extends TestCase
         $this->assertSame(1, app(CalculateWorkspaceUsage::class)->attachments($workspace));
     }
 
+    public function test_an_earlier_version_can_be_downloaded()
+    {
+        [, $member, , $attachment] = $this->archive();
+
+        $this->actingAs($member)->post(route('attachments.file.replace', $attachment), [
+            'file' => UploadedFile::fake()->create('better.pdf', 20, 'application/pdf'),
+        ]);
+
+        $version = $attachment->versions()->sole();
+
+        $this->actingAs($member)
+            ->get(route('attachment-versions.show', $version))
+            ->assertOk()
+            ->assertDownload('first.pdf');
+    }
+
+    public function test_restoring_a_version_swaps_it_back_and_files_the_other_one()
+    {
+        [, $member, , $attachment] = $this->archive();
+
+        $originalPath = $attachment->path;
+
+        $this->actingAs($member)->post(route('attachments.file.replace', $attachment), [
+            'file' => UploadedFile::fake()->create('better.pdf', 20, 'application/pdf'),
+        ]);
+
+        $attachment->refresh();
+        $replacementPath = $attachment->path;
+        $version = $attachment->versions()->sole();
+
+        $this->actingAs($member)
+            ->post(route('attachment-versions.restore', $version))
+            ->assertRedirect();
+
+        $attachment->refresh();
+
+        $this->assertSame('first.pdf', $attachment->filename);
+        $this->assertSame($originalPath, $attachment->path);
+
+        // The history holds the file it displaced, and no longer holds the one
+        // that came back — two rows pointing at one path is what the purge
+        // would get wrong.
+        $restoredInto = $attachment->versions()->sole();
+        $this->assertSame('better.pdf', $restoredInto->filename);
+        $this->assertSame($replacementPath, $restoredInto->path);
+        $this->assertSame($member->id, $restoredInto->uploaded_by);
+    }
+
+    public function test_restoring_reads_the_file_again_rather_than_recovering_its_old_text()
+    {
+        Bus::fake([ExtractAttachmentText::class]);
+
+        [, $member, , $attachment] = $this->archive();
+
+        $this->actingAs($member)->post(route('attachments.file.replace', $attachment), [
+            'file' => UploadedFile::fake()->create('better.pdf', 20, 'application/pdf'),
+        ]);
+
+        $attachment->fresh()->markOcrCompleted('words from the replacement', 4, 4);
+
+        $this->actingAs($member)->post(
+            route('attachment-versions.restore', $attachment->versions()->sole()),
+        );
+
+        $attachment->refresh();
+
+        $this->assertNull($attachment->ocr_text);
+        $this->assertSame(OcrStatus::Processing, $attachment->ocr_status);
+        Bus::assertDispatchedTimes(ExtractAttachmentText::class, 3);
+    }
+
+    public function test_an_outsider_can_neither_replace_a_file_nor_reach_its_history()
+    {
+        [, $member, , $attachment] = $this->archive();
+
+        $this->actingAs($member)->post(route('attachments.file.replace', $attachment), [
+            'file' => UploadedFile::fake()->create('better.pdf', 20, 'application/pdf'),
+        ]);
+
+        $version = $attachment->versions()->sole();
+        $outsider = WorkspaceUser::factory()->create()->user;
+
+        $this->actingAs($outsider)
+            ->post(route('attachments.file.replace', $attachment), [
+                'file' => UploadedFile::fake()->create('theirs.pdf', 10, 'application/pdf'),
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($outsider)->get(route('attachment-versions.show', $version))->assertForbidden();
+        $this->actingAs($outsider)->post(route('attachment-versions.restore', $version))->assertForbidden();
+    }
+
     public function test_a_member_who_did_not_upload_the_file_may_still_replace_it()
     {
         [$workspace, , , $attachment] = $this->archive();
