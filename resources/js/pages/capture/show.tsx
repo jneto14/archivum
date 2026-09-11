@@ -10,6 +10,11 @@ import { useTranslation } from '@/hooks/use-translation';
 
 type Props = {
     document_title: string;
+    /**
+     * The page this session was opened to re-shoot, when it was opened for
+     * one. Null on an ordinary session, where photos become new attachments.
+     */
+    replaces_filename: string | null;
     active: boolean;
     status: 'active' | 'cancelled' | 'completed';
     photos_count: number;
@@ -36,6 +41,7 @@ const endedMessageKey = {
  */
 export default function CaptureShow({
     document_title: documentTitle,
+    replaces_filename: replacesFilename,
     active,
     status,
     photos_count: photosCount,
@@ -117,12 +123,18 @@ export default function CaptureShow({
                     <>
                         <div className="space-y-2 text-center">
                             <h1 className="text-xl font-medium">
-                                {t('capture.title')}
+                                {replacesFilename
+                                    ? t('capture.replace_title')
+                                    : t('capture.title')}
                             </h1>
                             <p className="text-sm text-muted-foreground">
-                                {t('capture.description', {
-                                    document: documentTitle,
-                                })}
+                                {replacesFilename
+                                    ? t('capture.replace_description', {
+                                          filename: replacesFilename,
+                                      })
+                                    : t('capture.description', {
+                                          document: documentTitle,
+                                      })}
                             </p>
                         </div>
 
@@ -167,7 +179,7 @@ export default function CaptureShow({
 
                         <InputError message={error} />
 
-                        {photosCount > 0 && (
+                        {!replacesFilename && photosCount > 0 && (
                             <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
                                 <CheckIcon className="size-4 shrink-0" />
                                 {photosCount === 1
@@ -180,7 +192,7 @@ export default function CaptureShow({
                             </p>
                         )}
 
-                        {photosCount > 0 && (
+                        {!replacesFilename && photosCount > 0 && (
                             <Button
                                 variant="ghost"
                                 className="w-full"

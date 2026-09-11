@@ -301,6 +301,8 @@ export default {
     'documents.show.capture_dialog_title': 'Digitalizar com o telemóvel',
     'documents.show.capture_dialog_description':
         'Digitaliza este código com a câmara do telemóvel. As fotos tiradas lá são adicionadas a este documento à medida que chegam.',
+    'documents.show.capture_dialog_replace_description':
+        'Digitaliza este código com a câmara do telemóvel. A próxima foto tirada lá substitui “:filename”, e o ficheiro substituído fica no histórico deste anexo.',
     'documents.show.capture_qr_alt':
         'Código QR que liga à página de digitalização no telemóvel',
     'documents.show.capture_photos_count_zero': 'A aguardar a primeira foto…',
@@ -317,6 +319,9 @@ export default {
     'capture.title': 'Adicionar uma foto',
     'capture.description':
         'As fotos tiradas aqui são adicionadas diretamente a “:document”.',
+    'capture.replace_title': 'Voltar a fotografar uma página',
+    'capture.replace_description':
+        'A foto tirada aqui substitui “:filename”. O ficheiro substituído fica guardado, não se perde.',
     'capture.take_scan_button': 'Digitalizar página',
     'capture.take_photo_button': 'Tirar foto simples',
     'capture.sending': 'A enviar…',

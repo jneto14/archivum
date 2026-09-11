@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Documents;
 
+use App\Actions\Documents\ReplaceAttachmentFile;
 use App\Actions\Documents\UploadAttachment;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Documents\StoreCapturePhotoRequest;
@@ -36,10 +37,16 @@ class CapturePageController extends Controller
      */
     public function show(DocumentCaptureSession $captureSession): Response
     {
-        $captureSession->loadMissing('document');
+        $captureSession->loadMissing(['document', 'replacesAttachment']);
 
         return Inertia::render('capture/show', [
             'document_title' => $captureSession->document->title,
+            // The page this session was opened to re-shoot, when it was opened
+            // for one. The phone has to say so: pointing a camera at a page
+            // that will replace an existing scan is a different act from
+            // adding one, and the only chance to say which is before the
+            // shutter (ARC-124).
+            'replaces_filename' => $captureSession->replacesAttachment?->filename,
             'active' => $captureSession->isActive(),
             // Distinct from `active`: this is why not, when it isn't — the
             // session was cancelled or completed deliberately versus simply
@@ -54,9 +61,15 @@ class CapturePageController extends Controller
      * Either store one or more captured photos as attachments, or — when the
      * phone taps "done" — end the session.
      *
+     * A session aimed at an attachment takes one photo and ends. There is one
+     * file to replace, so the second photo would have nothing left to act on,
+     * and completing the session here is what tells the phone it is finished
+     * without the user having to guess (ARC-124).
+     *
      * @param DocumentCaptureSession $captureSession The session this link belongs to.
      * @param StoreCapturePhotoRequest $request The incoming request, carrying either `files` or `done`.
      * @param UploadAttachment $action Stores the files and creates the DocumentAttachment records.
+     * @param ReplaceAttachmentFile $replace Puts a photo in an existing attachment's place, for a session aimed at one.
      *
      * @return RedirectResponse Redirect back to the capture page.
      *
@@ -66,6 +79,7 @@ class CapturePageController extends Controller
         DocumentCaptureSession $captureSession,
         StoreCapturePhotoRequest $request,
         UploadAttachment $action,
+        ReplaceAttachmentFile $replace,
     ): RedirectResponse {
         if (!$captureSession->isActive()) {
             return back();
@@ -77,7 +91,18 @@ class CapturePageController extends Controller
             return back();
         }
 
-        $action->handleMany($captureSession->document, $request->attachments(), $captureSession->creator);
+        $photos = $request->attachments();
+        $replaces = $captureSession->replacesAttachment;
+
+        if ($replaces !== null) {
+            $replace->handle($replaces, $photos[0], $captureSession->creator);
+            $captureSession->recordPhoto();
+            $captureSession->complete();
+
+            return back();
+        }
+
+        $action->handleMany($captureSession->document, $photos, $captureSession->creator);
         $captureSession->recordPhoto();
 
         return back();

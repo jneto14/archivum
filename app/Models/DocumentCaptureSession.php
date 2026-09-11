@@ -27,13 +27,14 @@ use Illuminate\Support\Carbon;
  * @property string $id
  * @property string $document_id
  * @property string $created_by
+ * @property string|null $replaces_attachment_id
  * @property CaptureSessionStatus $status
  * @property int $photos_count
  * @property Carbon $expires_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['document_id', 'created_by', 'expires_at'])]
+#[Fillable(['document_id', 'created_by', 'replaces_attachment_id', 'expires_at'])]
 class DocumentCaptureSession extends Model
 {
     /** @use HasFactory<DocumentCaptureSessionFactory> */
@@ -67,6 +68,23 @@ class DocumentCaptureSession extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * The attachment this session was opened to re-shoot, if it was opened for
+     * one at all.
+     *
+     * Null on an ordinary session, where photos become new attachments, and
+     * null again if the attachment is trashed while the session is open —
+     * soft deletes take it out of this relation without touching the column.
+     * That is the wanted answer: what is left is a live pairing that behaves
+     * like any other, rather than a QR code that silently stopped working.
+     *
+     * @return BelongsTo<DocumentAttachment, $this>
+     */
+    public function replacesAttachment(): BelongsTo
+    {
+        return $this->belongsTo(DocumentAttachment::class, 'replaces_attachment_id');
     }
 
     /**

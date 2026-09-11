@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Documents;
 
 use App\Actions\Documents\CreateDocument;
+use App\Actions\Documents\UploadAttachment;
 use App\Enums\CaptureSessionStatus;
 use App\Enums\WorkspaceRole;
 use App\Models\DocumentCaptureSession;
@@ -12,6 +13,8 @@ use App\Models\DocumentType;
 use App\Models\Workspace;
 use App\Models\WorkspaceUser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class CaptureSessionTest extends TestCase
@@ -59,6 +62,53 @@ class CaptureSessionTest extends TestCase
                 ->where('status', CaptureSessionStatus::Active)
                 ->count(),
         );
+    }
+
+    public function test_a_session_can_be_aimed_at_one_of_the_documents_attachments()
+    {
+        Storage::fake('local');
+
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $type = DocumentType::factory()->for($workspace)->create();
+        $document = app(CreateDocument::class)->handle($workspace, $member->user, $type, 'Invoice', null, null);
+        $attachment = app(UploadAttachment::class)->handle(
+            $document,
+            UploadedFile::fake()->image('dark.jpg'),
+            $member->user,
+        );
+
+        $this->actingAs($member->user)
+            ->post(route('capture-sessions.store', $document), ['attachment' => $attachment->id])
+            ->assertRedirect();
+
+        $session = DocumentCaptureSession::query()->where('document_id', $document->id)->firstOrFail();
+
+        $this->assertSame($attachment->id, $session->replaces_attachment_id);
+    }
+
+    public function test_a_session_cannot_be_aimed_at_another_documents_attachment()
+    {
+        Storage::fake('local');
+
+        $workspace = Workspace::factory()->create();
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+        $type = DocumentType::factory()->for($workspace)->create();
+        $document = app(CreateDocument::class)->handle($workspace, $member->user, $type, 'Invoice', null, null);
+        $elsewhere = app(CreateDocument::class)->handle($workspace, $member->user, $type, 'Deed', null, null);
+        $attachment = app(UploadAttachment::class)->handle(
+            $elsewhere,
+            UploadedFile::fake()->image('dark.jpg'),
+            $member->user,
+        );
+
+        // The QR code is addressed by document. An id from somewhere else
+        // would point the phone at a file this page never showed.
+        $this->actingAs($member->user)
+            ->post(route('capture-sessions.store', $document), ['attachment' => $attachment->id])
+            ->assertSessionHasErrors('attachment');
+
+        $this->assertDatabaseCount('document_capture_sessions', 0);
     }
 
     public function test_non_member_cannot_start_a_capture_session()

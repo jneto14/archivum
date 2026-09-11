@@ -133,7 +133,11 @@ type Props = {
     locations?: Location[];
     /** How many values the extracted text has to offer for fields still empty. The values themselves live on the edit form, which is where they can be accepted. */
     metadata_suggestions_count: number;
-    active_capture_session: { id: string; photos_count: number } | null;
+    active_capture_session: {
+        id: string;
+        photos_count: number;
+        replaces_attachment_id: string | null;
+    } | null;
 };
 
 export default function DocumentShow({

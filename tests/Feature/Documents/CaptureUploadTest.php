@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Feature\Documents;
 
 use App\Actions\Documents\CreateDocument;
+use App\Actions\Documents\TrashAttachment;
+use App\Actions\Documents\UploadAttachment;
 use App\Enums\CaptureSessionStatus;
 use App\Models\DocumentAttachment;
 use App\Models\DocumentCaptureSession;
@@ -101,6 +103,100 @@ class CaptureUploadTest extends TestCase
         // opened for.
         $this->assertSame($creator->id, $attachment->uploaded_by);
         $this->assertSame(1, $session->fresh()->photos_count);
+    }
+
+    public function test_a_session_aimed_at_an_attachment_replaces_it_and_ends()
+    {
+        Storage::fake('local');
+
+        $workspace = Workspace::factory()->create();
+        $creator = WorkspaceUser::factory()->for($workspace)->create()->user;
+        $type = DocumentType::factory()->for($workspace)->create();
+        $document = app(CreateDocument::class)->handle($workspace, $creator, $type, 'Invoice', null, null);
+        $attachment = app(UploadAttachment::class)->handle(
+            $document,
+            UploadedFile::fake()->image('dark.jpg'),
+            $creator,
+        );
+
+        $session = DocumentCaptureSession::factory()
+            ->for($document)
+            ->for($creator, 'creator')
+            ->create(['replaces_attachment_id' => $attachment->id]);
+
+        $response = $this->post($this->signedShowUrl($session), [
+            'files' => [UploadedFile::fake()->image('page-1.jpg')],
+        ]);
+
+        $response->assertRedirect();
+
+        // One attachment still, now holding the re-shot page, with the badly
+        // lit one behind it.
+        $this->assertDatabaseCount('document_attachments', 1);
+        $this->assertSame('page-1.jpg', $attachment->fresh()->filename);
+        $this->assertSame('dark.jpg', $attachment->versions()->sole()->filename);
+
+        // There is one file to replace, so a second photo would have nothing
+        // left to act on.
+        $this->assertSame(CaptureSessionStatus::Completed, $session->fresh()->status);
+    }
+
+    public function test_the_capture_page_names_the_file_it_was_opened_to_re_shoot()
+    {
+        Storage::fake('local');
+
+        $workspace = Workspace::factory()->create();
+        $creator = WorkspaceUser::factory()->for($workspace)->create()->user;
+        $type = DocumentType::factory()->for($workspace)->create();
+        $document = app(CreateDocument::class)->handle($workspace, $creator, $type, 'Invoice', null, null);
+        $attachment = app(UploadAttachment::class)->handle(
+            $document,
+            UploadedFile::fake()->image('dark.jpg'),
+            $creator,
+        );
+
+        $session = DocumentCaptureSession::factory()
+            ->for($document)
+            ->for($creator, 'creator')
+            ->create(['replaces_attachment_id' => $attachment->id]);
+
+        $this->get($this->signedShowUrl($session))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('capture/show')
+                ->where('replaces_filename', 'dark.jpg'));
+    }
+
+    public function test_a_session_whose_target_was_trashed_goes_back_to_adding_attachments()
+    {
+        Storage::fake('local');
+
+        $workspace = Workspace::factory()->create();
+        $creator = WorkspaceUser::factory()->for($workspace)->create()->user;
+        $type = DocumentType::factory()->for($workspace)->create();
+        $document = app(CreateDocument::class)->handle($workspace, $creator, $type, 'Invoice', null, null);
+        $attachment = app(UploadAttachment::class)->handle(
+            $document,
+            UploadedFile::fake()->image('dark.jpg'),
+            $creator,
+        );
+
+        $session = DocumentCaptureSession::factory()
+            ->for($document)
+            ->for($creator, 'creator')
+            ->create(['replaces_attachment_id' => $attachment->id]);
+
+        // Trashing is a soft delete, so the foreign key never fires — the
+        // relation is what drops the target, and a live QR code must keep
+        // working rather than failing on a row it can no longer see.
+        app(TrashAttachment::class)->handle($attachment);
+
+        $this->post($this->signedShowUrl($session), [
+            'files' => [UploadedFile::fake()->image('page-1.jpg')],
+        ])->assertRedirect();
+
+        $this->assertSame(1, DocumentAttachment::query()->where('document_id', $document->id)->count());
+        $this->assertSame(CaptureSessionStatus::Active, $session->fresh()->status);
     }
 
     public function test_uploading_through_a_cancelled_session_is_silently_ignored()
