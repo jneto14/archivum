@@ -176,7 +176,7 @@ export default {
     'documents.review.open_original': 'Abrir o original',
     'documents.review.keep_both': 'Manter os dois',
     'documents.review.filter_all': 'Tudo',
-    'documents.review.filter_suggestions': 'Valores sugeridos',
+    'documents.review.filter_suggestions': 'Sugeridos',
     'documents.review.filter_readings': 'Leituras',
     'documents.review.filter_duplicates': 'Duplicados',
     'documents.review.summary_suggestions': ':count sugerido(s)',

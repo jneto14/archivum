@@ -135,10 +135,13 @@ export function ReviewRow({
             </div>
 
             {open && (
-                <div className="space-y-4 border-t bg-muted/40 px-4 py-4">
+                <div className="@container/finding space-y-4 border-t bg-muted/40 px-4 py-4">
                     {document.suggestions.length > 0 && (
                         <div className="overflow-hidden rounded-lg border bg-background">
-                            <DocumentSuggestionReview document={document} />
+                            <DocumentSuggestionReview
+                                document={document}
+                                withHeading={false}
+                            />
                         </div>
                     )}
 
@@ -156,7 +159,7 @@ export function ReviewRow({
                             key={duplicate.id}
                             className="flex flex-wrap items-center gap-2 rounded-lg border bg-background p-4"
                         >
-                            <p className="min-w-0 flex-1 text-xs text-muted-foreground">
+                            <p className="min-w-0 basis-full text-xs text-muted-foreground @md/finding:flex-1 @md/finding:basis-0">
                                 {t('documents.review.duplicate_of', {
                                     filename: duplicate.filename,
                                     document:

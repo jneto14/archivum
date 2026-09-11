@@ -14,9 +14,9 @@ import { SortMenu, tableSort } from '@/components/sortable-table';
 import type { SortState } from '@/components/sortable-table';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useTranslation } from '@/hooks/use-translation';
 import type { TranslationKey } from '@/lib/translations';
+import { cn } from '@/lib/utils';
 import {
     index as documentsIndex,
     review as documentsReview,
@@ -125,6 +125,15 @@ export default function DocumentReview({
         ],
     );
 
+    const showFilter = (value: Filter) => {
+        clearSelection();
+        router.get(
+            documentsReview.url(workspaceId, { query: { filter: value } }),
+            {},
+            { preserveScroll: true },
+        );
+    };
+
     const clearSelection = () => {
         setSelected([]);
         setAllMatching(false);
@@ -206,46 +215,54 @@ export default function DocumentReview({
                         {counts.all > 0 && (
                             <div className="space-y-3">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <ToggleGroup
-                                        type="single"
-                                        variant="outline"
-                                        size="sm"
-                                        value={filter}
-                                        onValueChange={(value) => {
-                                            if (value === '') {
-                                                return;
-                                            }
+                                    {/*
+                                     * Separate pills rather than a joined
+                                     * ToggleGroup: the group's items share
+                                     * their borders, so it can only ever
+                                     * scroll sideways on a narrow screen.
+                                     * These wrap to a second line instead.
+                                     */}
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        {FILTERS.map((entry) => {
+                                            const active =
+                                                filter === entry.value;
 
-                                            clearSelection();
-                                            router.get(
-                                                documentsReview.url(
-                                                    workspaceId,
-                                                    {
-                                                        query: {
-                                                            filter: value,
-                                                        },
-                                                    },
-                                                ),
-                                                {},
-                                                { preserveScroll: true },
+                                            return (
+                                                <button
+                                                    key={entry.value}
+                                                    type="button"
+                                                    aria-pressed={active}
+                                                    disabled={
+                                                        !active &&
+                                                        counts[entry.value] ===
+                                                            0
+                                                    }
+                                                    onClick={() =>
+                                                        showFilter(entry.value)
+                                                    }
+                                                    className={cn(
+                                                        'inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors',
+                                                        'disabled:pointer-events-none disabled:opacity-50',
+                                                        active
+                                                            ? 'border-transparent bg-accent font-medium text-accent-foreground'
+                                                            : 'hover:bg-muted',
+                                                    )}
+                                                >
+                                                    {t(entry.label)}
+                                                    <span
+                                                        className={cn(
+                                                            'text-xs',
+                                                            active
+                                                                ? 'opacity-70'
+                                                                : 'text-muted-foreground',
+                                                        )}
+                                                    >
+                                                        {counts[entry.value]}
+                                                    </span>
+                                                </button>
                                             );
-                                        }}
-                                    >
-                                        {FILTERS.map((entry) => (
-                                            <ToggleGroupItem
-                                                key={entry.value}
-                                                value={entry.value}
-                                                disabled={
-                                                    counts[entry.value] === 0
-                                                }
-                                            >
-                                                {t(entry.label)}
-                                                <span className="ml-1.5 text-xs text-muted-foreground">
-                                                    {counts[entry.value]}
-                                                </span>
-                                            </ToggleGroupItem>
-                                        ))}
-                                    </ToggleGroup>
+                                        })}
+                                    </div>
                                     <SortMenu sorting={sorting} />
                                 </div>
 

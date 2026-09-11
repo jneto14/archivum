@@ -16,6 +16,11 @@ export type ReviewableDocument = {
 
 type Props = {
     document: ReviewableDocument;
+    /**
+     * Whether to name the document above its values. Off when this sits
+     * inside a review row, which already names it two lines up.
+     */
+    withHeading?: boolean;
 };
 
 /**
@@ -31,7 +36,10 @@ type Props = {
  * from what it read itself, so this form cannot write anything the application
  * did not find on the page.
  */
-export function DocumentSuggestionReview({ document }: Props) {
+export function DocumentSuggestionReview({
+    document,
+    withHeading = true,
+}: Props) {
     const t = useTranslation();
     const [accepted, setAccepted] = useState<string[]>(
         document.suggestions.map((suggestion) => suggestion.kind),
@@ -65,20 +73,24 @@ export function DocumentSuggestionReview({ document }: Props) {
 
     return (
         <div className="space-y-3 border-b p-4 last:border-b-0">
-            <div className="flex flex-wrap items-center gap-2">
-                <button
-                    type="button"
-                    className="min-w-0 flex-1 truncate text-left text-sm font-medium hover:underline"
-                    onClick={() => router.visit(documentShow.url(document.id))}
-                >
-                    {document.title}
-                </button>
-                {document.document_type && (
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                        {document.document_type}
-                    </span>
-                )}
-            </div>
+            {withHeading && (
+                <div className="flex flex-wrap items-center gap-2">
+                    <button
+                        type="button"
+                        className="min-w-0 flex-1 truncate text-left text-sm font-medium hover:underline"
+                        onClick={() =>
+                            router.visit(documentShow.url(document.id))
+                        }
+                    >
+                        {document.title}
+                    </button>
+                    {document.document_type && (
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                            {document.document_type}
+                        </span>
+                    )}
+                </div>
+            )}
 
             <div className="grid gap-2 sm:grid-cols-2">
                 {document.suggestions.map((suggestion) => (
