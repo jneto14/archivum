@@ -41,9 +41,10 @@ A multi-file upload is validated as a batch: if the whole set would cross a
 limit, none of it is stored. Filling to the ceiling and failing on the remainder
 would leave the user to work out which files landed.
 
-The storage total is a `SUM(size)` over the workspace's attachments, and it runs
-on the dashboard and the Usage page. It is served from the
-`(document_id, size)` index rather than by reading rows — see
+The storage total is a `SUM(size)` over the workspace's attachments and their
+superseded versions, and it runs on the dashboard and the Usage page. It is one
+round trip — a `UNION ALL` of the two sums, added up in PHP — and each half is
+served from a `(…, size)` covering index rather than by reading rows; see
 [database.md](database.md).
 
 **The trash counts towards bytes and not towards the counts.** A trashed
@@ -55,6 +56,15 @@ the trash is not held: it is gone from every listing and from search, so
 counting it there would contradict what is on screen, and a deleted document
 would go on occupying a slot nobody could see. The Usage page reports what the
 trash accounts for separately, so the space is visible rather than hidden.
+
+**Superseded attachment versions are counted the same way**, for the same
+reason. Replacing a scan keeps the one it replaced (see
+[documents.md](documents.md)), and that file is still on the disk, so its bytes
+are charged. It is not another attachment, though — the archive holds one file
+there however many times it has been re-shot — so it does not count against the
+`attachments` limit, and a workspace at that limit can still replace a scan
+with a better one. Trashing an attachment makes its whole chain recoverable,
+so those bytes are reported as part of what emptying the trash would free.
 
 ## In production
 
