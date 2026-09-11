@@ -204,6 +204,22 @@ class Document extends Model
     }
 
     /**
+     * The attachments under this document with a finding still waiting on
+     * somebody — a reading to answer for, or a duplicate warning.
+     *
+     * A relation of its own rather than a constraint written at the eager
+     * load, so the review page can ask for exactly those rows in one query
+     * instead of pulling every attachment's extracted text to throw most of
+     * it away (ARC-127).
+     *
+     * @return HasMany<DocumentAttachment, $this>
+     */
+    public function attachmentsAwaitingReview(): HasMany
+    {
+        return $this->attachments()->awaitingReview();
+    }
+
+    /**
      * @return HasMany<DocumentCaptureSession, $this>
      */
     public function captureSessions(): HasMany
