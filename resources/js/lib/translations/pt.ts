@@ -175,6 +175,32 @@ export default {
     'documents.review.duplicate_of': ':filename parece “:document”',
     'documents.review.open_original': 'Abrir o original',
     'documents.review.keep_both': 'Manter os dois',
+    'documents.review.filter_all': 'Tudo',
+    'documents.review.filter_suggestions': 'Valores sugeridos',
+    'documents.review.filter_readings': 'Leituras',
+    'documents.review.filter_duplicates': 'Duplicados',
+    'documents.review.summary_suggestions': ':count sugerido(s)',
+    'documents.review.summary_readings': ':count por ler',
+    'documents.review.summary_duplicates': ':count duplicado(s)',
+    'documents.review.select_document': 'Selecionar :title',
+    'documents.review.select_all': 'Selecionar tudo nesta página',
+    'documents.review.selected_count': ':count selecionado(s)',
+    'documents.review.clear_selection': 'Limpar',
+    'documents.review.page_selected':
+        'Estão selecionados os :count desta página.',
+    'documents.review.select_all_matching': 'Selecionar os :count',
+    'documents.review.all_matching_selected':
+        'Estão selecionados os :count documentos que correspondem a este filtro.',
+    'documents.review.select_page_only': 'Selecionar só esta página',
+    'documents.review.bulk_accept_suggestions': 'Aceitar valores sugeridos',
+    'documents.review.bulk_dismiss_readings': 'Retirar leituras da fila',
+    'documents.review.bulk_dismiss_duplicates': 'Manter as duas cópias',
+    'documents.review.confirm_accept_suggestions':
+        'Escrever os valores sugeridos em todos os documentos selecionados? Os valores foram lidos das digitalizações e ninguém os verificou um a um.',
+    'documents.review.confirm_dismiss_readings':
+        'Retirar estas leituras da fila? Não ficam marcadas como lidas por ninguém — o texto fica exatamente como está e nada é apagado.',
+    'documents.review.confirm_dismiss_duplicates':
+        'Limpar os avisos de duplicado em todos os documentos selecionados, mantendo as duas cópias? Não é possível desfazer.',
     'documents.review.open_document': 'Abrir o documento',
     'documents.review.dismiss': 'Dispensar',
     'documents.review.readings_title': 'Digitalizações que foram mal lidas',
