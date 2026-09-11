@@ -17,25 +17,18 @@ use Illuminate\Database\Eloquent\Builder;
  * even a workspace with tens of thousands of attachments is a few hundred
  * kilobytes and a few million XORs.
  *
- * The candidates are deliberately **not** hydrated as models. That used to be
- * harmless because this ran once per upload, against an archive that grew one
- * file at a time. Bulk re-extraction (ARC-122) runs it once per attachment
- * over the whole archive, which makes it quadratic — and measured on 5,000
- * attachments, building 3,654 Eloquent models per call was 194ms of a 210ms
- * extraction, against 9ms for reading the file. The comparison was never the
- * cost; hydrating was. Only the winner becomes a model, at the end.
+ * The candidates are deliberately **not** hydrated as models; only the winner
+ * is, at the end. A bulk re-extraction runs this once per attachment over the
+ * whole archive, so the loop is quadratic and building a model per candidate
+ * dominates everything else the extraction does.
  */
 class FindDuplicateAttachment
 {
     /**
-     * How many fingerprints are fetched per round trip.
-     *
-     * Large on purpose. Every chunk re-runs the whole query, subquery on
-     * `documents` included, so the round trips are what this costs and not the
-     * rows: over 3,667 candidates, chunks of 500 took 103ms and chunks of this
-     * size 20ms, which is as fast as fetching the lot in one go. Still chunked
-     * rather than `get()` so the memory has a ceiling on an archive far larger
-     * than the one this was measured on.
+     * How many fingerprints are fetched per round trip. Large on purpose:
+     * every chunk re-runs the whole query, subquery on `documents` included,
+     * so the round trips cost and not the rows. Still chunked rather than
+     * `get()`, to keep a ceiling on the memory.
      */
     private const CHUNK = 10000;
 

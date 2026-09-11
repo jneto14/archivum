@@ -22,13 +22,11 @@ class StartBulkTextExtraction
     /**
      * How long the sweep's lock is held for.
      *
-     * Deliberately far longer than the export's ten minutes. A sweep is not
-     * one job but a batch of thousands, each of them minutes of OCR, so it
-     * outlives any lock measured in minutes — and a lock that expires under a
-     * running sweep lets a second one start and reset the attachments the
-     * first is part-way through reading. Released by the batch's callback as
-     * soon as the sweep genuinely ends, so the ceiling only matters when a
-     * worker dies mid-sweep and something has to give the lock back.
+     * Far longer than the export's ten minutes, because a sweep is a batch of
+     * thousands rather than one job: a lock that expires under a running sweep
+     * lets a second one start and reset the attachments the first is part-way
+     * through. The batch's callback releases it, so this ceiling only applies
+     * when a worker dies mid-sweep.
      */
     private const LOCK_SECONDS = 86400;
 
@@ -93,11 +91,8 @@ class StartBulkTextExtraction
             // attachment either way, which is where somebody would look.
             ->allowFailures()
             ->name("Re-extract text: {$workspace->name}")
-            // On the batch rather than on each job. `Batch::add()` pushes with
-            // `bulk($jobs, '', $this->options['queue'])` and never reads a
-            // job's own `queue` property, so calling `onQueue()` on the
-            // extractions looked right, passed a test that asserted the
-            // property, and put all five thousand of them on `default`.
+            // On the batch, not on each job: `Batch::add()` pushes with the
+            // batch's queue and never reads a job's own `queue` property.
             ->onQueue((string) config('archivum.ocr.bulk_queue'))
             ->finally(function (Batch $batch) use ($taskId, $lockKey, $lockOwner): void {
                 Cache::restoreLock($lockKey, $lockOwner)->release();

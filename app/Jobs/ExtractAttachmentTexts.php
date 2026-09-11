@@ -21,40 +21,27 @@ use Throwable;
 /**
  * Reads a run of attachments in one go, for a bulk re-extraction.
  *
- * A job per attachment costs a queue round trip each — a reserve, a delete and
- * a batch bookkeeping write — which was a quarter of the time on an archive of
- * text-layer PDFs, where reading the file is tens of milliseconds. A chunk pays
- * that once for twenty-five files.
+ * The work is `ExtractAttachmentText`, called directly rather than
+ * reimplemented; an upload still queues that job on its own with its own task
+ * row. Two things differ because this runs several in sequence:
  *
- * The work itself is `ExtractAttachmentText`, called directly rather than
- * reimplemented: one file's extraction is the same thing whoever asked for it,
- * and an upload still queues that job on its own with its own task row.
+ * A failure is caught here rather than rethrown. `ExtractAttachmentText`
+ * rethrows anything that is not a broken file so the queue can retry it, but
+ * retrying a chunk would re-read every file in it that already succeeded. The
+ * attachment keeps its own failed status, and `--status=failed` picks it up.
  *
- * Two things a chunk has to answer for that a single job did not:
- *
- * **A failure must not take its neighbours with it.** `ExtractAttachmentText`
- * rethrows anything that is not a broken file, so the queue can retry it.
- * Retrying a chunk would re-read the twenty-four that already succeeded, so
- * they are caught here instead and the chunk carries on. Nothing is lost: the
- * attachment already carries its own failed status and error, and
- * `ocr:reextract --status=failed` is how they are picked up again.
- *
- * **A chunk must still fit the timeout.** That is sized for one attachment's
- * worst case — twenty pages at two minutes each — so twenty-five of those
- * would not fit. Rather than raise it, the chunk watches the clock and hands
- * whatever it has not reached back to the batch as a fresh chunk.
+ * The timeout is sized for one attachment, so a chunk of them may not fit. It
+ * watches the clock and hands back whatever it has not reached.
  */
 class ExtractAttachmentTexts implements ShouldQueue
 {
     use Batchable, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * The share of the timeout a chunk will start a new attachment within.
-     *
-     * The margin is what the attachment it starts at the last moment gets to
-     * finish in. Deliberately generous: being killed loses the progress count
-     * for the whole chunk, while stopping early costs one extra queue round
-     * trip.
+     * The share of the timeout within which a chunk will start another
+     * attachment; the margin is what that attachment has to finish in.
+     * Generous, because overrunning loses the whole chunk's progress count
+     * while stopping early costs one queue round trip.
      */
     private const BUDGET = 0.6;
 
