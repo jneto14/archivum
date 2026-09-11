@@ -266,6 +266,19 @@ export default {
     'documents.show.search_locations_placeholder': 'Search locations',
     'documents.show.no_matching_locations': 'No location matches that search.',
     'documents.show.cancel_button': 'Cancel',
+    'documents.show.attachment_actions': 'More actions',
+    'documents.show.attachment_delete_button': 'Delete',
+    'documents.show.replace_button': 'Replace file…',
+    'documents.show.replace_with_phone_button': 'Replace with phone',
+    'documents.show.versions_toggle_one': ':count earlier version',
+    'documents.show.versions_toggle_other': ':count earlier versions',
+    'documents.show.version_replaced_at': 'Replaced :date',
+    'documents.show.version_uploaded_by': 'Uploaded :date by :name',
+    'documents.show.version_uploaded': 'Uploaded :date',
+    'documents.show.version_download': 'Download',
+    'documents.show.version_restore': 'Restore',
+    'documents.show.version_restore_confirm':
+        'Put this file back? The one in its place now is kept in the history, not lost.',
     'documents.show.preview_button': 'Preview',
     'documents.show.reextract_button': 'Read this file again',
     'documents.show.preview_not_supported':
@@ -296,6 +309,8 @@ export default {
     'documents.show.capture_dialog_title': 'Scan with your phone',
     'documents.show.capture_dialog_description':
         "Scan this code with your phone's camera. Photos you take there are added to this document as you go.",
+    'documents.show.capture_dialog_replace_description':
+        "Scan this code with your phone's camera. The next photo you take there replaces “:filename”, and the file it replaces is kept in this attachment's history.",
     'documents.show.capture_qr_alt':
         'QR code linking to the phone capture page',
     'documents.show.capture_photos_count_zero': 'Waiting for the first photo…',
@@ -311,6 +326,9 @@ export default {
     'capture.title': 'Add a photo',
     'capture.description':
         'Photos you take here are added straight to “:document”.',
+    'capture.replace_title': 'Re-shoot a page',
+    'capture.replace_description':
+        'The photo you take here replaces “:filename”. The file it replaces is kept, not lost.',
     'capture.take_scan_button': 'Scan a page',
     'capture.take_photo_button': 'Take a plain photo',
     'capture.sending': 'Sending…',

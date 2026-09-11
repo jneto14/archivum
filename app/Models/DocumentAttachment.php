@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Concerns\LogsWorkspaceActivity;
 use App\Enums\OcrReviewOutcome;
 use App\Enums\OcrStatus;
+use Carbon\CarbonInterface;
 use Database\Factories\DocumentAttachmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Spatie\Activitylog\Support\LogOptions;
@@ -29,6 +31,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string $mime_type
  * @property int $size
  * @property string $checksum
+ * @property Carbon|null $file_uploaded_at
  * @property OcrStatus $ocr_status
  * @property string|null $ocr_text
  * @property int|null $ocr_word_count
@@ -44,7 +47,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon|null $deleted_at
  * @property bool $trashed_with_document
  */
-#[Fillable(['document_id', 'uploaded_by', 'disk', 'path', 'filename', 'mime_type', 'size', 'checksum'])]
+#[Fillable(['document_id', 'uploaded_by', 'disk', 'path', 'filename', 'mime_type', 'size', 'checksum', 'file_uploaded_at'])]
 class DocumentAttachment extends Model
 {
     /** @use HasFactory<DocumentAttachmentFactory> */
@@ -111,6 +114,7 @@ class DocumentAttachment extends Model
             'ocr_review_outcome' => OcrReviewOutcome::class,
             'ocr_extracted_at' => 'datetime',
             'ocr_reviewed_at' => 'datetime',
+            'file_uploaded_at' => 'datetime',
             'text_simhash' => 'integer',
             'trashed_with_document' => 'boolean',
         ];
@@ -169,6 +173,37 @@ class DocumentAttachment extends Model
     public function uploader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uploaded_by');
+    }
+
+    /**
+     * The files this attachment used to hold, newest replacement first.
+     *
+     * Only the superseded ones: the file that is current lives on this row.
+     * Ordered on the relation rather than at each call site, because "the
+     * version history" is always the same list in the same order — the page
+     * that shows it, the restore that walks it and the purge that unlinks its
+     * files would otherwise each have to remember.
+     *
+     * @return HasMany<DocumentAttachmentVersion, $this>
+     */
+    public function versions(): HasMany
+    {
+        return $this->hasMany(DocumentAttachmentVersion::class)->latest('superseded_at');
+    }
+
+    /**
+     * When the file this attachment is holding right now was uploaded.
+     *
+     * `created_at` answers a different question — when the attachment was
+     * created — and the two only agree until something replaces the original
+     * file. The fallback covers rows written before versions existed and by
+     * factories that have no reason to know about the column.
+     *
+     * @return CarbonInterface|null The current file's upload time, or null on an unsaved model.
+     */
+    public function fileUploadedAt(): ?CarbonInterface
+    {
+        return $this->file_uploaded_at ?? $this->created_at;
     }
 
     /**
@@ -270,6 +305,49 @@ class DocumentAttachment extends Model
     public function scopeFlaggedAsDuplicate(Builder $query): void
     {
         $query->whereNotNull('duplicate_of_attachment_id');
+    }
+
+    /**
+     * Take up a different file, moving the one held now into the version
+     * history.
+     *
+     * Both halves of a replacement in one place, because they are one change
+     * and a row that did either on its own would be wrong: archiving without
+     * adopting leaves an attachment pointing at a file it no longer claims,
+     * and adopting without archiving is the lost original this whole feature
+     * exists to prevent (ARC-124).
+     *
+     * The reading is deliberately not touched here. Whether the new file is
+     * read again, and what happens to the document's mirrored text in the
+     * meantime, is the caller's to decide — the model cannot see the document's
+     * other attachments.
+     *
+     * @param array{disk: string, path: string, filename: string, mime_type: string, size: int, checksum: string} $file The file to take up.
+     * @param string $uploadedBy Id of the user who provided it.
+     * @param CarbonInterface|null $uploadedAt When it was provided; now, for a fresh upload.
+     *
+     * @return DocumentAttachmentVersion The row recording the file that was just superseded.
+     */
+    public function replaceFileWith(array $file, string $uploadedBy, ?CarbonInterface $uploadedAt = null): DocumentAttachmentVersion
+    {
+        $superseded = $this->versions()->create([
+            'uploaded_by' => $this->uploaded_by,
+            'disk' => $this->disk,
+            'path' => $this->path,
+            'filename' => $this->filename,
+            'mime_type' => $this->mime_type,
+            'size' => $this->size,
+            'checksum' => $this->checksum,
+            'uploaded_at' => $this->fileUploadedAt() ?? now(),
+            'superseded_at' => now(),
+        ]);
+
+        $this->forceFill($file + [
+            'uploaded_by' => $uploadedBy,
+            'file_uploaded_at' => $uploadedAt ?? now(),
+        ])->save();
+
+        return $superseded;
     }
 
     /**

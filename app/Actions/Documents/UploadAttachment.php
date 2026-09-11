@@ -5,12 +5,8 @@ declare(strict_types=1);
 namespace App\Actions\Documents;
 
 use App\Actions\Workspace\CalculateWorkspaceUsage;
-use App\Enums\TaskStatus;
-use App\Enums\TaskType;
-use App\Jobs\ExtractAttachmentText;
 use App\Models\Document;
 use App\Models\DocumentAttachment;
-use App\Models\Task;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Http\UploadedFile;
@@ -18,7 +14,10 @@ use Illuminate\Validation\ValidationException;
 
 class UploadAttachment
 {
-    public function __construct(private readonly CalculateWorkspaceUsage $calculateUsage) {}
+    public function __construct(
+        private readonly CalculateWorkspaceUsage $calculateUsage,
+        private readonly QueueAttachmentTextExtraction $queueExtraction,
+    ) {}
 
     /**
      * Store an uploaded file and attach it to a Document.
@@ -134,40 +133,12 @@ class UploadAttachment
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
             'checksum' => hash_file('sha256', $file->getRealPath()),
+            'file_uploaded_at' => now(),
         ]);
 
         $this->calculateUsage->forget($workspace);
 
-        // Queued rather than inline: OCR on a multi-page scan takes seconds per
-        // page, and the upload response must not wait for it. With extraction
-        // switched off the attachment is settled straight away as unavailable,
-        // so the document page says so instead of showing a "pending" that will
-        // never resolve — and no task is created for work that will not happen.
-        if (!config('archivum.ocr.enabled')) {
-            $attachment->markOcrUnavailable();
-
-            return $attachment;
-        }
-
-        // No lock, unlike exports and bulk moves: extraction is scoped to one
-        // file and several may run at once. See `TaskType::lockKey()`.
-        //
-        // The filename lives in the payload rather than only in the result,
-        // because `Task::markFailed()` replaces the result wholesale — and a
-        // failed row that cannot say which file it was is not worth showing.
-        $task = Task::query()->create([
-            'workspace_id' => $workspace->id,
-            'user_id' => $uploader->id,
-            'type' => TaskType::AttachmentTextExtraction,
-            'status' => TaskStatus::Queued,
-            'payload' => [
-                'attachment_id' => $attachment->id,
-                'document_id' => $document->id,
-                'filename' => $attachment->filename,
-            ],
-        ]);
-
-        ExtractAttachmentText::dispatch($attachment, $task);
+        $this->queueExtraction->handle($attachment, $uploader);
 
         return $attachment;
     }

@@ -98,6 +98,34 @@ rest would leave the user to work out which ones landed.
 Deleting an attachment removes its extracted text from the document's searchable
 mirror, so a removed scan stops being findable by its contents.
 
+### Replacing a scan
+
+An attachment is a chain of files, not a file. Replacing one — a page
+photographed in poor light and re-shot properly, a document signed or amended
+since, a phone capture later done on a flatbed — keeps the file it replaces
+instead of throwing it away. The document page shows the current one; the
+earlier ones sit behind it, each naming who uploaded it, when, and when it
+stopped being current. Any of them can be downloaded, and any of them can be
+made current again, which pushes whatever it displaces into the history in
+turn. So the history is not a stack of numbered revisions: it is the set of
+files the attachment is *not* holding right now.
+
+Replacing is open to anyone who may edit the attachment, unlike deleting it,
+which is for the uploader and admins. Deleting loses the file; this is the
+operation that exists so nothing is lost, and it is undone by restoring the
+version it just created.
+
+A new file is read like any other arrival, and the document's searchable mirror
+is rebuilt straight away rather than when that reading finishes — otherwise the
+archive would stay findable by a scan nobody can open any more, and on an
+installation with extraction switched off it would stay that way for good. The
+superseded file keeps no text of its own for the same reason.
+
+Deleting the attachment takes the whole chain with it, to the trash and back
+again; destroying it for good unlinks every file in it. Versions count against
+the workspace's storage limit and not against its attachment count — see
+[storage.md](storage.md).
+
 ### Scanning a page
 
 Two ways in, and which one the **Scan** button offers depends on whether the
@@ -124,6 +152,15 @@ Both paths end in the same review step, which detects the page's corners, lets
 them be dragged, and straightens whatever quad is left behind. What it refuses
 is as load-bearing as what it accepts — see `isImplausibleDocument` and
 [.ai/rules/lib.md](../.ai/rules/lib.md).
+
+A pairing session can also be aimed at one attachment, which is how a badly lit
+page gets re-shot from the phone that took it. The target lives on the session
+rather than on the upload, because the phone holds a signed link and nothing
+else — the desktop is the side that knows which row was pressed. Such a session
+takes one photo and ends: there is one file to replace, and the second photo
+would have nothing left to act on. If the attachment is trashed while the code
+is still on screen, the session quietly goes back to adding pages rather than
+failing on a row it can no longer see.
 
 ## Location
 

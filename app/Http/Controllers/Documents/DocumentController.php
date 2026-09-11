@@ -126,6 +126,7 @@ class DocumentController extends Controller
             'currentLocation.node.level.scheme',
             'attachments.uploader',
             'attachments.duplicateOf.document',
+            'attachments.versions.uploader',
             'locations.node',
             'creator',
             'activeCaptureSession',
@@ -161,6 +162,12 @@ class DocumentController extends Controller
             'active_capture_session' => $document->activeCaptureSession ? [
                 'id' => $document->activeCaptureSession->id,
                 'photos_count' => $document->activeCaptureSession->photos_count,
+                // Which attachment, if any, this session was opened to
+                // re-shoot. The dialog compares it against the row the user
+                // pressed: a session aimed somewhere else has to be replaced,
+                // not reused, or the QR code on screen sends the photo to the
+                // wrong file (ARC-124).
+                'replaces_attachment_id' => $document->activeCaptureSession->replaces_attachment_id,
                 'expires_at' => $document->activeCaptureSession->expires_at->toIso8601String(),
             ] : null,
         ]);

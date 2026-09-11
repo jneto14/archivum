@@ -271,6 +271,19 @@ export default {
     'documents.show.no_matching_locations':
         'Nenhuma localização corresponde a essa procura.',
     'documents.show.cancel_button': 'Cancelar',
+    'documents.show.attachment_actions': 'Mais ações',
+    'documents.show.attachment_delete_button': 'Apagar',
+    'documents.show.replace_button': 'Substituir ficheiro…',
+    'documents.show.replace_with_phone_button': 'Substituir com o telemóvel',
+    'documents.show.versions_toggle_one': ':count versão anterior',
+    'documents.show.versions_toggle_other': ':count versões anteriores',
+    'documents.show.version_replaced_at': 'Substituído a :date',
+    'documents.show.version_uploaded_by': 'Carregado a :date por :name',
+    'documents.show.version_uploaded': 'Carregado a :date',
+    'documents.show.version_download': 'Transferir',
+    'documents.show.version_restore': 'Repor',
+    'documents.show.version_restore_confirm':
+        'Repor este ficheiro? O que está no lugar dele fica no histórico, não se perde.',
     'documents.show.preview_button': 'Pré-visualizar',
     'documents.show.reextract_button': 'Ler o ficheiro outra vez',
     'documents.show.preview_not_supported':
@@ -301,6 +314,8 @@ export default {
     'documents.show.capture_dialog_title': 'Digitalizar com o telemóvel',
     'documents.show.capture_dialog_description':
         'Digitaliza este código com a câmara do telemóvel. As fotos tiradas lá são adicionadas a este documento à medida que chegam.',
+    'documents.show.capture_dialog_replace_description':
+        'Digitaliza este código com a câmara do telemóvel. A próxima foto tirada lá substitui “:filename”, e o ficheiro substituído fica no histórico deste anexo.',
     'documents.show.capture_qr_alt':
         'Código QR que liga à página de digitalização no telemóvel',
     'documents.show.capture_photos_count_zero': 'A aguardar a primeira foto…',
@@ -317,6 +332,9 @@ export default {
     'capture.title': 'Adicionar uma foto',
     'capture.description':
         'As fotos tiradas aqui são adicionadas diretamente a “:document”.',
+    'capture.replace_title': 'Voltar a fotografar uma página',
+    'capture.replace_description':
+        'A foto tirada aqui substitui “:filename”. O ficheiro substituído fica guardado, não se perde.',
     'capture.take_scan_button': 'Digitalizar página',
     'capture.take_photo_button': 'Tirar foto simples',
     'capture.sending': 'A enviar…',

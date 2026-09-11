@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Documents;
 use App\Actions\Documents\CreateCaptureSession;
 use App\Http\Controllers\Controller;
 use App\Models\Document;
+use App\Models\DocumentAttachment;
 use App\Models\DocumentCaptureSession;
 use App\Support\SignedLink;
 use Endroid\QrCode\Builder\Builder;
@@ -15,6 +16,8 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class CaptureSessionController extends Controller
 {
@@ -27,19 +30,40 @@ class CaptureSessionController extends Controller
      * cancelled silently — there is nothing for the previous dialog instance
      * to be told, since starting a new one always means its QR code is gone.
      *
+     * An optional `attachment` aims the session at one file: the phone
+     * re-shoots that page and the photo replaces it, rather than arriving as
+     * another attachment (ARC-124). It is validated as belonging to this
+     * document, because a session is addressed by document and an id from
+     * somewhere else would point the phone at a file this page never showed.
+     *
      * @param Document $document The document photos will be attached to.
-     * @param Request $request The incoming request, used to resolve the acting user.
+     * @param Request $request The incoming request, used to resolve the acting user and the optional attachment to re-shoot.
      * @param CreateCaptureSession $action Cancels any session already open for $document and creates a fresh one.
      *
      * @return RedirectResponse Redirect back to the previous page.
      *
      * @throws AuthorizationException If the current user cannot create a capture session for $document.
+     * @throws ValidationException If `attachment` is given but is not one of $document's.
      */
     public function store(Document $document, Request $request, CreateCaptureSession $action): RedirectResponse
     {
         $this->authorize('create', [DocumentCaptureSession::class, $document]);
 
-        $action->handle($document, $request->user());
+        $validated = $request->validate([
+            'attachment' => [
+                'nullable',
+                'uuid',
+                Rule::exists('document_attachments', 'id')
+                    ->where('document_id', $document->id)
+                    ->whereNull('deleted_at'),
+            ],
+        ]);
+
+        $replaces = isset($validated['attachment'])
+            ? DocumentAttachment::query()->where('id', $validated['attachment'])->firstOrFail()
+            : null;
+
+        $action->handle($document, $request->user(), $replaces);
 
         return back();
     }

@@ -35,11 +35,19 @@ const CAMERA_REASONS: Record<
 type ActiveCaptureSession = {
     id: string;
     photos_count: number;
+    /** The attachment this session re-shoots, or null if photos become new attachments. */
+    replaces_attachment_id: string | null;
 } | null;
 
 type Props = {
     documentId: string;
     activeSession: ActiveCaptureSession;
+    /**
+     * The attachment the phone is being asked to re-shoot, when the dialog was
+     * opened from one. The session is started here, so the target arrives as a
+     * prop rather than being posted by the page (ARC-124).
+     */
+    replacesAttachment?: { id: string; filename: string } | null;
     /** Why the scan button sent the user here instead of opening a viewfinder. */
     cameraAccess: CameraAccess;
     open: boolean;
@@ -55,6 +63,7 @@ type Props = {
 export function DocumentCaptureDialog({
     documentId,
     activeSession,
+    replacesAttachment = null,
     cameraAccess,
     open,
     onOpenChange,
@@ -64,6 +73,14 @@ export function DocumentCaptureDialog({
     // Guards the create request against firing twice: once for the effect
     // below, and again if `open` toggles before the first request lands.
     const startingSessionRef = useRef(false);
+
+    const targetId = replacesAttachment?.id ?? null;
+    // A session already running for this document is only reusable if it is
+    // pointed at the same thing. One opened to add pages, reused for a
+    // replacement, would send the photo somewhere the user never asked for.
+    const sessionIsOnTarget =
+        activeSession !== null &&
+        activeSession.replaces_attachment_id === targetId;
 
     // A convenience refresh, not a live feed — worth far fewer requests.
     const { start, stop } = usePoll(
@@ -82,10 +99,12 @@ export function DocumentCaptureDialog({
         return stop;
     }, [open, start, stop]);
 
-    // Opening with no session running starts one, including after an earlier
-    // session ended — that's how a new QR code is issued.
+    // Opening with no usable session starts one, including after an earlier
+    // session ended — that's how a new QR code is issued. `CreateCaptureSession`
+    // cancels whatever was open, so a session aimed elsewhere is superseded
+    // rather than left running beside this one.
     useEffect(() => {
-        if (!open || activeSession !== null || startingSessionRef.current) {
+        if (!open || sessionIsOnTarget || startingSessionRef.current) {
             return;
         }
 
@@ -93,7 +112,7 @@ export function DocumentCaptureDialog({
 
         router.post(
             createCaptureSession.url(documentId),
-            {},
+            targetId === null ? {} : { attachment: targetId },
             {
                 preserveScroll: true,
                 preserveState: true,
@@ -102,7 +121,7 @@ export function DocumentCaptureDialog({
                 },
             },
         );
-    }, [open, activeSession, documentId]);
+    }, [open, sessionIsOnTarget, documentId, targetId]);
 
     const endSession = () => {
         // Closed before the request goes out: closing afterwards leaves a
@@ -138,7 +157,12 @@ export function DocumentCaptureDialog({
                     {t('documents.show.capture_dialog_title')}
                 </DialogTitle>
                 <DialogDescription>
-                    {t('documents.show.capture_dialog_description')}
+                    {replacesAttachment
+                        ? t(
+                              'documents.show.capture_dialog_replace_description',
+                              { filename: replacesAttachment.filename },
+                          )
+                        : t('documents.show.capture_dialog_description')}
                 </DialogDescription>
 
                 {/* Landing here on a device that looks like it has a camera is
@@ -151,7 +175,7 @@ export function DocumentCaptureDialog({
                     </p>
                 )}
 
-                {activeSession ? (
+                {activeSession && sessionIsOnTarget ? (
                     <div className="flex flex-col items-center gap-3 py-2">
                         <img
                             src={captureSessionQrCode.url([

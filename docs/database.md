@@ -127,7 +127,9 @@ table and cannot traverse a relation. See [search.md](search.md).
 ### `document_attachments`
 
 Carries `disk`, `path`, `filename`, `mime_type`, `size`, `checksum`, plus the
-OCR status, text, error and extraction timestamp.
+OCR status, text, error and extraction timestamp. `file_uploaded_at` says when
+the file sitting there now arrived, which stops being `created_at` the first
+time something replaces it.
 
 The index on this table is `(document_id, size)`, not `document_id` alone. The
 workspace storage total sums `size` over a workspace's attachments on the
@@ -138,6 +140,22 @@ attachments 71.5ms against 7.7ms. `document_id` is the leftmost column, so the
 foreign key stays satisfied and the single-column index is redundant.
 
 `WorkspaceUsageTest` asserts through `EXPLAIN` that the sum stays index-only.
+
+### `document_attachment_versions`
+
+The files an attachment used to hold. The current one stays on
+`document_attachments`, which is what leaves every existing query about an
+attachment's file reading one row. A version carries the same file columns and
+nothing derived from text: no `ocr_text`, so a superseded scan stops being
+searchable, and no `text_simhash`, so a replacement does not report itself a
+duplicate of the page it replaced. `uploaded_at` and `superseded_at` bracket
+the stretch during which it was the current file — `created_at` is the end of
+that stretch, not the start.
+
+Its index is `(document_attachment_id, size)`, mirroring the attachments table
+and for the same reason: the workspace storage total sums both. Reading one
+attachment's chain uses the same index on its leftmost column and orders the
+handful of rows it finds in memory, so the table needs no second index.
 
 ## Migrations in production
 

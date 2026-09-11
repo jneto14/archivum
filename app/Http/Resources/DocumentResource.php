@@ -79,6 +79,26 @@ class DocumentResource extends JsonResource
                     'document_title' => $attachment->duplicateOf->document?->title,
                     'filename' => $attachment->duplicateOf->filename,
                 ] : null,
+                // When the file sitting here now arrived, which stops being
+                // `created_at` the first time something replaces it.
+                'file_uploaded_at' => $attachment->fileUploadedAt()?->toIso8601String(),
+                // The files this one used to be, newest replacement first.
+                // Shipped with the page rather than fetched when the history is
+                // opened: it is a handful of rows on an attachment that has any
+                // at all, and none on the ones that do not.
+                'versions' => $attachment->relationLoaded('versions')
+                    ? $attachment->versions->map(fn ($version) => [
+                        'id' => $version->id,
+                        'filename' => $version->filename,
+                        'size' => $version->size,
+                        'uploaded_at' => $version->uploaded_at->toIso8601String(),
+                        'superseded_at' => $version->superseded_at->toIso8601String(),
+                        'uploader' => $version->relationLoaded('uploader') && $version->uploader !== null ? [
+                            'id' => $version->uploader->id,
+                            'name' => $version->uploader->name,
+                        ] : null,
+                    ])->values()->all()
+                    : [],
             ])->values()->all()),
             'location_history' => $this->whenLoaded('locations', fn () => $this->locations->map(fn ($location) => [
                 'id' => $location->id,

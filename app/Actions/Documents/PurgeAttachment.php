@@ -6,14 +6,17 @@ namespace App\Actions\Documents;
 
 use App\Actions\Workspace\CalculateWorkspaceUsage;
 use App\Models\DocumentAttachment;
-use Illuminate\Support\Facades\Storage;
 
 class PurgeAttachment
 {
-    public function __construct(private readonly CalculateWorkspaceUsage $calculateUsage) {}
+    public function __construct(
+        private readonly CalculateWorkspaceUsage $calculateUsage,
+        private readonly UnlinkAttachmentFiles $unlinkFiles,
+    ) {}
 
     /**
-     * Destroy an attachment for good, unlinking its stored file.
+     * Destroy an attachment for good, unlinking every file in its chain —
+     * the one it holds and every version it superseded.
      *
      * @param DocumentAttachment $attachment The trashed attachment to destroy permanently.
      *
@@ -23,7 +26,7 @@ class PurgeAttachment
     {
         $document = $attachment->document()->withTrashed()->first();
 
-        Storage::disk($attachment->disk)->delete($attachment->path);
+        $this->unlinkFiles->handle($attachment);
 
         $attachment->forceDelete();
 
