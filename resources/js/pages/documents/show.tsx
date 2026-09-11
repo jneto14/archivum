@@ -1,14 +1,13 @@
 import { Head, router, setLayoutProps, usePage } from '@inertiajs/react';
-import {
-    DownloadIcon,
-    EyeIcon,
-    RefreshCwIcon,
-    Trash2Icon,
-    XIcon,
-} from 'lucide-react';
+import { XIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import AttachmentController from '@/actions/App/Http/Controllers/Documents/AttachmentController';
+import { AttachmentRow } from '@/components/attachment-row';
+import type {
+    Attachment,
+    AttachmentVersion,
+} from '@/components/attachment-row';
 import { DocumentCameraDialog } from '@/components/document-camera-dialog';
 import { DocumentCaptureDialog } from '@/components/document-capture-dialog';
 import { DocumentPreviewDialog } from '@/components/document-preview-dialog';
@@ -32,12 +31,13 @@ import { useCameraAccess } from '@/hooks/use-camera-access';
 import { useDateFormatter } from '@/hooks/use-date-formatter';
 import { useTranslation } from '@/hooks/use-translation';
 import { formatBytes, randomId } from '@/lib/utils';
+import { restore as versionRestore } from '@/routes/attachment-versions';
 import {
     destroy as attachmentDestroy,
-    show as attachmentShow,
     store as attachmentStore,
 } from '@/routes/attachments';
 import { store as attachmentReextract } from '@/routes/attachments/extraction';
+import { replace as attachmentReplace } from '@/routes/attachments/file';
 import {
     edit as documentEdit,
     index as documentsIndex,
@@ -66,51 +66,6 @@ type Location = {
     capacity: number | null;
 };
 
-type OcrStatus =
-    | 'pending'
-    | 'processing'
-    | 'completed'
-    | 'poorly_read'
-    | 'skipped'
-    | 'unavailable'
-    | 'failed';
-
-type AttachmentRow = {
-    id: string;
-    filename: string;
-    mime_type: string;
-    /** Appended by the model — see DocumentAttachment::INLINE_SAFE_TYPES. */
-    is_previewable: boolean;
-    size: number;
-    ocr_status: OcrStatus;
-    created_at: string;
-    uploader: { id: string; name: string } | null;
-    /** An earlier attachment with near-identical text, until somebody dismisses the warning. */
-    duplicate_of: {
-        document_id: string;
-        document_title: string | null;
-        filename: string;
-    } | null;
-};
-
-/**
- * Translation key for an attachment's text-extraction state, or null when
- * there is nothing worth saying.
- *
- * `completed` is deliberately silent: it is the ordinary outcome, and
- * labelling every readable file would bury the two states a user can act on —
- * a failure worth retrying, and an installation missing the OCR binaries.
- */
-const ocrStatusKeys = {
-    pending: 'documents.show.ocr_pending',
-    processing: 'documents.show.ocr_processing',
-    skipped: 'documents.show.ocr_skipped',
-    unavailable: 'documents.show.ocr_unavailable',
-    failed: 'documents.show.ocr_failed',
-    poorly_read: 'documents.show.ocr_poorly_read',
-    completed: null,
-} as const;
-
 type Props = {
     document: {
         id: string;
@@ -121,7 +76,7 @@ type Props = {
         tags: { id: string; name: string }[] | null;
         current_location: string | null;
         creator: { id: string; name: string } | null;
-        attachments: AttachmentRow[] | null;
+        attachments: Attachment[] | null;
         location_history:
             { id: string; path: string | null; created_at: string }[] | null;
     };
@@ -182,7 +137,12 @@ export default function DocumentShow({
         undefined,
     );
     const [previewAttachment, setPreviewAttachment] =
-        useState<AttachmentRow | null>(null);
+        useState<Attachment | null>(null);
+    // Set when the phone pairing dialog was opened to re-shoot one page rather
+    // than to add new ones. Cleared when the dialog closes, so the next press
+    // of the card's own scan button starts an ordinary session.
+    const [replacingAttachment, setReplacingAttachment] =
+        useState<Attachment | null>(null);
 
     setLayoutProps({
         breadcrumbs: [
@@ -243,6 +203,46 @@ export default function DocumentShow({
                             ),
                     ),
             },
+        );
+    };
+
+    const replaceAttachment = (attachment: Attachment, file: File) => {
+        router.post(
+            attachmentReplace.url(attachment.id),
+            { file },
+            {
+                forceFormData: true,
+                preserveScroll: true,
+                onError: (errors) =>
+                    setUploadError(
+                        errors.file ??
+                            Object.values(errors).find(
+                                (message) => message !== undefined,
+                            ),
+                    ),
+            },
+        );
+    };
+
+    /**
+     * Open the pairing dialog aimed at one attachment. The dialog starts the
+     * session, so the target is held here and handed to it rather than posted
+     * from this side.
+     */
+    const replaceWithPhone = (attachment: Attachment) => {
+        setReplacingAttachment(attachment);
+        setCaptureOpen(true);
+    };
+
+    const restoreVersion = (version: AttachmentVersion) => {
+        if (!window.confirm(t('documents.show.version_restore_confirm'))) {
+            return;
+        }
+
+        router.post(
+            versionRestore.url(version.id),
+            {},
+            { preserveScroll: true },
         );
     };
 
@@ -519,179 +519,50 @@ export default function DocumentShow({
                                     </p>
                                 )}
                                 {(document.attachments ?? []).map(
-                                    (attachment) => {
-                                        const ocrKey =
-                                            ocrStatusKeys[
-                                                attachment.ocr_status
-                                            ];
-                                        const duplicate =
-                                            attachment.duplicate_of;
-
-                                        return (
-                                            <div
-                                                key={attachment.id}
-                                                className="space-y-2 rounded-md border p-2"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="min-w-0 flex-1">
-                                                        <div className="truncate text-sm font-medium">
-                                                            {
-                                                                attachment.filename
-                                                            }
-                                                        </div>
-                                                        <div className="text-xs text-muted-foreground">
-                                                            {formatBytes(
-                                                                attachment.size,
-                                                            )}
-                                                            {ocrKey && (
-                                                                <>
-                                                                    {' · '}
-                                                                    <span
-                                                                        className={
-                                                                            attachment.ocr_status ===
-                                                                            'failed'
-                                                                                ? 'text-destructive'
-                                                                                : undefined
-                                                                        }
-                                                                    >
-                                                                        {t(
-                                                                            ocrKey,
-                                                                        )}
-                                                                    </span>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    {(attachment.mime_type ===
-                                                        'application/pdf' ||
-                                                        attachment.mime_type.startsWith(
-                                                            'image/',
-                                                        )) && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            title={t(
-                                                                'documents.show.preview_button',
-                                                            )}
-                                                            onClick={() =>
-                                                                setPreviewAttachment(
-                                                                    attachment,
-                                                                )
-                                                            }
-                                                        >
-                                                            <EyeIcon />
-                                                        </Button>
-                                                    )}
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        asChild
-                                                    >
-                                                        <a
-                                                            href={attachmentShow.url(
-                                                                attachment.id,
-                                                            )}
-                                                        >
-                                                            <DownloadIcon />
-                                                        </a>
-                                                    </Button>
-                                                    {attachment.ocr_status !==
-                                                        'unavailable' && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            title={t(
-                                                                'documents.show.reextract_button',
-                                                            )}
-                                                            disabled={
-                                                                attachment.ocr_status ===
-                                                                    'pending' ||
-                                                                attachment.ocr_status ===
-                                                                    'processing'
-                                                            }
-                                                            onClick={() =>
-                                                                router.post(
-                                                                    attachmentReextract.url(
-                                                                        attachment.id,
-                                                                    ),
-                                                                    {},
-                                                                    {
-                                                                        preserveScroll: true,
-                                                                    },
-                                                                )
-                                                            }
-                                                        >
-                                                            <RefreshCwIcon />
-                                                        </Button>
-                                                    )}
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            router.delete(
-                                                                attachmentDestroy.url(
-                                                                    attachment.id,
-                                                                ),
-                                                                {
-                                                                    preserveScroll: true,
-                                                                },
-                                                            )
-                                                        }
-                                                    >
-                                                        <Trash2Icon />
-                                                    </Button>
-                                                </div>
-                                                {duplicate && (
-                                                    <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted p-2">
-                                                        <p className="min-w-0 flex-1 text-xs text-muted-foreground">
-                                                            {t(
-                                                                'documents.show.duplicate_warning',
-                                                            )}{' '}
-                                                            <span className="font-medium text-foreground">
-                                                                {duplicate.document_title ??
-                                                                    duplicate.filename}
-                                                            </span>
-                                                        </p>
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="shrink-0"
-                                                            onClick={() =>
-                                                                router.visit(
-                                                                    documentShow.url(
-                                                                        duplicate.document_id,
-                                                                    ),
-                                                                )
-                                                            }
-                                                        >
-                                                            {t(
-                                                                'documents.show.duplicate_open',
-                                                            )}
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="shrink-0"
-                                                            onClick={() =>
-                                                                router.delete(
-                                                                    AttachmentController.dismissDuplicate.url(
-                                                                        attachment.id,
-                                                                    ),
-                                                                    {
-                                                                        preserveScroll: true,
-                                                                    },
-                                                                )
-                                                            }
-                                                        >
-                                                            {t(
-                                                                'documents.show.duplicate_dismiss',
-                                                            )}
-                                                        </Button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    },
+                                    (attachment) => (
+                                        <AttachmentRow
+                                            key={attachment.id}
+                                            attachment={attachment}
+                                            onPreview={setPreviewAttachment}
+                                            onReplace={replaceAttachment}
+                                            onReplaceWithPhone={
+                                                replaceWithPhone
+                                            }
+                                            onReextract={(target) =>
+                                                router.post(
+                                                    attachmentReextract.url(
+                                                        target.id,
+                                                    ),
+                                                    {},
+                                                    { preserveScroll: true },
+                                                )
+                                            }
+                                            onDelete={(target) =>
+                                                router.delete(
+                                                    attachmentDestroy.url(
+                                                        target.id,
+                                                    ),
+                                                    { preserveScroll: true },
+                                                )
+                                            }
+                                            onRestoreVersion={restoreVersion}
+                                            onDismissDuplicate={(target) =>
+                                                router.delete(
+                                                    AttachmentController.dismissDuplicate.url(
+                                                        target.id,
+                                                    ),
+                                                    { preserveScroll: true },
+                                                )
+                                            }
+                                            onOpenDuplicate={(documentId) =>
+                                                router.visit(
+                                                    documentShow.url(
+                                                        documentId,
+                                                    ),
+                                                )
+                                            }
+                                        />
+                                    ),
                                 )}
                             </CardContent>
                         </Card>
@@ -870,9 +741,19 @@ export default function DocumentShow({
             <DocumentCaptureDialog
                 documentId={document.id}
                 activeSession={activeCaptureSession}
+                replacesAttachment={replacingAttachment}
                 cameraAccess={cameraAccess}
                 open={captureOpen}
-                onOpenChange={setCaptureOpen}
+                onOpenChange={(open) => {
+                    setCaptureOpen(open);
+
+                    // Cleared on close, so the card's own scan button opens an
+                    // ordinary session next time rather than inheriting the
+                    // row somebody pressed before.
+                    if (!open) {
+                        setReplacingAttachment(null);
+                    }
+                }}
             />
 
             {/* A scan taken here lands in the same queue a chosen file does, so

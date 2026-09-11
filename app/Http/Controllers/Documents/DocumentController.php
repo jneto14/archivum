@@ -126,6 +126,7 @@ class DocumentController extends Controller
             'currentLocation.node.level.scheme',
             'attachments.uploader',
             'attachments.duplicateOf.document',
+            'attachments.versions.uploader',
             'locations.node',
             'creator',
             'activeCaptureSession',

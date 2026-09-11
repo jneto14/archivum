@@ -271,6 +271,19 @@ export default {
     'documents.show.no_matching_locations':
         'Nenhuma localização corresponde a essa procura.',
     'documents.show.cancel_button': 'Cancelar',
+    'documents.show.attachment_actions': 'Mais ações',
+    'documents.show.attachment_delete_button': 'Apagar',
+    'documents.show.replace_button': 'Substituir ficheiro…',
+    'documents.show.replace_with_phone_button': 'Substituir com o telemóvel',
+    'documents.show.versions_toggle_one': ':count versão anterior',
+    'documents.show.versions_toggle_other': ':count versões anteriores',
+    'documents.show.version_replaced_at': 'Substituído a :date',
+    'documents.show.version_uploaded_by': 'Carregado a :date por :name',
+    'documents.show.version_uploaded': 'Carregado a :date',
+    'documents.show.version_download': 'Transferir',
+    'documents.show.version_restore': 'Repor',
+    'documents.show.version_restore_confirm':
+        'Repor este ficheiro? O que está no lugar dele fica no histórico, não se perde.',
     'documents.show.preview_button': 'Pré-visualizar',
     'documents.show.reextract_button': 'Ler o ficheiro outra vez',
     'documents.show.preview_not_supported':

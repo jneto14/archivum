@@ -380,4 +380,23 @@ class AttachmentVersionTest extends TestCase
 
         $this->assertSame('better.pdf', $attachment->fresh()->filename);
     }
+
+    public function test_the_document_page_ships_the_version_history()
+    {
+        [, $member, $document, $attachment] = $this->archive();
+
+        $this->actingAs($member)->post(route('attachments.file.replace', $attachment), [
+            'file' => UploadedFile::fake()->create('better.pdf', 20, 'application/pdf'),
+        ]);
+
+        $this->actingAs($member)
+            ->get(route('documents.show', $document))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('document.attachments.0.filename', 'better.pdf')
+                ->has('document.attachments.0.versions', 1)
+                ->where('document.attachments.0.versions.0.filename', 'first.pdf')
+                ->where('document.attachments.0.versions.0.uploader.name', $member->name)
+                ->etc());
+    }
 }
