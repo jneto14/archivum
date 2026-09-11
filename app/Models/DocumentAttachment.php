@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Concerns\LogsWorkspaceActivity;
+use App\Enums\OcrReviewOutcome;
 use App\Enums\OcrStatus;
 use Database\Factories\DocumentAttachmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -32,6 +34,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property int|null $ocr_word_count
  * @property int|null $ocr_confident_word_count
  * @property Carbon|null $ocr_reviewed_at
+ * @property OcrReviewOutcome|null $ocr_review_outcome
  * @property string|null $ocr_error
  * @property Carbon|null $ocr_extracted_at
  * @property int|null $text_simhash
@@ -105,6 +108,7 @@ class DocumentAttachment extends Model
     {
         return [
             'ocr_status' => OcrStatus::class,
+            'ocr_review_outcome' => OcrReviewOutcome::class,
             'ocr_extracted_at' => 'datetime',
             'ocr_reviewed_at' => 'datetime',
             'text_simhash' => 'integer',
@@ -176,6 +180,96 @@ class DocumentAttachment extends Model
     public function duplicateOf(): BelongsTo
     {
         return $this->belongsTo(self::class, 'duplicate_of_attachment_id');
+    }
+
+    /**
+     * Readings that went badly and nobody has answered for yet.
+     *
+     * Two things qualify, and only two. The engine refused the page outright,
+     * so there is no text and the row only wants acknowledging; or it kept the
+     * page but dropped words out of it, which is the case worth a person's
+     * eyes because dropping a word changes what the text says without saying
+     * so. A page where every word cleared the floor is not worth anybody's
+     * time, and a queue that asks about every upload is one people stop
+     * opening (ARC-118).
+     *
+     * A scope rather than a condition written out wherever it is needed: the
+     * review page, the bulk answer and the sidebar count all have to agree
+     * about what "waiting" means, and they were three separate copies of this
+     * before (ARC-127). `CountIntakeReview` still spells it in SQL, because it
+     * is one hand-written round trip for four counts.
+     *
+     * @param Builder<DocumentAttachment> $query The query being decorated.
+     *
+     * @return void The scope mutates $query in place.
+     */
+    public function scopeAwaitingReadingReview(Builder $query): void
+    {
+        $query
+            ->whereNull('ocr_reviewed_at')
+            ->where(fn (Builder $unanswered) => $unanswered
+                ->where('ocr_status', OcrStatus::PoorlyRead)
+                ->orWhere(fn (Builder $partial) => $partial
+                    ->where('ocr_status', OcrStatus::Completed)
+                    ->whereNotNull('ocr_text')
+                    ->where('ocr_text', '!=', '')
+                    ->whereColumn('ocr_confident_word_count', '<', 'ocr_word_count')));
+    }
+
+    /**
+     * Attachments with either kind of finding still waiting on somebody.
+     *
+     * The review page loads both in one go and sorts them out in PHP, so the
+     * OR is expressed once here rather than spelled out at the eager load.
+     *
+     * @param Builder<DocumentAttachment> $query The query being decorated.
+     *
+     * @return void The scope mutates $query in place.
+     */
+    public function scopeAwaitingReview(Builder $query): void
+    {
+        $query->where(fn (Builder $waiting) => $waiting
+            ->where(fn (Builder $reading) => $reading->awaitingReadingReview())
+            ->orWhere(fn (Builder $duplicate) => $duplicate->flaggedAsDuplicate()));
+    }
+
+    /**
+     * Whether this attachment is one `awaitingReadingReview()` would return.
+     *
+     * The same question asked of a row already in memory, so that a page
+     * which loaded both kinds of finding in one query can sort them out
+     * without going back to the database. Kept immediately below the scope on
+     * purpose: the two say the same thing in two languages and have to be
+     * changed together.
+     *
+     * @return bool True if this reading is still waiting on somebody.
+     */
+    public function isAwaitingReadingReview(): bool
+    {
+        if ($this->ocr_reviewed_at !== null) {
+            return false;
+        }
+
+        if ($this->ocr_status === OcrStatus::PoorlyRead) {
+            return true;
+        }
+
+        return $this->ocr_status === OcrStatus::Completed
+            && filled($this->ocr_text)
+            && $this->ocr_word_count !== null
+            && (int) $this->ocr_confident_word_count < $this->ocr_word_count;
+    }
+
+    /**
+     * Attachments still flagged as a copy of something already filed.
+     *
+     * @param Builder<DocumentAttachment> $query The query being decorated.
+     *
+     * @return void The scope mutates $query in place.
+     */
+    public function scopeFlaggedAsDuplicate(Builder $query): void
+    {
+        $query->whereNotNull('duplicate_of_attachment_id');
     }
 
     /**
@@ -306,7 +400,15 @@ class DocumentAttachment extends Model
      */
     public function confirmOcr(): void
     {
-        $this->forceFill(['ocr_reviewed_at' => now()])->save();
+        // A page the engine refused has no text, so there is nothing to vouch
+        // for — the person has seen it and stopped it being counted, which is
+        // a weaker claim and recorded as one.
+        $this->forceFill([
+            'ocr_reviewed_at' => now(),
+            'ocr_review_outcome' => blank($this->ocr_text)
+                ? OcrReviewOutcome::Acknowledged
+                : OcrReviewOutcome::Confirmed,
+        ])->save();
     }
 
     /**
@@ -333,21 +435,27 @@ class DocumentAttachment extends Model
             'text_simhash' => null,
             'duplicate_of_attachment_id' => null,
             'ocr_reviewed_at' => now(),
+            'ocr_review_outcome' => OcrReviewOutcome::Rejected,
         ])->save();
     }
 
     /**
-     * Record that somebody has seen a page the engine itself refused, so it
-     * stops being counted.
+     * Take this reading off the queue without anybody having read it.
      *
-     * Handwriting never improves, and without a way out the queue would go on
-     * counting a page nobody can do anything more about.
+     * The answer for clearing a backlog rather than working through one: after
+     * a bulk re-extraction the queue can hold thousands of readings, and
+     * asking somebody to confirm each is asking for the box to be ticked
+     * without the page being looked at. Recorded as what it is, so nothing
+     * downstream can mistake it for a person vouching for the text (ARC-127).
      *
      * @return void No return value; saves the model as a side effect.
      */
-    public function dismissOcrReview(): void
+    public function dismissOcrReading(): void
     {
-        $this->forceFill(['ocr_reviewed_at' => now()])->save();
+        $this->forceFill([
+            'ocr_reviewed_at' => now(),
+            'ocr_review_outcome' => OcrReviewOutcome::Dismissed,
+        ])->save();
     }
 
     /**
@@ -384,6 +492,7 @@ class DocumentAttachment extends Model
             'ocr_extracted_at' => $starting ? null : now(),
         ] + ($starting ? [
             'ocr_reviewed_at' => null,
+            'ocr_review_outcome' => null,
             'text_simhash' => null,
             'duplicate_of_attachment_id' => null,
         ] : []))->save();
