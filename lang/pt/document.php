@@ -32,4 +32,10 @@ return [
     'attachment_purged' => 'Anexo eliminado permanentemente.',
     'trash_emptied' => 'Lixo esvaziado.',
     'moved' => 'Localização do documento atualizada.',
+    'review' => [
+        'accept_suggestions' => 'Valores sugeridos aceites em :count documento(s).',
+        'dismiss_readings' => 'Retiradas :count leitura(s) da fila. Nenhuma ficou marcada como lida.',
+        'dismiss_duplicates' => 'Limpos :count aviso(s) de duplicado, mantendo as duas cópias.',
+        'nothing_selected' => 'Nada foi selecionado.',
+    ],
 ];
