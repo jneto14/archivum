@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature\Workspaces;
 
 use App\Actions\Documents\CreateDocument;
+use App\Actions\Documents\ReplaceAttachmentFile;
+use App\Actions\Documents\TrashAttachment;
+use App\Actions\Documents\TrashDocument;
 use App\Actions\Documents\UploadAttachment;
 use App\Enums\WorkspaceRole;
 use App\Models\DocumentType;
@@ -37,6 +40,39 @@ class WorkspaceDeleteTest extends TestCase
         $this->assertDatabaseMissing('documents', ['id' => $document->id]);
         $this->assertDatabaseMissing('document_types', ['id' => $type->id]);
         Storage::disk($attachment->disk)->assertMissing($attachment->path);
+    }
+
+    public function test_deleting_a_workspace_unlinks_the_files_of_everything_in_its_trash()
+    {
+        Storage::fake(config('archivum.attachments.disk'));
+        Workspace::factory()->create();
+
+        $workspace = Workspace::factory()->create();
+        $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $type = DocumentType::factory()->for($workspace)->create();
+
+        $document = app(CreateDocument::class)->handle($workspace, $admin->user, $type, 'Invoice', null, null);
+        $attachment = app(UploadAttachment::class)->handle($document, UploadedFile::fake()->create('scan.pdf'), $admin->user);
+        $replaced = app(ReplaceAttachmentFile::class)->handle($attachment, UploadedFile::fake()->create('rescan.pdf'), $admin->user);
+        $supersededPath = $replaced->versions()->sole()->path;
+        $trashedAttachmentPath = $replaced->path;
+        app(TrashAttachment::class)->handle($replaced);
+
+        $trashedDocument = app(CreateDocument::class)->handle($workspace, $admin->user, $type, 'Receipt', null, null);
+        $onTrashedDocument = app(UploadAttachment::class)->handle($trashedDocument, UploadedFile::fake()->create('receipt.pdf'), $admin->user);
+        app(TrashDocument::class)->handle($trashedDocument);
+
+        $disk = Storage::disk($onTrashedDocument->disk);
+        $disk->assertExists($trashedAttachmentPath);
+        $disk->assertExists($supersededPath);
+        $disk->assertExists($onTrashedDocument->path);
+
+        $response = $this->actingAs($admin->user)->delete(route('workspaces.destroy', $workspace));
+
+        $response->assertRedirect(route('dashboard'));
+        $disk->assertMissing($trashedAttachmentPath);
+        $disk->assertMissing($supersededPath);
+        $disk->assertMissing($onTrashedDocument->path);
     }
 
     public function test_non_admin_member_cannot_delete_a_workspace()
