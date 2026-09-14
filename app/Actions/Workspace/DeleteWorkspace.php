@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Workspace;
 
 use App\Actions\Documents\UnlinkAttachmentFiles;
+use App\Models\Document;
 use App\Models\DocumentAttachment;
 use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Collection;
@@ -20,6 +21,20 @@ class DeleteWorkspace
      * before letting the database cascade every dependent row (organization
      * scheme/levels/nodes/rules, documents, tags, memberships, limits).
      *
+     * A workspace does not soft-delete: it goes, and the cascade takes the
+     * documents, attachments and versions with it whether they were in the
+     * trash or not. Nothing in the database knows about the disk, so every
+     * file has to be unlinked here, and the trash is not an exception — the
+     * rows are about to stop existing, so a file left behind is one no row
+     * will ever point at again.
+     *
+     * Hence `withTrashed()` on both sides. Attachments and documents both
+     * soft-delete, so the default scopes would skip trashed attachments and
+     * attachments hanging off a trashed document. Expressed as a subquery
+     * rather than `whereHas`, because inside a `whereHas` closure the builder
+     * is typed against the base model and `withTrashed()` is not on it — the
+     * same reason `CalculateWorkspaceUsage` counts those bytes this way.
+     *
      * @param Workspace $workspace The workspace to delete.
      *
      * @return void No return value; the workspace and all its data are deleted as a side effect.
@@ -30,8 +45,11 @@ class DeleteWorkspace
     {
         $this->assertNotLastWorkspace();
 
-        DocumentAttachment::query()
-            ->whereHas('document', fn ($query) => $query->where('workspace_id', $workspace->id))
+        DocumentAttachment::withTrashed()
+            ->whereIn(
+                'document_id',
+                Document::withTrashed()->where('workspace_id', $workspace->id)->select('id'),
+            )
             ->with('versions')
             ->chunkById(100, function (Collection $attachments): void {
                 foreach ($attachments as $attachment) {
