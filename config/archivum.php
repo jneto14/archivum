@@ -284,6 +284,22 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | API
+    |--------------------------------------------------------------------------
+    |
+    | The token-authenticated HTTP API under /api/v1. The limit is per user
+    | rather than per token, so minting a second token does not buy a second
+    | budget, and it is configurable because a self-hosted installation doing a
+    | bulk import is its own only neighbour. Set it to 0 to lift the limit.
+    |
+    */
+
+    'api' => [
+        'rate_limit' => (int) env('API_RATE_LIMIT', 60),
+    ],
+
     'capture' => [
         'session_ttl_minutes' => (int) env('CAPTURE_SESSION_TTL_MINUTES', 10),
     ],

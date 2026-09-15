@@ -16,12 +16,14 @@ use App\Services\Ocr\Contracts\OcrEngine;
 use App\Services\Ocr\TesseractEngine;
 use App\Support\DemoMode;
 use Carbon\CarbonImmutable;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\DevCommands;
 use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
@@ -78,6 +80,36 @@ class AppServiceProvider extends ServiceProvider
         $this->configureActivityLog();
         $this->configureDemoMode();
         $this->configureDevQueues();
+        $this->configureApiRateLimit();
+    }
+
+    /**
+     * Define the `api` rate limiter the versioned API throttles on.
+     *
+     * Laravel 11 dropped `throttle:api` from the default api middleware group
+     * and never defined the limiter, so `/api/user` has been unthrottled since
+     * the application was generated — `docs/api.md` says otherwise and is
+     * wrong. Naming it in `throttle:api` without this would fail outright.
+     *
+     * Keyed on the user rather than the token: a budget per token would be
+     * bought back by minting another one. Unauthenticated requests fall back
+     * to the address, so a run of guesses at a bearer token is throttled too.
+     *
+     * @return void No return value; registers the named limiter as a side effect.
+     */
+    protected function configureApiRateLimit(): void
+    {
+        RateLimiter::for('api', function (Request $request): Limit {
+            $perMinute = (int) config('archivum.api.rate_limit');
+
+            if ($perMinute <= 0) {
+                return Limit::none();
+            }
+
+            return Limit::perMinute($perMinute)->by(
+                $request->user()?->getAuthIdentifier() ?? (string) $request->ip(),
+            );
+        });
     }
 
     /**

@@ -37,9 +37,15 @@ return [
     | are able to authenticate the request, Sanctum will use the bearer
     | token that's present on an incoming request for authentication.
     |
+    | Deliberately empty here. Leaving 'web' in lets a session authenticate a
+    | request to /api/*, a group that carries no CSRF middleware because it was
+    | never meant to be reached with a cookie. The API is bearer-token only,
+    | and this is what makes that true rather than a consequence of middleware
+    | ordering. Nothing else uses the sanctum guard (ARC-121).
+    |
     */
 
-    'guard' => ['web'],
+    'guard' => [],
 
     /*
     |--------------------------------------------------------------------------
