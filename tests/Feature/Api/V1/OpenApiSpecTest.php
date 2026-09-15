@@ -338,6 +338,26 @@ class OpenApiSpecTest extends TestCase
      * It describes how to authenticate, so needing a token to read it would be
      * a bootstrapping problem — and it is already public in the repository.
      */
+    /**
+     * The point of building it per request. A route registered after the
+     * committed snapshot was written still appears in what is served, which it
+     * could not if the endpoint were reading that file.
+     */
+    public function test_the_served_spec_describes_the_application_that_is_running()
+    {
+        Route::get('api/v1/probe', fn () => null)->name('api.v1.probe');
+
+        $this->getJson('/api/v1/openapi.json')
+            ->assertOk()
+            ->assertJsonPath('paths./probe.get.operationId', 'probe');
+
+        $this->assertArrayNotHasKey(
+            '/probe',
+            $this->spec()['paths'],
+            'The committed snapshot should know nothing about a route invented in a test.',
+        );
+    }
+
     public function test_the_spec_is_served_without_a_token()
     {
         $this->assertGuest();

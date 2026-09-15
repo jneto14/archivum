@@ -5,27 +5,32 @@ covers. Anything you can do in the browser you can do with a token, bar a short
 list of things that are browser-only by nature — see [Not on the
 API](#not-on-the-api).
 
-**[`openapi.json`](openapi.json)** is the machine-readable version of this
-page: an OpenAPI 3.1 spec for client generators, for Bruno, Insomnia or
-Postman, and for schema validation.
-
-Every installation serves it too, with its own URL already filled in:
+There is an OpenAPI 3.1 spec as well as this page — for client generators, for
+Bruno, Insomnia or Postman, and for schema validation. Every installation
+serves its own:
 
 ```text
 GET /api/v1/openapi.json
 ```
 
-That one route needs no token — it describes how to authenticate, so requiring
-authentication to read it would be a bootstrapping problem, and it is public in
-the repository anyway. It is the copy to point a client generator at, because
-the committed file carries `{origin}` as a variable: it lives in a repository
-every installation deploys from its own host, and baking a URL in would write
-whichever machine ran the generator into everybody's copy.
+**That is the copy to point a tool at.** It is built from the application's own
+route table on each request, so it describes the installation that is running
+rather than the one somebody last remembered to regenerate something for, and
+it arrives with this installation's URL already in it — including any path
+prefix it is served under. There is no build step and nothing to run.
 
-The file is generated from the application's own route table by `php artisan
-api:openapi`, so it cannot describe an endpoint that does not exist, and a test
-asserts the committed file is what the command produces — a route added without
-regenerating fails CI rather than quietly going undocumented.
+It is the one route that needs no token: it describes how to authenticate, so
+requiring authentication to read it would be a bootstrapping problem, and it is
+public in the repository anyway.
+
+[`openapi.json`](openapi.json) in this directory is a committed snapshot of the
+same document, refreshed by `php artisan api:openapi`. It exists so a change to
+the API contract shows up in a diff during review, next to the routes that
+caused it — nothing at runtime reads it, and a deployment does not need it. A
+test regenerates it and fails when the committed copy has fallen behind, so a
+route added without refreshing it fails CI rather than quietly going
+undocumented. Its `servers` entry carries `{origin}` as a variable, because the
+file lives in a repository every installation deploys from its own host.
 
 This page is the half a spec cannot carry: why the listing is also the search,
 why an attachment's `GET` is its metadata rather than its bytes, why a capture
