@@ -8,11 +8,14 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PreventSearchIndexing;
 use App\Http\Middleware\ResolveLocale;
 use App\Http\Middleware\ResolveWorkspace;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -40,4 +43,23 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        /*
+         * Answer the API's 404s without naming the model that was not found.
+         * Laravel's own message is "No query results for model
+         * [App\Models\Document] 01a0…", which describes the code behind the
+         * route rather than anything a client can act on — and this is also
+         * the answer given when a row does exist and belongs to somebody else,
+         * where naming it would confirm it exists.
+         *
+         * Both exceptions, because a render callback runs before the handler
+         * converts one into the other.
+         */
+        $exceptions->render(function (ModelNotFoundException|NotFoundHttpException $exception, Request $request): ?JsonResponse {
+            if (!$request->is('api/*')) {
+                return null;
+            }
+
+            return new JsonResponse(['message' => __('api.not_found')], 404);
+        });
     })->create();

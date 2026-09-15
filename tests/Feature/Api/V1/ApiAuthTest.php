@@ -62,6 +62,33 @@ class ApiAuthTest extends TestCase
         $response->assertUnauthorized();
     }
 
+    /**
+     * Laravel's own message is "No query results for model
+     * [App\\Models\\Document] 01a0…", which describes the code behind the route
+     * and is also what a client is told when the row exists and is somebody
+     * else's — where naming it would confirm it exists.
+     */
+    public function test_a_404_does_not_name_the_model_it_could_not_find()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->withToken($user->createToken('CLI')->plainTextToken)
+            ->getJson('/api/v1/documents/01a0a15b-0000-7000-8000-000000000000');
+
+        $response->assertNotFound()->assertExactJson(['message' => 'Not found.']);
+        $this->assertStringNotContainsString('App\\Models', $response->getContent());
+    }
+
+    public function test_an_unroutable_api_path_answers_the_same_way()
+    {
+        $user = User::factory()->create();
+
+        $this->withToken($user->createToken('CLI')->plainTextToken)
+            ->getJson('/api/v1/nothing-here')
+            ->assertNotFound()
+            ->assertExactJson(['message' => 'Not found.']);
+    }
+
     public function test_the_rate_limit_answers_once_it_is_reached()
     {
         config(['archivum.api.rate_limit' => 2]);
