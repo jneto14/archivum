@@ -151,6 +151,96 @@ class OpenApiSpecTest extends TestCase
     }
 
     /**
+     * A summary is a name, not a sentence. A client lists these in a sidebar
+     * that truncates at around twenty characters, so prose there arrives as
+     * "This document, poin…" and tells nobody anything.
+     */
+    public function test_every_summary_reads_as_a_name()
+    {
+        $spec = $this->spec();
+
+        foreach ($spec['paths'] as $path => $methods) {
+            foreach ($methods as $method => $operation) {
+                $where = mb_strtoupper($method) . " {$path}";
+                $summary = $operation['summary'];
+
+                $this->assertLessThanOrEqual(
+                    32,
+                    mb_strlen($summary),
+                    "{$where} has a summary too long to read in a list: \"{$summary}\". Put the reasoning in `description`.",
+                );
+
+                $this->assertStringEndsNotWith('.', $summary, "{$where}'s summary is a sentence, not a name.");
+            }
+        }
+    }
+
+    /**
+     * The order the spec is written in is the order a client lists it in, so
+     * it is grouped rather than sorted by URL.
+     */
+    public function test_operations_are_grouped_by_tag_rather_than_scattered()
+    {
+        $spec = $this->spec();
+
+        $seen = [];
+
+        foreach ($spec['paths'] as $path => $methods) {
+            foreach ($methods as $operation) {
+                $tag = $operation['tags'][0];
+
+                if ($seen !== [] && end($seen) === $tag) {
+                    continue;
+                }
+
+                $this->assertNotContains(
+                    $tag,
+                    $seen,
+                    "{$path} returns to the {$tag} group after leaving it; the catalogue's order has drifted.",
+                );
+
+                $seen[] = $tag;
+            }
+        }
+    }
+
+    public function test_every_tag_used_is_declared()
+    {
+        $spec = $this->spec();
+
+        $declared = array_column($spec['tags'], 'name');
+
+        foreach ($spec['paths'] as $path => $methods) {
+            foreach ($methods as $operation) {
+                foreach ($operation['tags'] as $tag) {
+                    $this->assertContains($tag, $declared, "{$path} is filed under an undeclared tag: {$tag}.");
+                }
+            }
+        }
+    }
+
+    public function test_path_parameters_show_the_shape_that_goes_in_them()
+    {
+        $spec = $this->spec();
+
+        foreach ($spec['paths'] as $path => $methods) {
+            foreach ($methods as $method => $operation) {
+                foreach ($operation['parameters'] as $parameter) {
+                    if (($parameter['in'] ?? null) !== 'path') {
+                        continue;
+                    }
+
+                    $this->assertArrayHasKey(
+                        'example',
+                        $parameter,
+                        mb_strtoupper($method) . " {$path} leaves `{$parameter['name']}` without an example, so an imported collection shows an empty box.",
+                    );
+                }
+            }
+        }
+    }
+
+    /**
      * Committed to a repository every installation deploys from its own host,
      * so a concrete origin in here would be whichever machine last ran the
      * command.
