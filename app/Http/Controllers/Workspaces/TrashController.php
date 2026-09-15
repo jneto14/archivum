@@ -9,6 +9,7 @@ use App\Actions\Documents\PurgeDocument;
 use App\Actions\Documents\RestoreAttachment;
 use App\Actions\Documents\RestoreDocument;
 use App\Actions\Workspace\EmptyWorkspaceTrash;
+use App\Concerns\ResolvesWorkspaceRecords;
 use App\Http\Controllers\Controller;
 use App\Models\Document;
 use App\Models\DocumentAttachment;
@@ -22,6 +23,8 @@ use Inertia\Response;
 
 class TrashController extends Controller
 {
+    use ResolvesWorkspaceRecords;
+
     /**
      * Show what a workspace's trash is holding.
      *
@@ -205,43 +208,5 @@ class TrashController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('document.trash_emptied')]);
 
         return back();
-    }
-
-    /**
-     * Resolve a trashed document by id within the workspace.
-     *
-     * Route model binding cannot do this: its lookup runs through the model's
-     * default scope, which excludes exactly the rows this controller exists to
-     * act on. Scoping the query to the workspace here is also what stops an id
-     * from another installation's workspace resolving at all.
-     *
-     * @param Workspace $workspace The workspace the document must belong to.
-     * @param string $id The trashed document's id.
-     *
-     * @return Document The trashed document.
-     */
-    private function trashedDocument(Workspace $workspace, string $id): Document
-    {
-        return Document::onlyTrashed()
-            ->where('workspace_id', $workspace->id)
-            ->findOrFail($id);
-    }
-
-    /**
-     * Resolve a trashed attachment by id within the workspace.
-     *
-     * @param Workspace $workspace The workspace the attachment's document must belong to.
-     * @param string $id The trashed attachment's id.
-     *
-     * @return DocumentAttachment The trashed attachment.
-     */
-    private function trashedAttachment(Workspace $workspace, string $id): DocumentAttachment
-    {
-        return DocumentAttachment::onlyTrashed()
-            ->whereIn(
-                'document_id',
-                Document::withTrashed()->where('workspace_id', $workspace->id)->select('id'),
-            )
-            ->findOrFail($id);
     }
 }

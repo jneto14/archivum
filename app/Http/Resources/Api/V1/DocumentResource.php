@@ -41,6 +41,12 @@ class DocumentResource extends JsonResource
             'metadata' => $this->metadata ?? [],
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
+            // Only ever present on something in the trash, which is exactly
+            // where it means anything.
+            'deleted_at' => $this->when(
+                $this->deleted_at !== null,
+                fn (): ?string => $this->deleted_at?->toIso8601String(),
+            ),
             'document_type' => new DocumentTypeResource($this->whenLoaded('documentType')),
             'tags' => TagResource::collection($this->whenLoaded('tags')),
             'creator' => $this->whenLoaded('creator', fn (): array => [

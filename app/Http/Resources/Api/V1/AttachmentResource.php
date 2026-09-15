@@ -58,6 +58,12 @@ class AttachmentResource extends JsonResource
             'ocr_status' => $this->ocr_status->value,
             'ocr_text' => $this->when($this->withText, fn (): ?string => $this->resource->ocr_text),
             'created_at' => $this->created_at?->toIso8601String(),
+            // Only ever present on something in the trash, which is exactly
+            // where it means anything.
+            'deleted_at' => $this->when(
+                $this->deleted_at !== null,
+                fn (): ?string => $this->deleted_at?->toIso8601String(),
+            ),
             // When the file sitting here now arrived, which stops agreeing
             // with `created_at` the first time something replaces it.
             'file_uploaded_at' => $this->fileUploadedAt()?->toIso8601String(),

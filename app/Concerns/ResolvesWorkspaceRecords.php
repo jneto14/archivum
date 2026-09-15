@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Concerns;
 
+use App\Models\Document;
+use App\Models\DocumentAttachment;
 use App\Models\DocumentType;
 use App\Models\OrganizationNode;
 use App\Models\OrganizationScheme;
@@ -102,5 +104,51 @@ trait ResolvesWorkspaceRecords
             ->where('workspace_id', $workspace->id)
             ->where('id', $schemeId)
             ->firstOrFail();
+    }
+
+    /**
+     * Resolve a trashed document by id within the workspace.
+     *
+     * Route model binding cannot do this: it runs the ordinary lookup, which
+     * the soft-delete scope has already excluded these rows from. Scoping to
+     * the workspace here is also what stops an id belonging to somebody else's
+     * workspace resolving at all.
+     *
+     * @param Workspace $workspace The workspace the document must belong to.
+     * @param string $id The trashed document's id.
+     *
+     * @return Document The trashed document.
+     *
+     * @throws ModelNotFoundException If no trashed document with $id exists within $workspace.
+     */
+    protected function trashedDocument(Workspace $workspace, string $id): Document
+    {
+        return Document::onlyTrashed()
+            ->where('workspace_id', $workspace->id)
+            ->findOrFail($id);
+    }
+
+    /**
+     * Resolve a trashed attachment by id within the workspace.
+     *
+     * `withTrashed()` on the document subquery because an attachment in the
+     * trash very often went there with its document, and the document's own
+     * scope would then hide the row this is trying to reach.
+     *
+     * @param Workspace $workspace The workspace the attachment's document must belong to.
+     * @param string $id The trashed attachment's id.
+     *
+     * @return DocumentAttachment The trashed attachment.
+     *
+     * @throws ModelNotFoundException If no trashed attachment with $id exists within $workspace.
+     */
+    protected function trashedAttachment(Workspace $workspace, string $id): DocumentAttachment
+    {
+        return DocumentAttachment::onlyTrashed()
+            ->whereIn(
+                'document_id',
+                Document::withTrashed()->where('workspace_id', $workspace->id)->select('id'),
+            )
+            ->findOrFail($id);
     }
 }
