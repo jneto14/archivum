@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\V1\IntakeLabelController;
 use App\Http\Controllers\Api\V1\WorkspaceController;
 use App\Http\Controllers\Api\V1\WorkspaceLimitController;
+use App\Http\Controllers\Api\V1\WorkspaceUserController;
 use App\Http\Middleware\DenyInDemoMode;
 use Illuminate\Support\Facades\Route;
 
@@ -35,3 +36,13 @@ Route::patch('workspaces/{workspace}/limits', [WorkspaceLimitController::class, 
 
 Route::get('workspaces/{workspace}/intake-labels', [IntakeLabelController::class, 'index'])->name('workspaces.intake-labels.index');
 Route::patch('workspaces/{workspace}/intake-labels/{intakeLabel}', [IntakeLabelController::class, 'update'])->name('workspaces.intake-labels.update');
+
+/*
+| A member is addressed by their user id, not by the membership row's, because
+| that is the id a client already holds from a document's `creator` or an
+| attachment's `uploader`.
+*/
+Route::get('workspaces/{workspace}/users', [WorkspaceUserController::class, 'index'])->name('workspaces.users.index');
+Route::post('workspaces/{workspace}/users', [WorkspaceUserController::class, 'store'])->name('workspaces.users.store');
+Route::patch('workspaces/{workspace}/users/{targetUser}', [WorkspaceUserController::class, 'update'])->name('workspaces.users.update');
+Route::delete('workspaces/{workspace}/users/{targetUser}', [WorkspaceUserController::class, 'destroy'])->name('workspaces.users.destroy');
