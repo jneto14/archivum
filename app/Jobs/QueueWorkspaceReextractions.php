@@ -81,11 +81,8 @@ class QueueWorkspaceReextractions implements ShouldQueue
                     $attachments = $attachments->take($limit - $queued);
                 }
 
-                // One job per run of attachments, not per attachment: the
-                // queue round trip costs more than reading a text-layer PDF.
-                //
-                // No `onQueue()` here: the batch carries it, and `add()`
-                // would override a per-job one anyway.
+                // No `onQueue()` here: the batch carries it, and `add()` would
+                // override a per-job one anyway.
                 $jobs = [];
 
                 foreach (array_chunk($attachments->pluck('id')->all(), $size) as $ids) {

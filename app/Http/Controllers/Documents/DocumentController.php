@@ -77,9 +77,6 @@ class DocumentController extends Controller
             'documents' => DocumentResource::collection($results),
             'filters' => [...$filters, 'q' => $request->validated('q'), 'mode' => $mode->value],
             'sort' => $sort->toArray(),
-            // The location filter is set by following a link from the archive,
-            // so the list has to name what it is filtered by: an id alone would
-            // leave the user looking at a subset with nothing saying which.
             'filteredLocation' => $this->filteredLocation($workspace, $filters['node_id']),
             'documentTypes' => $this->workspaceDocumentTypes($workspace),
             'tags' => $this->workspaceTags($workspace),
@@ -146,30 +143,13 @@ class DocumentController extends Controller
             'locationSuggestions' => ($canFile && $scheme !== null)
                 ? app(SuggestDocumentLocations::class)->handle($document, $scheme)
                 : [],
-            // The full list of locations is only worth loading when the user
-            // opens the picker to look past the suggestions, so it is fetched
-            // by a partial reload rather than shipped with every page view.
             'locations' => Inertia::optional(
                 fn () => ($canFile && $scheme !== null) ? app(ListSchemeLocations::class)->handle($scheme) : [],
             ),
-            // Polled by the "scan with your phone" dialog while it's open
-            // (see resources/js/components/document-capture-dialog.tsx),
-            // reusing Inertia's own partial-reload polling rather than a
-            // bespoke status endpoint. Null once the session ends, however it
-            // ended — the dialog only needs to know it's gone, not why.
-            // Only the count: the suggestions themselves belong to the form,
-            // which is where they can be accepted. This is the pointer that
-            // makes them discoverable, since extraction only finishes long
-            // after the form was last open.
             'metadata_suggestions_count' => count(app(SuggestDocumentMetadata::class)->handle($document)),
             'active_capture_session' => $document->activeCaptureSession ? [
                 'id' => $document->activeCaptureSession->id,
                 'photos_count' => $document->activeCaptureSession->photos_count,
-                // Which attachment, if any, this session was opened to
-                // re-shoot. The dialog compares it against the row the user
-                // pressed: a session aimed somewhere else has to be replaced,
-                // not reused, or the QR code on screen sends the photo to the
-                // wrong file (ARC-124).
                 'replaces_attachment_id' => $document->activeCaptureSession->replaces_attachment_id,
                 'expires_at' => $document->activeCaptureSession->expires_at->toIso8601String(),
             ] : null,
@@ -198,9 +178,6 @@ class DocumentController extends Controller
             'document' => new DocumentResource($document),
             'documentTypes' => $this->workspaceDocumentTypes($document->workspace),
             'tags' => $this->workspaceTags($document->workspace),
-            // Worked out on each render rather than stored: the text is already
-            // in hand, the heuristics cost microseconds against it, and storing
-            // them would mean a backfill every time one of them improves.
             'metadataSuggestions' => $suggest->handle($document),
             'metadataVocabulary' => $vocabulary->handle($document->workspace),
         ]);

@@ -121,12 +121,7 @@ class AttachmentController extends Controller
             $attachment->path,
             $attachment->filename,
             [
-                // Stated rather than detected. Without this the disk reports
-                // the stored file's own type, which is how an uploaded .html
-                // came back as text/html.
                 'Content-Type' => $inlineSafe ? $attachment->mime_type : 'application/octet-stream',
-                // Belt to the Content-Type's braces: stops a browser deciding
-                // for itself that octet-stream bytes look like a document.
                 'X-Content-Type-Options' => 'nosniff',
             ],
             $inlineSafe ? 'inline' : 'attachment',

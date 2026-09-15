@@ -44,10 +44,6 @@ class TagController extends Controller
         $tags = Tag::query()
             ->where('workspace_id', $workspace->id)
             ->withCount('documents')
-            // Selected rather than fetched separately and merged in PHP, which
-            // is how it used to work: a value assembled after the query cannot
-            // be ordered by, and this is one of the three things the list offers
-            // to sort on. It also spends one query fewer.
             ->addSelect(['last_used_at' => DocumentTag::query()
                 ->selectRaw('max(created_at)')
                 ->whereColumn('tag_id', 'tags.id'),
@@ -62,8 +58,6 @@ class TagController extends Controller
                 'id' => $tag->id,
                 'name' => $tag->name,
                 'documents_count' => $tag->documents_count,
-                // Read off the query rather than the model: the column is
-                // selected by this listing and is not part of a tag.
                 'last_used_at' => ($lastUsed = $tag->getAttribute('last_used_at')) !== null
                     ? Carbon::parse($lastUsed)->toISOString()
                     : null,

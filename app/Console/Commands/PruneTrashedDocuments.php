@@ -48,9 +48,6 @@ class PruneTrashedDocuments extends Command
         $documents = 0;
         $attachments = 0;
 
-        // Per workspace rather than one sweep over every trashed row, because
-        // the purge has to forget each workspace's memoised usage totals and
-        // those are keyed by workspace.
         Workspace::query()->chunkById(50, function (Collection $workspaces) use ($emptyTrash, $cutoff, &$documents, &$attachments): void {
             foreach ($workspaces as $workspace) {
                 $purged = $emptyTrash->handle($workspace, $cutoff);

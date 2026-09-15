@@ -478,9 +478,6 @@ class DocumentAttachment extends Model
      */
     public function confirmOcr(): void
     {
-        // A page the engine refused has no text, so there is nothing to vouch
-        // for — the person has seen it and stopped it being counted, which is
-        // a weaker claim and recorded as one.
         $this->forceFill([
             'ocr_reviewed_at' => now(),
             'ocr_review_outcome' => blank($this->ocr_text)
@@ -555,10 +552,6 @@ class DocumentAttachment extends Model
         ?int $wordCount = null,
         ?int $confidentWordCount = null,
     ): void {
-        // Starting a reading voids everything derived from the last one: a
-        // fingerprint of text about to be replaced, a duplicate match that
-        // may not survive the second reading, and a person's verdict on a
-        // reading they have not seen. Null on a first extraction anyway.
         $starting = $status === OcrStatus::Processing;
 
         $this->forceFill([

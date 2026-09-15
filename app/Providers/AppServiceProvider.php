@@ -40,23 +40,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Scoped, not transient: CalculateWorkspaceUsage memoises its totals for
-        // the request, and a fresh instance per injection would defeat that.
+        // Scoped, not transient: both memoise their work for the request, and
+        // a fresh instance per injection would defeat that.
         $this->app->scoped(CalculateWorkspaceUsage::class);
-
-        // Same reason, and it matters more: IntakeVocabulary works out what a
-        // workspace's metadata keys hold with one query over a sample of its
-        // documents. Mining injects it beside SuggestDocumentMetadata, which
-        // holds one of its own, so a transient binding would ask twice per
-        // document. Scoped is also what keeps it from going stale — a queue
-        // worker resets these between jobs, so a label accepted a moment ago is
-        // read by the job that follows.
         $this->app->scoped(IntakeVocabulary::class);
 
-        // The one place that picks which OCR engine the application runs on.
-        // Everything else depends on the OcrEngine contract, so a hosted engine
-        // could be selected here from config without touching the pipeline —
-        // and tests swap in a fake, which is why they need no tesseract binary.
         $this->app->bind(OcrEngine::class, fn (): OcrEngine => new TesseractEngine(
             (string) config('archivum.ocr.languages'),
             (int) config('archivum.ocr.timeout'),

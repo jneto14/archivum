@@ -91,9 +91,6 @@ class AttachmentTextExtractor
             }
 
             if (!$this->engine->isAvailable()) {
-                // The text layer was too thin to trust, and there is no engine
-                // to fall back on. Returning the scraps would be worse than
-                // saying so: it would look like the document had been read.
                 return ExtractedText::unavailable();
             }
 

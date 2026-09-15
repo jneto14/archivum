@@ -88,9 +88,9 @@ class ExtractAttachmentTexts implements ShouldQueue
                 break;
             }
 
-            // Resolved one at a time rather than as a collection up front: on a
-            // chunk of scans this job runs for minutes, and an attachment
-            // trashed while it does is one that should no longer be read.
+            // Resolved one at a time: this job runs for minutes over a chunk of
+            // scans, and an attachment trashed while it does is one that
+            // should no longer be read.
             $attachment = DocumentAttachment::query()->find($attachmentId);
 
             if ($attachment === null) {

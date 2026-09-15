@@ -139,8 +139,6 @@ final readonly class ValueShape
             }
         }
 
-        // Distinct, because the same value filed on ten documents is one
-        // observation of what the key holds, not ten.
         if (count($seen) < self::MIN_DISTINCT_VALUES) {
             return null;
         }
@@ -153,9 +151,8 @@ final readonly class ValueShape
         }
 
         return new self(
-            // A character either way, because OCR drops and invents them, and
-            // a range derived from perfectly typed values would reject the
-            // reading of the very page it came from.
+            // Padded a character either way: OCR drops and invents them, and a
+            // range this tight would reject the reading of the page it came from.
             max(self::MIN_LENGTH, $shortest - 1),
             min(self::MAX_LENGTH, $longest + 1),
             match (true) {

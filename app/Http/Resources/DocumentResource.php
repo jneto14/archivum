@@ -59,9 +59,6 @@ class DocumentResource extends JsonResource
                 'id' => $attachment->id,
                 'filename' => $attachment->filename,
                 'mime_type' => $attachment->mime_type,
-                // The preview dialog asks rather than infers, so this has to
-                // travel with the attachment: an SVG is `image/*` and is still
-                // served as an opaque download.
                 'is_previewable' => $attachment->is_previewable,
                 'size' => $attachment->size,
                 'ocr_status' => $attachment->ocr_status->value,
@@ -70,22 +67,12 @@ class DocumentResource extends JsonResource
                     'id' => $attachment->uploader->id,
                     'name' => $attachment->uploader->name,
                 ] : null,
-                // The earlier copy this file appears to be of, until someone
-                // dismisses the warning. Carries the other document's title
-                // because the warning is only actionable if it names what it
-                // found.
                 'duplicate_of' => $attachment->relationLoaded('duplicateOf') && $attachment->duplicateOf !== null ? [
                     'document_id' => $attachment->duplicateOf->document_id,
                     'document_title' => $attachment->duplicateOf->document?->title,
                     'filename' => $attachment->duplicateOf->filename,
                 ] : null,
-                // When the file sitting here now arrived, which stops being
-                // `created_at` the first time something replaces it.
                 'file_uploaded_at' => $attachment->fileUploadedAt()?->toIso8601String(),
-                // The files this one used to be, newest replacement first.
-                // Shipped with the page rather than fetched when the history is
-                // opened: it is a handful of rows on an attachment that has any
-                // at all, and none on the ones that do not.
                 'versions' => $attachment->relationLoaded('versions')
                     ? $attachment->versions->map(fn ($version) => [
                         'id' => $version->id,

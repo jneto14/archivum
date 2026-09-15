@@ -93,30 +93,22 @@ class ExtractAttachmentText implements ShouldQueue
         try {
             $extracted = $extractor->handle($this->attachment);
         } catch (UnreadableAttachment $exception) {
-            // The file itself is broken, so retrying would fail identically
-            // three more times and then fill failed_jobs with something no
-            // operator can act on. Record it and stop.
-            //
-            // Not rethrowing also keeps a corrupt upload from breaking the
-            // upload request on installations running the `sync` queue driver,
-            // where this job runs inline.
+            // Not retried: the file itself is broken, so a retry would fail
+            // identically. Not rethrown either, which keeps a corrupt upload
+            // from breaking the upload request on installations running the
+            // `sync` queue driver, where this job runs inline.
             $this->recordFailure($exception->getMessage());
 
             return;
         } catch (Throwable $exception) {
             $this->recordFailure($exception->getMessage());
 
-            // Everything else — the disk, the engine — may well work on the
-            // next attempt, so rethrow and let the queue retry. Not reported
-            // here as well: that would log the same failure once per attempt.
             throw $exception;
         }
 
-        // Every case listed rather than a `default`, so that adding a status to
-        // the enum without deciding what it means here is a static analysis
-        // failure at build time instead of a surprise in production. The three
-        // in the last arm describe an attachment before or during extraction,
-        // or a failure raised as an exception — the extractor cannot return them.
+        // No `default` arm: adding a status to the enum without deciding what
+        // it means here is then a static analysis failure at build time
+        // instead of a surprise in production.
         match ($extracted->status) {
             OcrStatus::Completed => $this->attachment->markOcrCompleted($extracted->text, $extracted->wordCount, $extracted->confidentWordCount),
             OcrStatus::PoorlyRead => $this->attachment->markOcrPoorlyRead($extracted->wordCount, $extracted->confidentWordCount),
@@ -135,15 +127,9 @@ class ExtractAttachmentText implements ShouldQueue
 
         $document?->refreshOcrText();
 
-        // Read from the document's mirror rather than this attachment's text:
-        // a document is often several pages, and the date is on the one that
-        // happens to be extracted last as readily as the first.
         if ($document !== null) {
             $suggest->record($document);
 
-            // The other moment a document has something to teach: its fields
-            // may have been filled in by hand while its text was still being
-            // read, and until now there was no page to find those values on.
             LearnDocumentIntakeLabels::dispatch($document);
         }
 

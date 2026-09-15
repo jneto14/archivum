@@ -87,11 +87,6 @@ class IntakeReviewController extends Controller
             'waiting' => DB::raw(self::WAITING_COUNT),
         ], 'updated_at', 'desc');
 
-        // Both attachment kinds come back in one eager load and are sorted
-        // into their two lists in PHP. Asking for them as two constrained
-        // relations would mean declaring two relations on the model that
-        // differ only by a where, and asking per document would be the N+1
-        // this page most invites.
         $documents = $queue->documents($workspace)
             ->with('documentType')
             ->with(['attachmentsAwaitingReview' => fn ($query) => $query
@@ -168,12 +163,6 @@ class IntakeReviewController extends Controller
                     ->filter(fn (DocumentAttachment $attachment): bool => $attachment->duplicate_of_attachment_id !== null);
                 $suggestions = $suggest->handle($document);
 
-                // Findings are pruned as they are stored, so a document whose
-                // fields were filled in between being read and now is drift
-                // rather than the normal case. Clearing it as we pass settles
-                // the row and the sidebar badge together: the badge counts the
-                // stored findings in SQL and would otherwise go on pointing at
-                // a row this page does not show.
                 if ($suggestions === [] && ($document->metadata_suggestions ?? []) !== []) {
                     $document->recordMetadataSuggestions([]);
                 }
@@ -211,7 +200,6 @@ class IntakeReviewController extends Controller
                     'waiting' => count($suggestions) + $readings->count() + $duplicates->count(),
                 ];
             })
-            // Nothing left to answer for, once the drift above is settled.
             ->reject(fn (array $row): bool => $row['waiting'] === 0)
             ->values()
             ->all();
@@ -262,16 +250,11 @@ class IntakeReviewController extends Controller
             ->offered()
             ->orderByDesc('support')
             ->orderBy('label')
-            // A few of the documents that taught it, not the count alone: a
-            // number asks to be trusted, where three titles let an admin open
-            // one and see the phrase in the place it was read from.
             ->with(['documents' => fn ($query) => $query->select('documents.id', 'documents.title')->limit(3)])
             ->get(['id', 'kind', 'field', 'label', 'support'])
             ->map(fn (IntakeLabel $label): array => [
                 'id' => $label->id,
                 'kind' => $label->kind,
-                // A shipped kind has a name in the interface language; one the
-                // archive invented is shown as this workspace spells it.
                 'field' => $vocabulary->nameFor($label->kind, $workspace->id, $label->field),
                 'label' => $label->label,
                 'support' => $label->support,

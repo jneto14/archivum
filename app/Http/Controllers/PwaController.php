@@ -73,9 +73,6 @@ class PwaController extends Controller
         $name = (string) config('app.name', 'Archivum');
 
         return response()->json([
-            // Stable across deploys and independent of `start_url`, so an
-            // installed app is still recognised as the same app if the landing
-            // page ever moves.
             'id' => $root,
             'name' => $name,
             'short_name' => $name,
