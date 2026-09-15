@@ -39,4 +39,5 @@ Route::prefix('v1')
         Route::get('/user', [UserController::class, 'show'])->name('user.show');
 
         require __DIR__ . '/api/v1/documents.php';
+        require __DIR__ . '/api/v1/vocabulary.php';
     });

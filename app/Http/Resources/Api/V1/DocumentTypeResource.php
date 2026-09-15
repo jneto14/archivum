@@ -16,7 +16,7 @@ class DocumentTypeResource extends JsonResource
     /**
      * @param Request $request The incoming request.
      *
-     * @return array{id: string, key: string, name: string} The type's public attributes.
+     * @return array<string, mixed> The type's public attributes, plus the document count when it was loaded.
      */
     public function toArray(Request $request): array
     {
@@ -26,6 +26,10 @@ class DocumentTypeResource extends JsonResource
             // documents automatically needs it as much as the display name.
             'key' => $this->key,
             'name' => $this->name,
+            // Only on the listing, which counts them. A client deciding
+            // whether a type is safe to delete wants this; a document's own
+            // `document_type` has no use for it.
+            'documents_count' => $this->whenCounted('documents'),
         ];
     }
 }
