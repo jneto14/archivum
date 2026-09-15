@@ -32,14 +32,10 @@ class StartBulkDocumentMove
      */
     public function handle(OrganizationNode $source, OrganizationNode $target, User $user): Task
     {
-        // Asked before the lock and the task, so a migration that cannot fit is
-        // refused in the dialog rather than by a task that fails minutes later.
         $this->migrateNodeDocuments->assertTargetHasRoom($source, $target);
 
         $workspaceId = $source->level->scheme->workspace_id;
 
-        // `lockKey()` is nullable because attachment text extraction has no
-        // per-workspace exclusivity; a bulk move always does.
         $lockKey = TaskType::BulkDocumentMove->lockKey($workspaceId)
             ?? throw new LogicException('A bulk document move must have a workspace lock.');
 

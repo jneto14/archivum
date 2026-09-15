@@ -30,8 +30,6 @@ class PurgeAttachment
 
         $attachment->forceDelete();
 
-        // Only meaningful while the document itself is still around; a purge
-        // reached by destroying the document has nothing left to re-index.
         if ($document !== null && $document->deleted_at === null) {
             $document->refreshOcrText();
             $this->calculateUsage->forget($document->workspace);

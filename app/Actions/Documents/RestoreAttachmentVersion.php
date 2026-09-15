@@ -52,15 +52,11 @@ class RestoreAttachmentVersion
                 'checksum' => $version->checksum,
             ], $version->uploaded_by, $version->uploaded_at);
 
-            // The file is on the attachment now; leaving the row here would
-            // have the history claim a file it is also holding, and the purge
-            // unlink it twice.
+            // Left in the history, this row would claim a file the attachment
+            // is now also holding, and the purge would unlink it twice.
             $version->delete();
         });
 
-        // Same reasoning as a replacement: the reading described the file that
-        // has just moved into the history, and the document's mirror must stop
-        // quoting it now rather than when the next reading lands.
         $attachment->markOcrProcessing();
         $document->refreshOcrText();
 

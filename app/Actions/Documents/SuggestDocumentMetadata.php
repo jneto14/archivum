@@ -197,9 +197,6 @@ class SuggestDocumentMetadata
      */
     public function handle(Document $document): array
     {
-        // Falls back to reading the text where nothing was stored, which is
-        // every document extracted before the column existed. Those simply do
-        // not appear in the review queue until they are read again.
         return $this->resolve(
             $document,
             $document->metadata_suggestions ?? $this->extract($document->ocr_text, $document->workspace_id),
@@ -458,8 +455,6 @@ class SuggestDocumentMetadata
             return null;
         }
 
-        // A four-digit first part is a year, and the date is already the way
-        // round it will be stored.
         if (mb_strlen((string) $parts[0]) === 4) {
             return $this->buildDate((int) $parts[0], (int) $parts[1], (int) $parts[2]);
         }

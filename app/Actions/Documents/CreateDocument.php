@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\Documents;
 
+use App\Actions\Concerns\FlashesValidationFailure;
 use App\Actions\Workspace\CalculateWorkspaceUsage;
 use App\Models\Document;
 use App\Models\DocumentType;
@@ -11,10 +12,11 @@ use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
 
 class CreateDocument
 {
+    use FlashesValidationFailure;
+
     public function __construct(private readonly CalculateWorkspaceUsage $calculateUsage) {}
 
     /**
@@ -35,14 +37,7 @@ class CreateDocument
     public function handle(Workspace $workspace, User $creator, DocumentType $type, string $title, ?string $documentDate, ?array $metadata, array $tagIds = []): Document
     {
         if ($workspace->limits?->exceedsDocuments($this->calculateUsage->documents($workspace))) {
-            // Flashed as well as thrown: the message is addressed to a
-            // field — 'workspace' — that no page renders, so on its own it
-            // arrives and is dropped. The toast is what is actually seen.
-            Inertia::flash('toast', ['type' => 'error', 'message' => __('document.limit_reached')]);
-
-            throw ValidationException::withMessages([
-                'workspace' => __('document.limit_reached'),
-            ]);
+            $this->flashAndFail('workspace', __('document.limit_reached'));
         }
 
         $document = DB::transaction(function () use ($workspace, $creator, $type, $title, $documentDate, $metadata, $tagIds): Document {

@@ -86,9 +86,6 @@ class StartBulkTextExtraction
         $batch = Bus::batch([
             new QueueWorkspaceReextractions($task, $filter, $limit),
         ])
-            // One unreadable file among ten thousand must not stop the other
-            // 9,999 — and every extraction records its own failure on the
-            // attachment either way, which is where somebody would look.
             ->allowFailures()
             ->name("Re-extract text: {$workspace->name}")
             // On the batch, not on each job: `Batch::add()` pushes with the
@@ -103,11 +100,6 @@ class StartBulkTextExtraction
                     return;
                 }
 
-                // The loader records how many it queued once it has finished
-                // queueing, so the absence of that number means it never got
-                // there — the sweep fell over before it had chosen its work,
-                // rather than while doing it. Without this the row would
-                // report a clean run over nothing.
                 if (!isset($task->payload['queued'])) {
                     $task->markFailed(__('workspace.reextraction_failed'));
 

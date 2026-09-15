@@ -41,8 +41,6 @@ class TrashDocument
         DB::transaction(function () use ($document): void {
             $document->delete();
 
-            // `attachments()` excludes the already-trashed, so this is exactly
-            // the set this deletion is taking with it.
             $cascaded = $document->attachments()->pluck('id')->all();
 
             $document->attachments()->update([
@@ -50,8 +48,6 @@ class TrashDocument
                 'trashed_with_document' => true,
             ]);
 
-            // Duplicate warnings elsewhere in the workspace point at files
-            // that just left the archive; see the note in `TrashAttachment`.
             if ($cascaded !== []) {
                 DocumentAttachment::withTrashed()
                     ->whereIn('duplicate_of_attachment_id', $cascaded)

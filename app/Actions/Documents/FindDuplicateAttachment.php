@@ -66,13 +66,9 @@ class FindDuplicateAttachment
             ->whereNotNull('text_simhash')
             ->where('document_id', '!=', $attachment->document_id)
             ->whereHas('document', fn (Builder $query) => $query->where('workspace_id', $workspaceId))
-            // `toBase()` keeps the model's global scopes — the trashed
-            // attachments and the attachments of trashed documents stay out —
-            // and drops only the hydration, which is what this loop costs.
+            // `toBase()` keeps the model's global scopes and drops only the
+            // hydration.
             ->toBase()
-            // Walked in id order, which is a UUIDv7 and so chronological: the
-            // first match at a given distance is the earliest filed copy, which
-            // is the one worth pointing at.
             ->lazyById(self::CHUNK, 'document_attachments.id', 'id');
 
         foreach ($candidates as $candidate) {
@@ -83,14 +79,11 @@ class FindDuplicateAttachment
                 $closestDistance = $distance;
             }
 
-            // Identical text; nothing later can beat it.
             if ($closestDistance === 0) {
                 break;
             }
         }
 
-        // One query, and only when there is something to return: the caller
-        // wants the model, but the search does not.
         return $closestId === null
             ? null
             : DocumentAttachment::query()->where('id', $closestId)->first();

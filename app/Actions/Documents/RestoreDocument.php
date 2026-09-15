@@ -39,8 +39,6 @@ class RestoreDocument
             $document->restore();
         });
 
-        // The attachments that just came back carry text the document's
-        // searchable mirror was rebuilt without.
         $document->refreshOcrText();
 
         $this->calculateUsage->forget($document->workspace);

@@ -50,8 +50,6 @@ class UpdateDocument
                 $document->recordMetadataSuggestions([]);
             }
 
-            // Only when the fields themselves moved: a retitling teaches
-            // nothing, and mining reads a page of text.
             if ($document->wasChanged('metadata')) {
                 LearnDocumentIntakeLabels::dispatch($document)->afterCommit();
             }

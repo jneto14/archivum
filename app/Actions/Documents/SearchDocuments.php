@@ -137,9 +137,6 @@ class SearchDocuments
                     $tagIds !== [],
                     fn (Builder $q) => $q->whereHas('tags', fn (Builder $tags) => $tags->whereIn('tags.id', $tagIds)),
                 )
-                // Where a document *is*, not where it has been: currentLocation
-                // is the latest of its assignments, so a document that used to
-                // sit here and was moved on does not come back.
                 ->when(
                     $nodeIds !== null,
                     fn (Builder $q) => $q->whereHas(

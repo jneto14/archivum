@@ -29,8 +29,6 @@ class StartDocumentExport
      */
     public function handle(Workspace $workspace, User $user): Task
     {
-        // `lockKey()` is nullable because attachment text extraction has no
-        // per-workspace exclusivity; an export always does.
         $lockKey = TaskType::DocumentExport->lockKey($workspace->id)
             ?? throw new LogicException('A document export must have a workspace lock.');
 

@@ -38,20 +38,12 @@ class RetryTask
             ]);
         }
 
-        // A bulk re-extraction is a batch of thousands, not a job this row can
-        // re-dispatch: what it left behind is however much of the archive it
-        // did read, and the right answer is a fresh sweep — which the button
-        // on this page starts, and which can be narrowed from the console to
-        // whatever the first run missed. Refused before the lock below is
-        // taken, so refusing does not hold one.
         if ($task->type === TaskType::BulkAttachmentTextExtraction) {
             throw ValidationException::withMessages([
                 'task' => __('workspace.reextraction_cannot_retry'),
             ]);
         }
 
-        // Null for attachment text extraction, which is scoped to one file and
-        // has no workspace-wide exclusivity to re-establish.
         $lockKey = $task->type->lockKey($task->workspace_id);
         $lock = $lockKey === null ? null : Cache::lock($lockKey, 600);
 
@@ -63,9 +55,9 @@ class RetryTask
             ]);
         }
 
-        // Resolved before the task is reset below, so that retrying a task
-        // whose attachment has since been deleted fails without leaving the row
-        // stuck on "queued" with nothing to run it.
+        // Resolved before the task is reset below: a deleted attachment must
+        // fail this call outright rather than leave the row reset to "queued"
+        // with nothing left to run it.
         $attachment = $task->type === TaskType::AttachmentTextExtraction
             ? $this->attachmentFor($task)
             : null;
@@ -80,11 +72,7 @@ class RetryTask
         ]);
 
         // The `?? throw` arms restate what the branches above already
-        // guarantee — a locked type holds a lock, an extraction has its
-        // attachment — in a form the type checker can see. A bulk
-        // re-extraction has no arm for the same reason: it is refused above,
-        // and adding a task type without deciding what retrying it means
-        // still makes this match non-exhaustive at build time.
+        // guarantee, in a form the type checker can see.
         match ($task->type) {
             TaskType::DocumentExport => ExportWorkspaceDocuments::dispatch(
                 $task,
