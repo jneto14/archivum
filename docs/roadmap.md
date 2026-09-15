@@ -93,7 +93,6 @@ explicitly promoted into scope and given an issue.
 - Automatic backups
 - Retention policies
 - Document sharing outside the workspace
-- A real HTTP API — see [api.md](api.md)
 - Usage analytics
 
 If you want one of these, open a feature request and say what you would use it

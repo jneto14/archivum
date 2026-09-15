@@ -95,7 +95,7 @@ one trap worth knowing about before it costs you an afternoon.
 | [search.md](docs/search.md) | Scout, the full-text index, and the two search modes |
 | [storage.md](docs/storage.md) | Where files live, and what the database keeps about them |
 | [ocr.md](docs/ocr.md) | Text extraction: the pipeline, its binaries and its failure modes |
-| [api.md](docs/api.md) | The HTTP API surface, such as it currently is |
+| [api.md](docs/api.md) | The token-authenticated HTTP API under /api/v1 |
 | [development.md](docs/development.md) | Running it locally, the checks, and the conventions |
 | [deployment.md](docs/deployment.md) | Running it in production |
 | [roadmap.md](docs/roadmap.md) | Scope, principles, and possible future work |
