@@ -42,7 +42,12 @@ class ActivityController extends Controller
             ->when(is_string($event), fn (Builder $query) => $query->where('event', $event))
             ->when(is_string($logName), fn (Builder $query) => $query->where('log_name', $logName))
             ->with('causer')
+            // The id settles the ties. One action writes several entries at
+            // the same instant, and an order that leaves them tied lets a
+            // client paging the trail see an entry twice and miss the one it
+            // displaced.
             ->latest('created_at')
+            ->orderByDesc('id')
             ->paginate(PageSize::fromRequest($request))
             ->withQueryString();
 

@@ -206,4 +206,28 @@ class IntakeApiTest extends TestCase
             ->getJson("/api/v1/documents/{$other->id}/capture-sessions/{$id}")
             ->assertNotFound();
     }
+
+    /**
+     * A bulk answer stamps every document it touched with the same
+     * `updated_at`, and the queue a client pages through next is exactly those
+     * documents. Without the id settling the ties, paging that queue repeats
+     * one document and skips another.
+     */
+    public function test_documents_stamped_the_same_second_are_ordered_by_id()
+    {
+        foreach (range(1, 4) as $ignored) {
+            $this->documentAwaitingAReading();
+        }
+
+        Document::query()->update(['updated_at' => '2026-09-15 12:00:00']);
+
+        $response = $this->withToken($this->token)
+            ->getJson("/api/v1/workspaces/{$this->workspace->id}/review")
+            ->assertOk();
+
+        $this->assertSame(
+            Document::query()->orderByDesc('id')->pluck('id')->all(),
+            array_column($response->json('data'), 'id'),
+        );
+    }
 }

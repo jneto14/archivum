@@ -56,7 +56,13 @@ class TaskController extends Controller
             ->when($status !== null, fn (Builder $query) => $query->where('status', $status))
             ->when($type !== null, fn (Builder $query) => $query->where('type', $type))
             ->with('user')
+            // The id settles the ties. Reading a batch of uploads creates
+            // tasks a second apart at most, and an order that leaves them
+            // tied lets `paginate()` — a fresh query per page, with a
+            // different OFFSET — hand a client one task twice and another
+            // never. The equivalent page settles them the same way.
             ->latest('created_at')
+            ->orderByDesc('id')
             ->paginate(PageSize::fromRequest($request))
             ->withQueryString();
 
