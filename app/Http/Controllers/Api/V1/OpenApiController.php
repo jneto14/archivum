@@ -11,13 +11,9 @@ use Illuminate\Http\JsonResponse;
 /**
  * Serves the API's own description.
  *
- * Built from the route table on every request rather than read off the disk,
- * so what a client gets describes the application that is running. There is no
- * step anybody can forget and no file that can go stale — and no reason for a
- * deployment to carry `docs/openapi.json` at all.
- *
- * The committed snapshot exists for review, so a change to the contract shows
- * up in a diff. Nothing here reads it.
+ * Built from the route table on every request. There is no file to keep in
+ * step, no step anybody can forget, and nothing to deploy: what a client gets
+ * describes the application that is answering it.
  */
 class OpenApiController extends Controller
 {
@@ -29,11 +25,9 @@ class OpenApiController extends Controller
      * it is already public in the repository — there is nothing here a token
      * would be protecting. Still throttled, being an unauthenticated route.
      *
-     * The committed snapshot carries `{origin}` as a server variable, because
-     * it lives in a repository every installation deploys from its own host
-     * and baking a URL into it would write whichever machine ran the command
-     * into everybody's copy. Served from a running installation there is no
-     * such ambiguity, so the variable is resolved — through `url()`, so an
+     * The document carries `{origin}` as a server variable, so that it says
+     * something true for any installation. Served from one, there is no such
+     * ambiguity, so the variable is resolved here — through `url()`, so an
      * installation behind a path prefix gets the prefix too.
      *
      * @param OpenApiSpec $spec Builds the document from the route table.

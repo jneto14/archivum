@@ -13,24 +13,19 @@ serves its own:
 GET /api/v1/openapi.json
 ```
 
-**That is the copy to point a tool at.** It is built from the application's own
-route table on each request, so it describes the installation that is running
-rather than the one somebody last remembered to regenerate something for, and
-it arrives with this installation's URL already in it — including any path
-prefix it is served under. There is no build step and nothing to run.
+It is built from the application's own route table on each request, so it
+describes the installation that is answering rather than one somebody last
+remembered to regenerate, and it arrives with that installation's URL already
+in it — including any path prefix it is served under. There is no file to
+fetch, no build step, and nothing to run.
+
+Deliberately no committed copy. A generated file in the repository would have
+to be refreshed on every change to the API, and the diff it would give during
+review says nothing the routes and `App\Support\OpenApiSpec` do not already
+say in the same pull request.
 
 It is the one route that needs no token: it describes how to authenticate, so
-requiring authentication to read it would be a bootstrapping problem, and it is
-public in the repository anyway.
-
-[`openapi.json`](openapi.json) in this directory is a committed snapshot of the
-same document, refreshed by `php artisan api:openapi`. It exists so a change to
-the API contract shows up in a diff during review, next to the routes that
-caused it — nothing at runtime reads it, and a deployment does not need it. A
-test regenerates it and fails when the committed copy has fallen behind, so a
-route added without refreshing it fails CI rather than quietly going
-undocumented. Its `servers` entry carries `{origin}` as a variable, because the
-file lives in a repository every installation deploys from its own host.
+requiring authentication to read it would be a bootstrapping problem.
 
 This page is the half a spec cannot carry: why the listing is also the search,
 why an attachment's `GET` is its metadata rather than its bytes, why a capture

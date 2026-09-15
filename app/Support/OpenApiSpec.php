@@ -18,10 +18,6 @@ use Illuminate\Support\Str;
  * eighty routes and assembling arrays — so the endpoint that serves it just
  * calls this.
  *
- * `docs/openapi.json` is a snapshot of the same thing, written by
- * `php artisan api:openapi` and committed so that a change to the API contract
- * shows up in a diff during review. Nothing at runtime reads it.
- *
  * What is derived and what is stated is deliberate. Paths, methods, path
  * parameters, tags and security come from the routes and are therefore always
  * right. Summaries, request bodies and response schemas are stated in

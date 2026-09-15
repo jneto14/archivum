@@ -4,37 +4,28 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Api\V1;
 
-use App\Console\Commands\GenerateOpenApiSpec;
+use App\Support\OpenApiSpec;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Keeps docs/openapi.json honest.
+ * Keeps the spec worth reading.
  *
- * The spec is generated from the route table, so it cannot invent an endpoint.
- * What it can do is fall behind, which is what these assert against: a route
- * added without regenerating fails here rather than going quietly
- * undocumented, and a spec whose references do not resolve fails before a
- * client generator finds out the hard way.
+ * It is built from the route table on every request, so it cannot invent an
+ * endpoint or fall behind one. What it can still do is describe them badly —
+ * a dangling reference a client generator reports three steps from the cause,
+ * a group grown into a list nobody skips, a summary that is a sentence — and
+ * none of that fails loudly on its own.
  */
 class OpenApiSpecTest extends TestCase
 {
     /**
-     * @return array<string, mixed> The committed spec.
+     * @return array<string, mixed> The spec, built the way the endpoint builds it.
      */
     private function spec(): array
     {
-        $path = base_path(GenerateOpenApiSpec::PATH);
-
-        $this->assertFileExists($path, 'Run `php artisan api:openapi`.');
-
-        return json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
-    }
-
-    public function test_the_committed_spec_is_what_the_command_produces()
-    {
-        $this->artisan('api:openapi', ['--check' => true])->assertSuccessful();
+        return app(OpenApiSpec::class)->build();
     }
 
     public function test_every_versioned_route_is_described()
@@ -339,23 +330,20 @@ class OpenApiSpecTest extends TestCase
      * a bootstrapping problem — and it is already public in the repository.
      */
     /**
-     * The point of building it per request. A route registered after the
-     * committed snapshot was written still appears in what is served, which it
-     * could not if the endpoint were reading that file.
+     * The point of building it per request: a route that did not exist when
+     * the application booted this test is in the document all the same.
      */
     public function test_the_served_spec_describes_the_application_that_is_running()
     {
+        $this->getJson('/api/v1/openapi.json')
+            ->assertOk()
+            ->assertJsonMissingPath('paths./probe');
+
         Route::get('api/v1/probe', fn () => null)->name('api.v1.probe');
 
         $this->getJson('/api/v1/openapi.json')
             ->assertOk()
             ->assertJsonPath('paths./probe.get.operationId', 'probe');
-
-        $this->assertArrayNotHasKey(
-            '/probe',
-            $this->spec()['paths'],
-            'The committed snapshot should know nothing about a route invented in a test.',
-        );
     }
 
     public function test_the_spec_is_served_without_a_token()
