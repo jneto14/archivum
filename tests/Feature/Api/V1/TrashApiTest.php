@@ -210,4 +210,24 @@ class TrashApiTest extends TestCase
             ->postJson("/api/v1/workspaces/{$this->workspace->id}/trash/documents/{$theirs->id}")
             ->assertNotFound();
     }
+
+    /**
+     * A trashed attachment arrives with no document row beside it, so the
+     * filename alone does not say what is about to be lost. The document is
+     * very often in the trash too, which is why the listing lifts its
+     * soft-delete scope rather than handing back a row naming nothing.
+     */
+    public function test_a_trashed_attachment_names_the_document_it_came_from()
+    {
+        $document = $this->document();
+        $attachment = $this->attachmentOn($document);
+        app(TrashDocument::class)->handle($document);
+
+        $this->withToken($this->token)
+            ->getJson("/api/v1/workspaces/{$this->workspace->id}/trash/attachments")
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $attachment->id)
+            ->assertJsonPath('data.0.document.id', $document->id)
+            ->assertJsonPath('data.0.document.title', $document->title);
+    }
 }

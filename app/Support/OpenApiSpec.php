@@ -584,6 +584,14 @@ class OpenApiSpec
                 'file_uploaded_at' => array_merge($date, [
                     'description' => 'When the file sitting here now arrived, which stops agreeing with created_at the first time something replaces it.',
                 ]),
+                'document' => [
+                    'type' => ['object', 'null'],
+                    'description' => 'Only on the trash listing, where a loose file arrives with no document row beside it.',
+                    'properties' => [
+                        'id' => $uuid,
+                        'title' => ['type' => 'string'],
+                    ],
+                ],
                 'uploader' => $person,
                 'duplicate_of' => [
                     'type' => ['object', 'null'],

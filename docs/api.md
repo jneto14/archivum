@@ -215,7 +215,7 @@ A batch that fails validation, or would cross a workspace limit, fails whole.
 | | |
 | --- | --- |
 | `GET /workspaces/{workspace}/trash/documents` | |
-| `GET /workspaces/{workspace}/trash/attachments` | |
+| `GET /workspaces/{workspace}/trash/attachments` | Each one names the document it came from |
 | `POST`/`DELETE /workspaces/{workspace}/trash/documents/{document}` | Restore, or destroy |
 | `POST`/`DELETE /workspaces/{workspace}/trash/attachments/{attachment}` | Restore, or destroy |
 | `DELETE /workspaces/{workspace}/trash` | Empty it |

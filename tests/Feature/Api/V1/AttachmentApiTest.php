@@ -235,4 +235,19 @@ class AttachmentApiTest extends TestCase
         $this->assertNotContains($existing->id, array_column($response->json('data'), 'id'));
         $this->assertCount(2, $this->document->refresh()->attachments);
     }
+
+    /**
+     * The document is carried by the trash listing and nowhere else: a client
+     * asking a document for its attachments already knows which document it
+     * asked.
+     */
+    public function test_a_document_s_own_listing_does_not_name_the_document_back()
+    {
+        $this->upload();
+
+        $this->withToken($this->token)
+            ->getJson("/api/v1/documents/{$this->document->id}/attachments")
+            ->assertOk()
+            ->assertJsonMissingPath('data.0.document');
+    }
 }

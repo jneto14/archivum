@@ -103,7 +103,17 @@ class TrashController extends Controller
             ->paginate(PageSize::fromRequest($request))
             ->withQueryString();
 
-        return AttachmentResource::collection($attachments)->additional([
+        $collection = AttachmentResource::collection($attachments);
+
+        // Opt every row into naming its document. `collection()` offers no
+        // per-item hook, and the document is the whole reason the eager load
+        // above lifts the soft-delete scope: a filename with nothing beside it
+        // does not tell a client what it is about to lose.
+        $collection->collection->each(
+            fn (AttachmentResource $resource) => $resource->withDocument(),
+        );
+
+        return $collection->additional([
             'meta' => ['retention_days' => (int) config('archivum.trash.retention_days')],
         ]);
     }

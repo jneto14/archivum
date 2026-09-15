@@ -26,6 +26,16 @@ class AttachmentResource extends JsonResource
     private bool $withText = false;
 
     /**
+     * Whether this response carries the document the file hangs off.
+     *
+     * Off by default, and an explicit flag rather than `whenLoaded` on
+     * purpose: several handlers reach for `$attachment->document` to do their
+     * work, and keying the shape off whether a relation happens to be loaded
+     * would let one of them quietly change the shape of an unrelated response.
+     */
+    private bool $withDocument = false;
+
+    /**
      * Include the extracted text in this response.
      *
      * @return self The same resource, carrying its reading.
@@ -33,6 +43,25 @@ class AttachmentResource extends JsonResource
     public function withText(): self
     {
         $this->withText = true;
+
+        return $this;
+    }
+
+    /**
+     * Include the document this file belongs to.
+     *
+     * Only the trash listing asks for it. Everywhere else the document is
+     * either what was asked about or is named by `document_id`; in the trash a
+     * client is walking loose files with no document row beside them, and a
+     * filename on its own does not say what is about to be lost.
+     *
+     * The caller is responsible for eager-loading `document`.
+     *
+     * @return self The same resource, carrying its document.
+     */
+    public function withDocument(): self
+    {
+        $this->withDocument = true;
 
         return $this;
     }
@@ -67,6 +96,10 @@ class AttachmentResource extends JsonResource
             // When the file sitting here now arrived, which stops agreeing
             // with `created_at` the first time something replaces it.
             'file_uploaded_at' => $this->fileUploadedAt()?->toIso8601String(),
+            'document' => $this->when($this->withDocument, fn (): ?array => $this->resource->document === null ? null : [
+                'id' => $this->resource->document->id,
+                'title' => $this->resource->document->title,
+            ]),
             'uploader' => $this->whenLoaded('uploader', fn (): ?array => $this->uploader === null ? null : [
                 'id' => $this->uploader->id,
                 'name' => $this->uploader->name,
