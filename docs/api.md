@@ -188,7 +188,7 @@ deleted; a tag applied to documents does not, and takes its labels with it.
 | | |
 | --- | --- |
 | `GET /documents/{document}/attachments` | |
-| `POST /documents/{document}/attachments` | Multipart, `files[]`, always a list |
+| `POST /documents/{document}/attachments` | Multipart, `files[]`, always a list; answers with what it created |
 | `GET /attachments/{attachment}` | Metadata, including the extracted text |
 | `GET /attachments/{attachment}/file` | Download |
 | `GET /attachments/{attachment}/preview` | Inline, where the type is safe to render |

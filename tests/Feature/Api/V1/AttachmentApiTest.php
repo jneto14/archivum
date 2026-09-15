@@ -211,4 +211,28 @@ class AttachmentApiTest extends TestCase
             ->assertStatus(422)
             ->assertJsonStructure(['message', 'errors' => ['files']]);
     }
+
+    /**
+     * A 201 answers with what it created. Re-reading the document's whole
+     * attachment list to get the database-side defaults would report every
+     * scan already on it as though this upload had made them, and a client
+     * that files the response as "the new ones" would be wrong about all of
+     * them.
+     */
+    public function test_the_upload_answers_with_what_it_created_and_nothing_else()
+    {
+        $existing = $this->upload('already-here.pdf');
+
+        $response = $this->withToken($this->token)->postJson(
+            "/api/v1/documents/{$this->document->id}/attachments",
+            ['files' => [UploadedFile::fake()->create('new.pdf', 10)]],
+        );
+
+        $response->assertCreated()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.filename', 'new.pdf');
+
+        $this->assertNotContains($existing->id, array_column($response->json('data'), 'id'));
+        $this->assertCount(2, $this->document->refresh()->attachments);
+    }
 }
