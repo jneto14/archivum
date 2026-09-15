@@ -17,6 +17,7 @@ For what Archivum is and how to get it running, start at the [project README](..
 | [storage.md](storage.md) | Where files live, and what the database keeps about them |
 | [ocr.md](ocr.md) | Attachment text extraction: the pipeline, its binaries and its failure modes |
 | [api.md](api.md) | The token-authenticated HTTP API under /api/v1 |
+| [openapi.json](openapi.json) | The same API as an OpenAPI 3.1 spec, generated from the routes |
 | [development.md](development.md) | Running the project locally, the checks, and the conventions |
 | [deployment.md](deployment.md) | Running it in production: the image, the stack, upgrades and configuration |
 | [roadmap.md](roadmap.md) | What is in scope, what is deliberately not, and the principles behind both |

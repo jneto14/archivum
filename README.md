@@ -96,6 +96,7 @@ one trap worth knowing about before it costs you an afternoon.
 | [storage.md](docs/storage.md) | Where files live, and what the database keeps about them |
 | [ocr.md](docs/ocr.md) | Text extraction: the pipeline, its binaries and its failure modes |
 | [api.md](docs/api.md) | The token-authenticated HTTP API under /api/v1 |
+| [openapi.json](docs/openapi.json) | The same API as an OpenAPI 3.1 spec, generated from the routes |
 | [development.md](docs/development.md) | Running it locally, the checks, and the conventions |
 | [deployment.md](docs/deployment.md) | Running it in production |
 | [roadmap.md](docs/roadmap.md) | Scope, principles, and possible future work |
