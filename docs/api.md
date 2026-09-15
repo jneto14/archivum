@@ -9,11 +9,23 @@ API](#not-on-the-api).
 page: an OpenAPI 3.1 spec for client generators, for Bruno, Insomnia or
 Postman, and for schema validation.
 
-It is generated from the application's own route table by `php artisan
+Every installation serves it too, with its own URL already filled in:
+
+```text
+GET /api/v1/openapi.json
+```
+
+That one route needs no token — it describes how to authenticate, so requiring
+authentication to read it would be a bootstrapping problem, and it is public in
+the repository anyway. It is the copy to point a client generator at, because
+the committed file carries `{origin}` as a variable: it lives in a repository
+every installation deploys from its own host, and baking a URL in would write
+whichever machine ran the generator into everybody's copy.
+
+The file is generated from the application's own route table by `php artisan
 api:openapi`, so it cannot describe an endpoint that does not exist, and a test
 asserts the committed file is what the command produces — a route added without
-regenerating fails CI rather than quietly going undocumented. Its `origin`
-server variable is where you put your own installation's URL.
+regenerating fails CI rather than quietly going undocumented.
 
 This page is the half a spec cannot carry: why the listing is also the search,
 why an attachment's `GET` is its metadata rather than its bytes, why a capture

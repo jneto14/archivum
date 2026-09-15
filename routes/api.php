@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\OpenApiController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -31,6 +32,16 @@ Route::get('/user', fn (Request $request) => $request->user())
 | not a capability.
 |
 */
+
+/*
+| The API's own description, outside `auth:sanctum` on purpose: it says how to
+| authenticate, so needing a token to read it is a bootstrapping problem, and
+| it is already public in the repository. Throttled, being an unauthenticated
+| file read.
+*/
+Route::get('v1/openapi.json', [OpenApiController::class, 'show'])
+    ->middleware('throttle:api')
+    ->name('api.v1.openapi');
 
 Route::prefix('v1')
     ->as('api.v1.')

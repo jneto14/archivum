@@ -1514,6 +1514,36 @@
                 }
             }
         },
+        "/openapi.json": {
+            "get": {
+                "operationId": "openapi",
+                "tags": [
+                    "Identity"
+                ],
+                "summary": "This document, pointed at this installation",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "The OpenAPI spec, with `servers` resolved to the installation's own origin rather than the `{origin}` variable the committed file carries.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "description": "An OpenAPI 3.1 document."
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    }
+                },
+                "security": []
+            }
+        },
         "/organization/nodes/{node}/documents": {
             "get": {
                 "operationId": "organization.nodes.documents",

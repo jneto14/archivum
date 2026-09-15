@@ -117,6 +117,10 @@ class OpenApiSpecTest extends TestCase
         }
     }
 
+    /**
+     * Everything but the spec itself, which is public because it describes how
+     * to authenticate and is no use to a client that must already have.
+     */
     public function test_every_operation_requires_a_token()
     {
         $spec = $this->spec();
@@ -125,6 +129,18 @@ class OpenApiSpecTest extends TestCase
 
         foreach ($spec['paths'] as $path => $methods) {
             foreach ($methods as $method => $operation) {
+                if ($path === '/openapi.json') {
+                    $this->assertSame([], $operation['security']);
+
+                    continue;
+                }
+
+                $this->assertArrayNotHasKey(
+                    'security',
+                    $operation,
+                    mb_strtoupper($method) . " {$path} opts out of the document's security requirement.",
+                );
+
                 $this->assertArrayHasKey(
                     '401',
                     $operation['responses'],
@@ -145,6 +161,40 @@ class OpenApiSpecTest extends TestCase
 
         $this->assertSame('{origin}/api/v1', $spec['servers'][0]['url']);
         $this->assertStringNotContainsString((string) config('app.url'), json_encode($spec['servers']));
+    }
+
+    /**
+     * The committed file cannot name a host; a running installation can, and
+     * that substitution is the reason to serve it rather than only ship it.
+     */
+    public function test_the_served_spec_points_at_this_installation()
+    {
+        $response = $this->getJson('/api/v1/openapi.json');
+
+        $response->assertOk()
+            ->assertJsonPath('openapi', '3.1.0')
+            ->assertJsonPath('servers.0.url', url('/api/v1'));
+
+        $this->assertArrayNotHasKey('variables', $response->json('servers.0'));
+    }
+
+    /**
+     * It describes how to authenticate, so needing a token to read it would be
+     * a bootstrapping problem — and it is already public in the repository.
+     */
+    public function test_the_spec_is_served_without_a_token()
+    {
+        $this->assertGuest();
+
+        $this->getJson('/api/v1/openapi.json')->assertOk();
+    }
+
+    public function test_the_spec_describes_itself()
+    {
+        $spec = $this->spec();
+
+        $this->assertArrayHasKey('/openapi.json', $spec['paths']);
+        $this->assertSame([], $spec['paths']['/openapi.json']['get']['security']);
     }
 
     /**

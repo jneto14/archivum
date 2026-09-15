@@ -190,6 +190,13 @@ class GenerateOpenApiSpec extends Command
             'responses' => $this->responses($entry),
         ];
 
+        // Only one operation is public, and it says so rather than inheriting
+        // the document-level requirement: a client reading the spec to find
+        // out how to authenticate has no token yet.
+        if (($entry['public'] ?? false) === true) {
+            $operation['security'] = [];
+        }
+
         if (isset($entry['request'])) {
             $operation['requestBody'] = [
                 'required' => true,
@@ -261,13 +268,15 @@ class GenerateOpenApiSpec extends Command
             ];
         }
 
-        $responses = [
-            $status => $success,
-            '401' => ['$ref' => '#/components/responses/Unauthorized'],
-            '403' => ['$ref' => '#/components/responses/Forbidden'],
-            '404' => ['$ref' => '#/components/responses/NotFound'],
-            '429' => ['$ref' => '#/components/responses/TooManyRequests'],
-        ];
+        $responses = [$status => $success];
+
+        if (($entry['public'] ?? false) !== true) {
+            $responses['401'] = ['$ref' => '#/components/responses/Unauthorized'];
+            $responses['403'] = ['$ref' => '#/components/responses/Forbidden'];
+        }
+
+        $responses['404'] = ['$ref' => '#/components/responses/NotFound'];
+        $responses['429'] = ['$ref' => '#/components/responses/TooManyRequests'];
 
         if (isset($entry['request']) || ($entry['validates'] ?? false)) {
             $responses['422'] = ['$ref' => '#/components/responses/ValidationFailed'];
@@ -749,6 +758,14 @@ class GenerateOpenApiSpec extends Command
         $roleBody = $this->object(['role' => ['type' => 'string', 'enum' => ['admin', 'user']]], ['role']);
 
         return [
+            'openapi' => [
+                'tag' => 'Identity',
+                'summary' => 'This document, pointed at this installation',
+                'public' => true,
+                'returns' => "The OpenAPI spec, with `servers` resolved to the installation's own origin rather than the `{origin}` variable the committed file carries.",
+                'response' => ['type' => 'object', 'description' => 'An OpenAPI 3.1 document.'],
+            ],
+
             'user.show' => [
                 'tag' => 'Identity',
                 'summary' => 'Who this token belongs to',
