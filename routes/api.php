@@ -37,4 +37,6 @@ Route::prefix('v1')
     ->middleware(['auth:sanctum', 'throttle:api'])
     ->group(function (): void {
         Route::get('/user', [UserController::class, 'show'])->name('user.show');
+
+        require __DIR__ . '/api/v1/documents.php';
     });

@@ -12,6 +12,7 @@ use App\Actions\Documents\TrashDocument;
 use App\Actions\Documents\UpdateDocument;
 use App\Actions\Organization\ListSchemeLocations;
 use App\Actions\Organization\SuggestDocumentLocations;
+use App\Concerns\ResolvesWorkspaceRecords;
 use App\Enums\SearchMode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Documents\SearchDocumentsRequest;
@@ -36,6 +37,8 @@ use Inertia\Response;
 
 class DocumentController extends Controller
 {
+    use ResolvesWorkspaceRecords;
+
     /**
      * List documents in the given workspace, filtered and paginated.
      *
@@ -290,41 +293,6 @@ class DocumentController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('document.trashed')]);
 
         return redirect()->route('documents.index', $workspace);
-    }
-
-    /**
-     * Resolve a document type by id, scoped to the given workspace.
-     *
-     * @param Workspace $workspace The workspace the document type must belong to.
-     * @param string $documentTypeId The UUID of the document type to resolve.
-     *
-     * @return DocumentType The matching document type.
-     *
-     * @throws ModelNotFoundException If no document type with $documentTypeId exists in $workspace.
-     */
-    private function scopedDocumentType(Workspace $workspace, string $documentTypeId): DocumentType
-    {
-        return DocumentType::query()
-            ->where('workspace_id', $workspace->id)
-            ->where('id', $documentTypeId)
-            ->firstOrFail();
-    }
-
-    /**
-     * Filter the given tag ids down to those that actually belong to the workspace.
-     *
-     * @param Workspace $workspace The workspace tags must belong to.
-     * @param array<int, string> $tagIds Candidate tag UUIDs, e.g. from client input.
-     *
-     * @return array<int, string> The subset of $tagIds that exist and belong to $workspace.
-     */
-    private function scopedTagIds(Workspace $workspace, array $tagIds): array
-    {
-        return Tag::query()
-            ->where('workspace_id', $workspace->id)
-            ->whereIn('id', $tagIds)
-            ->pluck('id')
-            ->all();
     }
 
     /**
