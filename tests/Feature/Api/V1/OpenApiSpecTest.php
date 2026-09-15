@@ -7,6 +7,7 @@ namespace Tests\Feature\Api\V1;
 use App\Support\OpenApiSpec;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
+use ReflectionMethod;
 use Tests\TestCase;
 
 /**
@@ -102,7 +103,7 @@ class OpenApiSpecTest extends TestCase
                 $this->assertNotSame(
                     $operation['operationId'],
                     $operation['summary'],
-                    mb_strtoupper($method) . " {$path} has no entry in the command's catalogue.",
+                    mb_strtoupper($method) . " {$path} has no entry in the catalogue.",
                 );
             }
         }
@@ -298,9 +299,8 @@ class OpenApiSpecTest extends TestCase
     }
 
     /**
-     * Committed to a repository every installation deploys from its own host,
-     * so a concrete origin in here would be whichever machine last ran the
-     * command.
+     * Every installation is served from its own host, so the document the
+     * builder produces names none of them.
      */
     public function test_the_server_url_is_a_variable_rather_than_somebody_s_host()
     {
@@ -311,8 +311,9 @@ class OpenApiSpecTest extends TestCase
     }
 
     /**
-     * The committed file cannot name a host; a running installation can, and
-     * that substitution is the reason to serve it rather than only ship it.
+     * The builder cannot name a host; the installation answering the request
+     * can, and that substitution is the reason this is served rather than
+     * written out once.
      */
     public function test_the_served_spec_points_at_this_installation()
     {
@@ -325,10 +326,6 @@ class OpenApiSpecTest extends TestCase
         $this->assertArrayNotHasKey('variables', $response->json('servers.0'));
     }
 
-    /**
-     * It describes how to authenticate, so needing a token to read it would be
-     * a bootstrapping problem — and it is already public in the repository.
-     */
     /**
      * The point of building it per request: a route that did not exist when
      * the application booted this test is in the document all the same.
@@ -359,6 +356,47 @@ class OpenApiSpecTest extends TestCase
 
         $this->assertArrayHasKey('/openapi.json', $spec['paths']);
         $this->assertSame([], $spec['paths']['/openapi.json']['get']['security']);
+    }
+
+    /**
+     * A description that is written, reviewed and then dropped on the way out
+     * is worse than one nobody wrote: the catalogue reads as complete and the
+     * document a client actually gets is not.
+     */
+    public function test_every_catalogued_description_reaches_the_document()
+    {
+        $spec = $this->spec();
+
+        $described = [];
+
+        foreach ($spec['paths'] as $methods) {
+            foreach ($methods as $operation) {
+                if (isset($operation['description'])) {
+                    $described[$operation['operationId']] = $operation['description'];
+                }
+            }
+        }
+
+        $catalogue = (new ReflectionMethod(OpenApiSpec::class, 'catalogue'))
+            ->invoke(app(OpenApiSpec::class));
+
+        $catalogued = 0;
+
+        foreach ($catalogue as $key => $entry) {
+            if (!isset($entry['description'])) {
+                continue;
+            }
+
+            $catalogued++;
+
+            $this->assertSame(
+                $entry['description'],
+                $described[$key] ?? null,
+                "{$key} is described in the catalogue and the description does not reach the document.",
+            );
+        }
+
+        $this->assertGreaterThan(0, $catalogued, 'Nothing in the catalogue carries a description.');
     }
 
     /**

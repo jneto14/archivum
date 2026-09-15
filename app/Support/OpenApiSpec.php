@@ -52,10 +52,10 @@ class OpenApiSpec
                 'version' => '1.0.0',
                 'description' => 'The token-authenticated HTTP API. See docs/api.md for the reasoning behind these shapes.',
             ],
-            // A variable rather than a baked-in URL: this file is committed to
-            // a repository every installation deploys from its own host, and
-            // reading APP_URL at generation time would write whichever machine
-            // ran the command into everybody's spec.
+            // A variable rather than a baked-in URL: the document this
+            // builds names no host, because every installation is served from
+            // its own. The endpoint substitutes the origin it is answering on,
+            // which is the one thing only a running installation knows.
             'servers' => [[
                 'url' => '{origin}/api/v1',
                 'variables' => ['origin' => [
@@ -202,6 +202,9 @@ class OpenApiSpec
             'operationId' => $key,
             'tags' => [$entry['tag'] ?? 'Documents'],
             'summary' => $entry['summary'] ?? $key,
+            // Straight after the summary, which is where a client renders it
+            // and where somebody reading the raw document expects it.
+            ...(isset($entry['description']) ? ['description' => $entry['description']] : []),
             'parameters' => $this->parameters($route, $entry),
             'responses' => $this->responses($entry),
         ];
@@ -801,7 +804,7 @@ class OpenApiSpec
                 'tag' => 'API spec',
                 'summary' => 'Get the API spec',
                 'public' => true,
-                'description' => "This document, with `servers` resolved to the installation's own origin rather than the `{origin}` variable the committed file carries. The one endpoint that needs no token: it describes how to authenticate, so requiring authentication to read it would be a bootstrapping problem.",
+                'description' => "This document, with `servers` resolved to the installation's own origin rather than the `{origin}` variable a client would otherwise have to fill in. The one endpoint that needs no token: it describes how to authenticate, so requiring authentication to read it would be a bootstrapping problem.",
                 'returns' => 'An OpenAPI 3.1 document.',
                 'response' => ['type' => 'object'],
             ],
