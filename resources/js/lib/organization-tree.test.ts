@@ -21,8 +21,6 @@ describe('nodesAtDepth', () => {
 
     it('returns nothing below the tree or above its root', () => {
         expect(nodesAtDepth(tree, 3)).toEqual([]);
-        // A depth derived by arithmetic can go negative; asking for the parents
-        // of the root level must come back empty rather than the whole tree.
         expect(nodesAtDepth(tree, -1)).toEqual([]);
     });
 });

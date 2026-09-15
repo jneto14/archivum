@@ -72,8 +72,6 @@ export default function OrganizationLabels({ scheme, labels }: Props) {
                         {labels.map((label) => (
                             <div
                                 key={label.id}
-                                // Sized for common adhesive stock, and told not
-                                // to break across a page.
                                 className="flex h-[30mm] w-[62mm] break-inside-avoid items-center gap-[3mm] rounded border border-neutral-300 p-[3mm]"
                             >
                                 <img

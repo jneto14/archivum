@@ -77,9 +77,6 @@ export function OcrReadingReview({ reading }: Props) {
             </div>
 
             {reading.text && reading.unread_word_count ? (
-                // Why this row is here at all. Without the number the reader
-                // has no idea how much of the page is missing from what they
-                // are looking at.
                 <p className="text-xs text-muted-foreground">
                     {t('documents.review.reading_words_dropped', {
                         dropped: reading.unread_word_count,
@@ -89,10 +86,6 @@ export function OcrReadingReview({ reading }: Props) {
             ) : null}
 
             {reading.text ? (
-                // Preformatted, not prose: the line breaks are the page's own,
-                // and a value is read by the words in front of it along a line.
-                // Reflowed, the text stops resembling what the reader saw,
-                // which is the whole point of showing it.
                 <pre className="max-h-80 overflow-auto rounded-md border bg-muted/40 p-3 font-mono text-xs whitespace-pre-wrap">
                     {reading.text}
                 </pre>

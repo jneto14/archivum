@@ -95,8 +95,6 @@ export default function WorkspaceActivity({
         ],
     });
 
-    // The label is not among them: it is assembled per entry from the logged
-    // properties rather than stored, so there is no column to order by.
     const sorting = tableSort(activityIndex.url(workspace.id), sort, [
         { key: 'log_name', label: t('workspace.activity.column_type') },
         { key: 'event', label: t('workspace.activity.column_event') },

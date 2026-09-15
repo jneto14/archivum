@@ -23,9 +23,8 @@ import { registerServiceWorker } from '@/lib/service-worker';
  */
 let appName = 'Archivum';
 
-// Before anything renders, so no URL is read at its build-time value first.
-// Eager on purpose: a lazily loaded route module would be the one that got
-// away. See lib/path-prefix.ts for why this is the seam.
+// Eager, and before anything renders: a lazily loaded route module would
+// read its URL at build-time value, the one this call exists to rewrite.
 applyPathPrefix(
     import.meta.glob(['./routes/**/*.ts', './actions/**/*.ts'], {
         eager: true,
@@ -38,11 +37,8 @@ createInertiaApp({
         switch (true) {
             case name === 'welcome':
                 return null;
-            // Opened by scanning a QR code on a phone that was never signed
-            // in — the desktop app's sidebar shell has no business there.
             case name.startsWith('capture/'):
                 return null;
-            // A sheet of labels on its way to a printer, for the same reason.
             case name === 'organization/labels':
                 return null;
             case name.startsWith('auth/'):
@@ -69,7 +65,6 @@ createInertiaApp({
     },
 });
 
-// This will set light / dark mode on load...
 initializeTheme();
 
 // After the route definitions were rewritten above, so the worker is asked for

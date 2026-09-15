@@ -99,26 +99,13 @@ export default function DocumentForm({
         ],
     });
 
-    // Each row carries an id that outlives its position. Keying these rows by
-    // array index meant removing one made React reuse the removed row's DOM
-    // for the row that slid up into its place — the focused input and the
-    // caret stayed put while the values shifted under them.
-    //
-    // The rows loaded from the document take their id from the metadata key,
-    // which is already unique within the object and is a fixed value rather
-    // than one generated during render. Rows added afterwards are created in an
-    // event handler, where generating one is fine; the prefix keeps the two
-    // sets from ever colliding.
+    // Each row carries an id that outlives its position: keying by array
+    // index meant removing one made React reuse the removed row's DOM for the
+    // row that slid up into its place, so the focused input and caret stayed
+    // put while the values shifted under them.
     const [metadataPairs, setMetadataPairs] = useState<
         { id: string; key: string; value: string }[]
     >(
-        // `value ?? ''` because the prop's declared shape is not a guarantee.
-        // Metadata is a free-form JSON column and its values were never
-        // validated as strings, so archives carry keys filed with a null —
-        // which reached `fold()` and took the whole form down with
-        // "Cannot read properties of null (reading 'normalize')". The
-        // validation now refuses new ones; this is what keeps the ones
-        // already stored from white-screening the page they are edited on.
         Object.entries(document?.metadata ?? {}).map(([key, value]) => ({
             id: `existing:${key}`,
             key,

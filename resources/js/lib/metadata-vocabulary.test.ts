@@ -40,9 +40,6 @@ describe('suggestKeys', () => {
     it('never offers back what is already in the field', () => {
         const vocabulary = [entry('Fornecedor'), entry('Fornecedor externo')];
 
-        // Otherwise every already-filled row on an edited document opens a list
-        // under itself offering its own key, which is where the suggestions are
-        // useless — and the empty row being added is where they are missing.
         expect(
             suggestKeys(vocabulary, { typed: 'Fornecedor', ...noType }),
         ).toEqual(['Fornecedor externo']);
@@ -55,8 +52,6 @@ describe('suggestKeys', () => {
             suggestKeys(vocabulary, {
                 typed: '',
                 documentTypeId: '',
-                // Folded, so re-typing a key in a second row with different
-                // casing is caught too.
                 usedKeys: ['fornecedor'],
             }),
         ).toEqual(['Apólice']);
@@ -162,11 +157,6 @@ describe('a document already filing by most of what the workspace knows', () => 
 });
 
 describe('a value stored as null', () => {
-    // A real archive held `teste => NULL`, and opening that document for
-    // editing threw "Cannot read properties of null (reading 'normalize')"
-    // and rendered nothing at all — not the row, the page. Metadata values
-    // were never validated as strings, so the declared `Record<string,
-    // string>` was a claim the server had no way of keeping (ARC-126).
     it('does not throw when it reaches the key suggestions', () => {
         expect(() =>
             suggestKeys([entry('nif')], {

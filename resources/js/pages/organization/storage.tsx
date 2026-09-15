@@ -131,11 +131,6 @@ export default function OrganizationStorage({
 
     const [moveSource, setMoveSource] = useState<StorageNode | null>(null);
     const [moveTargetId, setMoveTargetId] = useState('');
-    // The location whose contents are open. Held here rather than read off
-    // `nodeDocuments`, so the sheet can show a skeleton for the location just
-    // asked for while the previous one's documents are still the loaded prop.
-    // Seeded from the prop, which is how scanning a label opens the sheet: the
-    // QR code carries `?node=`, and the page arrives with its contents.
     const [openNode, setOpenNode] = useState<{
         id: string;
         path: string;
@@ -150,7 +145,7 @@ export default function OrganizationStorage({
     const leafNodes = leafLevel ? nodesAtDepth(tree, levels.length - 1) : [];
 
     // A level's depth is where it sits in `levels` (ordered by position), not
-    // its position value: a scheme's levels are not guaranteed to start at 1.
+    // its position value — a scheme's levels are not guaranteed to start at 1.
     const addLevelDepth = levels.findIndex((level) => level.id === addLevelId);
     const addLevel = addLevelDepth === -1 ? null : levels[addLevelDepth];
     const addParentOptions =
@@ -209,8 +204,6 @@ export default function OrganizationStorage({
         );
     };
 
-    // Null while the sheet is waiting: either nothing has come back yet, or
-    // what did belongs to the location that was open before this one.
     const loadedDocuments =
         nodeDocuments && openNode && nodeDocuments.node.id === openNode.id
             ? nodeDocuments
@@ -663,9 +656,6 @@ export default function OrganizationStorage({
                                                 node.id !== moveSource?.id,
                                         )
                                         .map((node) => {
-                                            // Everything at the source lands
-                                            // here at once, so the room that
-                                            // matters is room for all of it.
                                             const roomLeft =
                                                 leafLevel?.capacity == null
                                                     ? null

@@ -51,8 +51,6 @@ export default function CaptureShow({
     const scanInputRef = useRef<HTMLInputElement>(null);
     const [sending, setSending] = useState(false);
     const [error, setError] = useState<string | undefined>(undefined);
-    // Set only by the scan button: the photo awaiting review. The plain
-    // button uploads straight away.
     const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
 
     const uploadPhoto = (file: File) => {

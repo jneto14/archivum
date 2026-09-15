@@ -58,11 +58,6 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                                     asChild
                                     aria-current={isActive ? 'page' : undefined}
                                     className={cn('w-full justify-start', {
-                                        // Mirrors the main sidebar's active
-                                        // treatment; `bg-muted` sat *lighter*
-                                        // than ghost's `hover:bg-accent`, so
-                                        // hovering an inactive tab read as more
-                                        // selected than the selected one.
                                         'bg-accent font-medium text-accent-foreground':
                                             isActive,
                                     })}

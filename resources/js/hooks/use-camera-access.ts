@@ -30,15 +30,10 @@ function readCameraAccess(): CameraAccess {
         return window.isSecureContext ? 'unavailable' : 'insecure';
     }
 
-    // Having the API is not the same question as being a device you can hold up
-    // to a sheet of paper, and reading the first as an answer to the second is
-    // what offered a PC the viewfinder: every desktop browser over HTTPS has
-    // `getUserMedia`, webcam or not, and a camera bolted to a monitor cannot be
-    // aimed at a page anyway.
-    //
     // A coarse primary pointer is the closest the platform comes to "held in a
-    // hand". `userAgentData.mobile` would be more direct and is Chromium-only,
-    // which rules out the iPhone this exists for.
+    // hand": every desktop browser over HTTPS also has `getUserMedia`, webcam
+    // or not. `userAgentData.mobile` would be more direct and is
+    // Chromium-only, which rules out the iPhone this exists for.
     return window.matchMedia('(pointer: coarse)').matches
         ? 'available'
         : 'not-handheld';

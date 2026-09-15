@@ -108,9 +108,8 @@ export default function OrganizationSchemeShow({
     };
 
     // The rule dialog posts with `router` rather than a form helper, so its
-    // errors come off the page. Every one of these four fields is required and
-    // none of them showed anything: submitting the dialog empty failed in
-    // silence, from behind a dialog that no page-level message could reach.
+    // errors come off the page (`usePage().props.errors`), not from a
+    // `<Form>`'s own error prop.
     const { errors } = usePage().props;
 
     const submitRule = () => {

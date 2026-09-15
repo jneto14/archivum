@@ -64,8 +64,6 @@ it('asks for the back camera, which is the one pointed at the paper', async () =
     });
 });
 
-// A stream nobody stops keeps the camera — and the recording indicator beside
-// it — running for as long as the page is open, long after the dialog is gone.
 it('releases the camera when the dialog closes', async () => {
     const { rerender } = renderDialog(true);
 
@@ -161,10 +159,6 @@ async function renderDetecting(detections: (object | null)[]) {
     };
 }
 
-// Detection is a fresh guess about a moving picture, and it misses for reasons
-// that say nothing about where the page is — a frame caught mid-exposure, a
-// hand crossing a corner. Clearing on the first miss turned that into a strobe,
-// which is what made the outline unusable to aim with (ARC-117).
 it('holds the outline through an isolated missed frame', async () => {
     vi.useFakeTimers();
 

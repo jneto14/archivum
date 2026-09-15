@@ -67,13 +67,12 @@ export function DocumentScanReview({
     const [corners, setCorners] = useState<DocumentCorners | null>(null);
     const [detectionFailed, setDetectionFailed] = useState(false);
     const draggingCornerRef = useRef<CornerKey | null>(null);
-    // Where the pointer and the corner each were when the drag started, so
-    // the corner tracks the finger's movement instead of jumping under it.
     const dragOriginRef = useRef<{ pointer: Point; corner: Point } | null>(
         null,
     );
-    // Mirrors `draggingCornerRef` for rendering the magnifier; the ref stays
-    // the one the move handler reads, since it can't go stale mid-gesture.
+    // Mirrors `draggingCornerRef` for rendering the magnifier only: the ref
+    // stays the one the move handler reads, since a handler closure can go
+    // stale mid-gesture.
     const [draggingCorner, setDraggingCorner] = useState<CornerKey | null>(
         null,
     );
@@ -109,8 +108,6 @@ export function DocumentScanReview({
             );
             setDetectionFailed(detected === null);
         } catch (error) {
-            // An adjustable rectangle keeps the feature usable rather than
-            // making a processing failure a dead end.
             console.error('Failed to detect the document corners:', error);
             setCorners(
                 toFractions(
@@ -125,7 +122,7 @@ export function DocumentScanReview({
     };
 
     // A blob: URL can decode before React attaches `onLoad`, in which case
-    // that event never fires and `detecting` would last forever.
+    // that event never fires and `detecting` would be stuck true.
     useEffect(() => {
         if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) {
             void handleImageLoad();
@@ -205,8 +202,6 @@ export function DocumentScanReview({
 
             onConfirm(scanned ?? file);
         } catch (error) {
-            // The original photo is still a usable attachment, just not a
-            // cropped one — but say so rather than failing silently.
             console.error('Failed to straighten the scan:', error);
             onStraightenFailed?.(
                 error instanceof Error ? error.message : String(error),
@@ -255,8 +250,6 @@ export function DocumentScanReview({
                 )}
                 {corners &&
                     CORNER_KEYS.map((key) => (
-                        // The hit area is deliberately larger than the dot:
-                        // a fingertip covers far more than 28px.
                         <div
                             key={key}
                             onPointerDown={startDrag(key)}

@@ -101,18 +101,15 @@ function Viewfinder({
     const t = useTranslation();
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
-    // One canvas reused for every detection pass, rather than one per frame.
     const detectionCanvasRef = useRef<HTMLCanvasElement | null>(null);
-    // The outline as last drawn, and how many passes in a row have found
-    // nothing since. Refs rather than state: the detection loop reads both on
-    // every pass, and putting them in its dependencies would restart it.
+    // Refs rather than state: the detection loop reads both on every pass,
+    // and putting them in its dependencies would restart it.
     const lastCornersRef = useRef<DocumentCorners | null>(null);
     const missedPassesRef = useRef(0);
     const [frameSize, setFrameSize] = useState<Size | null>(null);
     const [corners, setCorners] = useState<DocumentCorners | null>(null);
     const [cameraFailed, setCameraFailed] = useState(false);
     const [scanError, setScanError] = useState<string | null>(null);
-    // The frame the shutter kept, waiting to be cropped and confirmed.
     const [photo, setPhoto] = useState<File | null>(null);
     const [capturedCount, setCapturedCount] = useState(0);
 
@@ -121,8 +118,8 @@ function Viewfinder({
 
         const start = async () => {
             try {
-                // `ideal`, not `exact`: a laptop with only a front camera
-                // should still open one rather than fail the request outright.
+                // `ideal`, not `exact`: a device with only a front camera should
+                // still open one rather than fail the request outright.
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
                         facingMode: { ideal: 'environment' },
@@ -143,8 +140,6 @@ function Viewfinder({
                     videoRef.current.srcObject = stream;
                 }
             } catch {
-                // Refused, already in use, or no camera at all. From here they
-                // are one situation: there is nothing to aim.
                 if (!cancelled) {
                     setCameraFailed(true);
                 }
@@ -181,10 +176,6 @@ function Viewfinder({
                 };
 
                 try {
-                    // Memoised, so this is one load and then a resolved promise
-                    // — but it is ~13MB the first time, which is why the shutter
-                    // never waits for it. Until it lands there is no outline,
-                    // and a page shot without one reviews exactly the same.
                     const scanner = await loadScanner();
                     const frame = drawDetectionFrame(
                         video,
@@ -196,9 +187,6 @@ function Viewfinder({
                         return;
                     }
 
-                    // A lower floor than a framed photo gets: a page is
-                    // legitimately small in the frame while it is still being
-                    // aimed at, which is exactly when the outline helps.
                     const detected = scanner.detectCorners(
                         frame,
                         VIEWFINDER_MIN_AREA_RATIO,
@@ -213,10 +201,6 @@ function Viewfinder({
                     if (detected === null) {
                         missedPassesRef.current += 1;
 
-                        // Hold the last outline through a miss or two. A frame
-                        // caught mid-exposure, or a hand crossing a corner,
-                        // finds nothing for reasons that say nothing about
-                        // where the page is.
                         if (
                             missedPassesRef.current >= VIEWFINDER_MISS_TOLERANCE
                         ) {
@@ -230,10 +214,6 @@ function Viewfinder({
                             size,
                         );
                         const previous = lastCornersRef.current;
-                        // Averaging is for the same page drifting under the
-                        // camera. Across a real change of subject it would
-                        // drag the outline through the space between two
-                        // documents, matching neither.
                         const next =
                             previous === null ||
                             isDifferentSubject(
@@ -254,9 +234,6 @@ function Viewfinder({
                         setCorners(next);
                     }
                 } catch {
-                    // Aiming without a guide is the fallback, not a dead end.
-                    // Unlike a miss, this is the scanner itself failing, so
-                    // there is nothing to hold on to.
                     lastCornersRef.current = null;
                     missedPassesRef.current = 0;
                     setCorners(null);
@@ -329,9 +306,9 @@ function Viewfinder({
                             playsInline
                         />
                         {frameSize && corners && (
-                            // `xMidYMid meet` is the same fitting `object-contain`
-                            // does, so the outline lands on the picture without
-                            // anything having to measure where the picture is.
+                            // `xMidYMid meet` matches the `object-contain` fit on the
+                            // video, so the outline lands on the picture without
+                            // measuring where the picture is.
                             <svg
                                 className="pointer-events-none absolute inset-0 h-full w-full"
                                 viewBox={`0 0 ${frameSize.width} ${frameSize.height}`}

@@ -80,11 +80,9 @@ function TwoFactorSetupStep({
                                 {qrCodeSvg ? (
                                     <div
                                         className="aspect-square w-full rounded-lg bg-white p-2 [&_svg]:size-full"
-                                        // Fortify's own generated QR code, not
-                                        // user content — the svg is built
-                                        // server-side by the two-factor
-                                        // endpoint and never round-trips
-                                        // through anything a person can edit.
+                                        // Fortify's own generated QR code, not user content: built
+                                        // server-side and never round-tripped through anything a
+                                        // person can edit.
                                         // eslint-disable-next-line @eslint-react/dom-no-dangerously-set-innerhtml
                                         dangerouslySetInnerHTML={{
                                             __html: qrCodeSvg,
@@ -159,10 +157,9 @@ function TwoFactorVerificationStep({
     const [code, setCode] = useState<string>('');
     const pinInputContainerRef = useRef<HTMLDivElement>(null);
 
-    // Deferred by a tick because the input is inside a dialog that is still
-    // being mounted when this effect runs. Cleared on unmount: a modal closed
-    // within the same tick would otherwise leave the callback to run against a
-    // dialog that no longer exists.
+    // Deferred by a tick: the input is inside a dialog still being mounted
+    // when this effect runs. Cleared on unmount so a modal closed within the
+    // same tick doesn't leave this running against a dialog that's gone.
     useEffect(() => {
         const focusTimeout = setTimeout(() => {
             pinInputContainerRef.current?.querySelector('input')?.focus();
