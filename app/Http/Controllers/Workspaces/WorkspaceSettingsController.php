@@ -62,6 +62,12 @@ class WorkspaceSettingsController extends Controller
                 'name' => $token->name,
                 'created_at_diff' => $token->created_at?->diffForHumans(),
                 'last_used_at_diff' => $token->last_used_at?->diffForHumans(),
+                // Sanctum stops accepting the token the moment this passes, and
+                // the failure lands wherever the token is used rather than
+                // here. So the row says when that happens, and says it plainly
+                // once it has.
+                'expires_at_diff' => $token->expires_at?->diffForHumans(),
+                'is_expired' => $token->expires_at?->isPast() ?? false,
             ])->values()->all(),
             'intakeLabels' => $this->presentLabels($intakeLabels, $workspace),
             'isPlatformAdmin' => $isPlatformAdmin,

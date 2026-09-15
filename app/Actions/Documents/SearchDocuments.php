@@ -9,6 +9,7 @@ use App\Models\Document;
 use App\Models\OrganizationNode;
 use App\Models\Tag;
 use App\Models\Workspace;
+use App\Support\PageSize;
 use App\Support\TableSort;
 use Illuminate\Contracts\Database\Query\Expression;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -78,8 +79,9 @@ class SearchDocuments
      * @param array{document_type_id?: string|null, tag_ids?: array<int, string>, from?: string|null, to?: string|null, node_id?: string|null} $filters Structured filters: document type, tag IDs, document date range, and physical location.
      * @param SearchMode $mode How $query is matched; see the enum.
      * @param TableSort|null $sort The order to return results in; the default order when null.
+     * @param int|null $perPage How many documents per page; PageSize::DEFAULT when null.
      *
-     * @return LengthAwarePaginator<int, Document> A paginated (15 per page) list of matching documents, eager-loaded with type, tags, current location, and creator.
+     * @return LengthAwarePaginator<int, Document> A paginated list of matching documents, eager-loaded with type, tags, current location, and creator.
      */
     public function handle(
         Workspace $workspace,
@@ -87,6 +89,7 @@ class SearchDocuments
         array $filters,
         ?SearchMode $mode = null,
         ?TableSort $sort = null,
+        ?int $perPage = null,
     ): LengthAwarePaginator {
         $tagIds = $this->scopedTagIds($workspace, $filters['tag_ids'] ?? []);
         $nodeIds = $this->scopedNodeIds($workspace, $filters['node_id'] ?? null);
@@ -154,7 +157,7 @@ class SearchDocuments
                 // obliges the database to arrange them the same way twice.
                 ->tap(fn (Builder $q) => $sort->apply($q, 'documents.id'))
                 ->with(['documentType', 'tags', 'currentLocation.node', 'creator']))
-            ->paginate(15);
+            ->paginate($perPage ?? PageSize::DEFAULT);
 
         // Narrow the numbered page window from Laravel's default of three
         // either side, which is up to nine buttons — more than fits beside the

@@ -6,11 +6,11 @@ namespace App\Http\Controllers\Documents;
 
 use App\Actions\Documents\MoveDocument;
 use App\Actions\Organization\FindAvailableLocation;
+use App\Concerns\ResolvesWorkspaceRecords;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Documents\StoreDocumentMoveRequest;
 use App\Models\Document;
 use App\Models\OrganizationNode;
-use App\Models\OrganizationScheme;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +20,8 @@ use LogicException;
 
 class DocumentMoveController extends Controller
 {
+    use ResolvesWorkspaceRecords;
+
     /**
      * Move a document to an explicitly chosen node, or resolve a destination
      * automatically from a scheme's matching rules when no node is given.
@@ -43,7 +45,7 @@ class DocumentMoveController extends Controller
         $nodeId = $request->validated('node_id');
 
         $node = $nodeId !== null
-            ? $this->resolveExplicitNode($document, $nodeId)
+            ? $this->scopedNode($document->workspace, $nodeId)
             : $this->resolveAutoNode($document, $findAvailableLocation, $request->validated('scheme_id'), $request->validated('criteria') ?? []);
 
         $action->handle($document, $node);
@@ -51,24 +53,6 @@ class DocumentMoveController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => __('document.moved')]);
 
         return back();
-    }
-
-    /**
-     * Resolve a node by id, scoped to the document's own workspace.
-     *
-     * @param Document $document The document whose workspace the node must belong to.
-     * @param string $nodeId The UUID of the requested destination node.
-     *
-     * @return OrganizationNode The matching node.
-     *
-     * @throws ModelNotFoundException If no node with $nodeId exists within the document's workspace.
-     */
-    private function resolveExplicitNode(Document $document, string $nodeId): OrganizationNode
-    {
-        return OrganizationNode::query()
-            ->whereHas('level.scheme', fn ($query) => $query->where('workspace_id', $document->workspace_id))
-            ->where('id', $nodeId)
-            ->firstOrFail();
     }
 
     /**
@@ -87,10 +71,7 @@ class DocumentMoveController extends Controller
      */
     private function resolveAutoNode(Document $document, FindAvailableLocation $action, string $schemeId, array $criteria): OrganizationNode
     {
-        $scheme = OrganizationScheme::query()
-            ->where('workspace_id', $document->workspace_id)
-            ->where('id', $schemeId)
-            ->firstOrFail();
+        $scheme = $this->scopedScheme($document->workspace, $schemeId);
 
         return $action->handle($scheme, ['document_type' => $document->documentType->key, ...$criteria]);
     }

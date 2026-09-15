@@ -21,6 +21,16 @@ Schedule::command('activitylog:clean')->daily();
 Schedule::command('queue:prune-failed', ['--hours' => 336])->daily();
 
 /*
+| Housekeeping, not enforcement: Sanctum refuses an expired token at the guard
+| whether or not the row is still there (Guard::__invoke checks `expires_at`).
+| This stops the table filling with tokens nobody can use. The delay leaves a
+| just-expired token visible on the settings screen for a day, which is the
+| window in which somebody is most likely to be wondering why their script
+| stopped working.
+*/
+Schedule::command('sanctum:prune-expired', ['--hours' => 24])->daily();
+
+/*
 | Registered only on a demo installation, so an ordinary one has nothing
 | scheduled that could ever wipe it. The command refuses on its own account
 | too — this is the outer of two independent guards, not the only one.

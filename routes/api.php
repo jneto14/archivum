@@ -2,9 +2,61 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\OpenApiController;
+use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+/*
+| Predates the versioned API and stays where it is. docs/api.md has described
+| it as the one route on offer for long enough that something may be calling
+| it, and it costs nothing to keep. `/api/v1/user` is the one to build against.
+*/
+Route::get('/user', fn (Request $request) => $request->user())
+    ->middleware(['auth:sanctum', 'throttle:api'])
+    ->name('api.user');
+
+/*
+|--------------------------------------------------------------------------
+| Version 1
+|--------------------------------------------------------------------------
+|
+| Token-authenticated, and independent of the Inertia layer: the two share
+| actions and policies, never response shapes. A page prop can change with the
+| page that reads it; this cannot (ARC-121).
+|
+| The workspace is named in the URL rather than resolved from a session, the
+| way the web routes already address it. ResolveWorkspace is web-group
+| middleware reading `current_workspace_id` and is not in this pipeline, which
+| is why `workspaces.switch` has no equivalent here — it is a session write,
+| not a capability.
+|
+*/
+
+/*
+| The API's own description, outside `auth:sanctum` on purpose: it says how to
+| authenticate, so needing a token to read it is a bootstrapping problem, and
+| it is already public in the repository. Throttled, being an unauthenticated
+| file read.
+*/
+Route::get('v1/openapi.json', [OpenApiController::class, 'show'])
+    ->middleware('throttle:api')
+    ->name('api.v1.openapi');
+
+Route::prefix('v1')
+    ->as('api.v1.')
+    ->middleware(['auth:sanctum', 'throttle:api'])
+    ->group(function (): void {
+        Route::get('/user', [UserController::class, 'show'])->name('user.show');
+        Route::patch('/user', [UserController::class, 'update'])->name('user.update');
+
+        require __DIR__ . '/api/v1/documents.php';
+        require __DIR__ . '/api/v1/vocabulary.php';
+        require __DIR__ . '/api/v1/attachments.php';
+        require __DIR__ . '/api/v1/attachment-versions.php';
+        require __DIR__ . '/api/v1/trash.php';
+        require __DIR__ . '/api/v1/workspaces.php';
+        require __DIR__ . '/api/v1/organization.php';
+        require __DIR__ . '/api/v1/tasks.php';
+        require __DIR__ . '/api/v1/intake.php';
+    });

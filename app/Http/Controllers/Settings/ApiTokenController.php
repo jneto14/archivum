@@ -15,13 +15,22 @@ class ApiTokenController extends Controller
     /**
      * Issue a new personal access token for the current user.
      *
-     * @param StoreApiTokenRequest $request The incoming request with the validated token name.
+     * Abilities stay at `['*']`: what a token may do is decided by the
+     * policies, against the workspace role of the user it belongs to, so a
+     * second scope here would only be able to narrow that — and nothing asks
+     * for it yet. The expiry is the part that is chosen (ARC-121).
+     *
+     * @param StoreApiTokenRequest $request The incoming request with the validated token name and lifetime.
      *
      * @return RedirectResponse Redirect back to the previous page, flashing the plain-text token for one-time display.
      */
     public function store(StoreApiTokenRequest $request): RedirectResponse
     {
-        $token = $request->user()->createToken($request->validated('name'));
+        $token = $request->user()->createToken(
+            $request->validated('name'),
+            ['*'],
+            $request->lifetime()->expiresAt(),
+        );
 
         Inertia::flash('newApiToken', $token->plainTextToken);
 
