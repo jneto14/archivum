@@ -44,4 +44,5 @@ Route::prefix('v1')
         require __DIR__ . '/api/v1/attachment-versions.php';
         require __DIR__ . '/api/v1/trash.php';
         require __DIR__ . '/api/v1/workspaces.php';
+        require __DIR__ . '/api/v1/organization.php';
     });
