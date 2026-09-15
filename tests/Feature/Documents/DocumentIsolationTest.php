@@ -51,6 +51,36 @@ class DocumentIsolationTest extends TestCase
             ->assertForbidden();
     }
 
+    /**
+     * The same wall, reached with a token instead of a session (ARC-121).
+     */
+    public function test_a_token_cannot_read_or_change_a_document_in_another_workspace()
+    {
+        $outsider = WorkspaceUser::factory()->create(['role' => WorkspaceRole::Admin]);
+        $otherWorkspace = Workspace::factory()->create();
+        $otherType = DocumentType::factory()->for($otherWorkspace)->create();
+        $document = Document::factory()->for($otherWorkspace)->for($otherType)->create(['title' => 'Theirs']);
+
+        $token = $outsider->user->createToken('CLI')->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson("/api/v1/documents/{$document->id}")
+            ->assertForbidden();
+
+        $this->withToken($token)
+            ->patchJson("/api/v1/documents/{$document->id}", [
+                'document_type_id' => $otherType->id,
+                'title' => 'Hijacked',
+            ])
+            ->assertForbidden();
+
+        $this->withToken($token)
+            ->deleteJson("/api/v1/documents/{$document->id}")
+            ->assertForbidden();
+
+        $this->assertSame('Theirs', $document->fresh()->title);
+    }
+
     public function test_a_tag_from_a_different_workspace_is_silently_dropped_not_attached()
     {
         $workspace = Workspace::factory()->create();

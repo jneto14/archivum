@@ -59,6 +59,68 @@ class WorkspaceIsolationTest extends TestCase
         $this->assertTrue($otherWorkspace->isMember($otherMember->user));
     }
 
+    /**
+     * The same wall, reached with a token instead of a session.
+     *
+     * The policies take a user and a workspace and read nothing from the
+     * session, so this is asserting that the API did not find some way around
+     * them — a token must never widen what its user can reach (ARC-121).
+     */
+    public function test_a_token_cannot_reach_a_workspace_its_user_does_not_belong_to()
+    {
+        $outsider = WorkspaceUser::factory()->create(['role' => WorkspaceRole::Admin]);
+        $otherWorkspace = Workspace::factory()->create();
+        $otherMember = WorkspaceUser::factory()->for($otherWorkspace)->create(['role' => WorkspaceRole::User]);
+
+        $token = $outsider->user->createToken('CLI')->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson("/api/v1/workspaces/{$otherWorkspace->id}")
+            ->assertForbidden();
+
+        $this->withToken($token)
+            ->patchJson("/api/v1/workspaces/{$otherWorkspace->id}", ['name' => 'Hijacked'])
+            ->assertForbidden();
+
+        $this->withToken($token)
+            ->getJson("/api/v1/workspaces/{$otherWorkspace->id}/users")
+            ->assertForbidden();
+
+        $this->withToken($token)
+            ->deleteJson("/api/v1/workspaces/{$otherWorkspace->id}/users/{$otherMember->user->id}")
+            ->assertForbidden();
+
+        $this->withToken($token)
+            ->getJson("/api/v1/workspaces/{$otherWorkspace->id}/trash/documents")
+            ->assertForbidden();
+
+        $this->assertNotSame('Hijacked', $otherWorkspace->fresh()->name);
+    }
+
+    /**
+     * A workspace the token's user has been removed from stops being reachable
+     * on the very next request, the way ResolveWorkspace revalidates
+     * membership for a session.
+     */
+    public function test_a_token_loses_a_workspace_the_moment_its_user_is_removed_from_it()
+    {
+        $workspace = Workspace::factory()->create();
+        WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
+        $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
+
+        $token = $member->user->createToken('CLI')->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson("/api/v1/workspaces/{$workspace->id}/documents")
+            ->assertOk();
+
+        $member->delete();
+
+        $this->withToken($token)
+            ->getJson("/api/v1/workspaces/{$workspace->id}/documents")
+            ->assertForbidden();
+    }
+
     public function test_user_cannot_switch_into_a_workspace_they_do_not_belong_to()
     {
         $member = WorkspaceUser::factory()->create(['role' => WorkspaceRole::User]);
