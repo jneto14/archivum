@@ -19,6 +19,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { useClipboard } from '@/hooks/use-clipboard';
 import { useIsDemo } from '@/hooks/use-demo';
 import { useTranslation } from '@/hooks/use-translation';
@@ -43,7 +50,26 @@ type Token = {
     name: string;
     created_at_diff: string | null;
     last_used_at_diff: string | null;
+    expires_at_diff: string | null;
+    is_expired: boolean;
 };
+
+/**
+ * The lifetimes App\Enums\ApiTokenLifetime accepts, in the order they are
+ * offered. `value` is what the enum is backed by; anything else is rejected by
+ * StoreApiTokenRequest. The label is spelled out rather than built from the
+ * value because `t()` is typed against the literal keys.
+ */
+const TOKEN_LIFETIMES = [
+    { value: '30', label: 'workspace.settings.token_lifetime_30' },
+    { value: '60', label: 'workspace.settings.token_lifetime_60' },
+    { value: '90', label: 'workspace.settings.token_lifetime_90' },
+    { value: '365', label: 'workspace.settings.token_lifetime_365' },
+    { value: 'never', label: 'workspace.settings.token_lifetime_never' },
+] as const;
+
+/** Mirrors ApiTokenLifetime::DEFAULT. */
+const DEFAULT_TOKEN_LIFETIME = '90';
 
 type WorkspaceLimits = {
     storage_bytes: number | null;
@@ -96,7 +122,10 @@ export default function WorkspaceSettings({
     const [revealedToken, setRevealedToken] = useState<string | null>(null);
 
     const renameForm = useForm({ name: workspace.name });
-    const tokenForm = useForm({ name: '' });
+    const tokenForm = useForm({
+        name: '',
+        expires_in: DEFAULT_TOKEN_LIFETIME as string,
+    });
     const limitsForm = useForm({
         storage_mb:
             limits?.storage_bytes != null
@@ -515,11 +544,20 @@ export default function WorkspaceSettings({
                     {apiTokens.map((token) => (
                         <div
                             key={token.id}
-                            className="flex items-center justify-between gap-3 rounded-md border p-3"
+                            className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3"
                         >
-                            <div>
-                                <div className="text-sm font-medium">
-                                    {token.name}
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="truncate text-sm font-medium">
+                                        {token.name}
+                                    </span>
+                                    {token.is_expired && (
+                                        <Badge variant="destructive">
+                                            {t(
+                                                'workspace.settings.token_expired',
+                                            )}
+                                        </Badge>
+                                    )}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
                                     {t(
@@ -530,6 +568,12 @@ export default function WorkspaceSettings({
                                         ? `${t('workspace.settings.token_last_used_prefix')} ${token.last_used_at_diff}`
                                         : t(
                                               'workspace.settings.token_never_used',
+                                          )}{' '}
+                                    ·{' '}
+                                    {token.expires_at_diff
+                                        ? `${t('workspace.settings.token_expires_prefix')} ${token.expires_at_diff}`
+                                        : t(
+                                              'workspace.settings.token_no_expiry',
                                           )}
                                 </div>
                             </div>
@@ -537,6 +581,7 @@ export default function WorkspaceSettings({
                                 type="button"
                                 variant="ghost"
                                 size="sm"
+                                className="shrink-0"
                                 onClick={() => deleteToken(token)}
                             >
                                 <Trash2Icon />
@@ -554,8 +599,8 @@ export default function WorkspaceSettings({
                         onSubmit={submitCreateToken}
                         className="space-y-2 rounded-md border border-dashed p-3"
                     >
-                        <div className="flex items-end gap-2">
-                            <div className="grid flex-1 gap-2">
+                        <div className="flex flex-wrap items-end gap-2">
+                            <div className="grid min-w-0 flex-1 gap-2">
                                 <Label htmlFor="token_name">
                                     {t(
                                         'workspace.settings.new_token_name_label',
@@ -575,16 +620,52 @@ export default function WorkspaceSettings({
                                     }
                                 />
                             </div>
+                            <div className="grid shrink-0 gap-2">
+                                <Label htmlFor="token_expires_in">
+                                    {t(
+                                        'workspace.settings.new_token_expiry_label',
+                                    )}
+                                </Label>
+                                <Select
+                                    value={tokenForm.data.expires_in}
+                                    onValueChange={(value) =>
+                                        tokenForm.setData('expires_in', value)
+                                    }
+                                >
+                                    <SelectTrigger
+                                        id="token_expires_in"
+                                        className="w-36"
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {TOKEN_LIFETIMES.map((lifetime) => (
+                                            <SelectItem
+                                                key={lifetime.value}
+                                                value={lifetime.value}
+                                            >
+                                                {t(lifetime.label)}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                             <Button
                                 type="submit"
                                 size="sm"
+                                className="shrink-0"
                                 disabled={tokenForm.processing}
                             >
                                 <PlusIcon />{' '}
                                 {t('workspace.settings.create_token_button')}
                             </Button>
                         </div>
-                        <InputError message={tokenForm.errors.name} />
+                        <InputError
+                            message={
+                                tokenForm.errors.name ??
+                                tokenForm.errors.expires_in
+                            }
+                        />
                     </form>
                 </CardContent>
             </Card>
