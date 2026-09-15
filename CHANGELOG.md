@@ -11,6 +11,145 @@ release. Read this file before upgrading.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-15
+
+About the archive holding up once a mistake is made and once it grows past a
+few hundred documents, and about reaching it from outside the browser.
+Deleting used to be permanent, extraction used to be a one-time pass, and the
+review queue read four thousand rows the same way it read four. All three
+change here, and everything the interface can do, a token can now do too.
+
+### Added
+
+#### Trash
+
+- **Documents and attachments soft-delete into a recoverable trash** (ARC-123),
+  reachable from the sidebar. Trashing a document takes its attachments with
+  it, stamped with the document's own timestamp so the two can be told apart
+  when only one was trashed on its own. Restoring is exact — a document and
+  everything trashed alongside it come back together — and purging is
+  narrower than trashing: it deletes the files from disk as well as the rows,
+  and only a workspace admin may do it.
+- A trashed item is kept for `TRASH_RETENTION_DAYS` (default 30) and then
+  purged automatically by a daily schedule (`trash:prune`).
+- **What is trashed still counts against storage, but not against a slot.** A
+  trashed document occupies the bytes its files are charged for; the counts
+  that decide whether a workspace has reached its document or attachment limit
+  drop it, since it is no longer held in any sense those limits mean.
+
+#### Text extraction
+
+- **A file already in the archive can be read again**, one at a time from its
+  own page or a whole workspace at once from the Tasks page (ARC-122). Every
+  change to the extraction pipeline used to leave everything filed before it
+  behind — reading differently, scoring differently, never reaching the
+  review queue — with no way to catch it up short of re-uploading. A second
+  reading replaces the first outright: its fingerprint, its duplicate match
+  and any earlier verdict on it are all voided, because all three are
+  conclusions about text a new reading may no longer agree with.
+- A workspace-wide sweep is one row on the Tasks page, admin-only, and
+  refuses to start a second one while the first is still running or to be
+  retried — a failed sweep is followed by a fresh one, narrowed if needed,
+  not a re-dispatch of what it left behind. Its extractions run on their own
+  queue (`OCR_BULK_QUEUE`, default `ocr-bulk`) behind ordinary uploads, so
+  re-reading an archive of thousands of scans does not sit in front of the
+  file somebody just uploaded.
+- `ocr:reextract` runs a sweep from the console, filterable by workspace,
+  document or OCR status, with `--unscored` for what predates 0.4.0's
+  confidence filter and `--dry-run` to see what would be queued first.
+
+#### Review queue
+
+- **The review queue can be answered for many documents at once** (ARC-127).
+  Rows are grouped one per document rather than one per finding, filterable
+  by what is waiting on it, and selectable — a bulk answer applies to the
+  whole selection, or to everything the active filter matches without naming
+  every id. Two answers stay one at a time with the page in front of
+  somebody: confirming a reading asserts that a person read the text, and
+  refusing one deletes the text outright, neither of which a bulk action can
+  honestly do. What bulk offers instead is taking a reading off the queue
+  without claiming anybody read it, alongside accepting suggestions and
+  dismissing duplicates in bulk.
+
+#### Attachments
+
+- **Replacing an attachment's file keeps the one it replaces** (ARC-124),
+  reachable to anyone who may edit the attachment rather than only an admin —
+  replacing loses nothing, unlike deleting. The superseded file moves into a
+  version history on the attachment, and a version can be restored, putting
+  it back in the attachment's place and pushing the current file into the
+  history instead. A restored or replaced file is read again from scratch,
+  the same as any newly arrived one.
+- A superseded file still occupies disk and is charged for it, but does not
+  count against a workspace's attachment limit — it is the same file the
+  archive already held, however many times it has been re-shot.
+
+#### Search
+
+- **The two full-text search modes are now four, named after what they do**
+  rather than after MySQL's index: match every word, match any word, match a
+  phrase, or search the title only (ARC-125). Every mode but the last
+  searches the title together with the text extracted from attachments,
+  which the old modes did not. A link carrying the old `exact` or `broad`
+  values still resolves, since `docs/search.md` had already promised a
+  bookmarked search keeps working.
+
+#### API
+
+- **A versioned HTTP API at `/api/v1`, at parity with the interface**
+  (ARC-121). Anything the interface can do to a workspace's documents,
+  attachments, organization scheme, members, tasks and activity log, a
+  personal access token can now do too, through the same Actions and
+  policies the interface already uses — a token never reaches more than the
+  user it belongs to could reach by hand. Its own shapes, not the interface's
+  page props: response fields are a contract, not whatever a component
+  happened to need.
+- **A token can be issued with an expiry** — 30, 60, 90 or 365 days, or
+  never — chosen on Settings → API tokens, defaulting to 90. Every token
+  minted before this release remains permanent; the choice only applies going
+  forward. Expired tokens are pruned daily (`sanctum:prune-expired`) and
+  refused the moment they lapse.
+- The API's requests are rate-limited (`API_RATE_LIMIT`, default 60 per
+  minute, keyed by token or IP), which `/api/user` — the one route that
+  predates this release — was not before.
+- The API describes itself as an OpenAPI 3.1 document, generated from the
+  live route table and served at `GET /api/v1/openapi.json` with no token
+  required, so it is always in step with the installation answering it.
+  `docs/api.md` covers the shape of things by hand.
+
+### Fixed
+
+- **A metadata value stored as `null` took the whole document form down**
+  when opened for editing, rather than just the one row (ARC-126). Metadata
+  has always been free-form and its values were never validated as strings,
+  so an archive could hold a key filed with nothing under it; the form's own
+  folding logic assumed a string and threw. New values are refused unless
+  they are text; values already stored are survived rather than fixed
+  retroactively.
+- **Deleting a workspace left attachment files behind on disk.** The query
+  that unlinks files before the cascade takes the rows opted out of neither
+  soft-delete scope in its path, so an attachment already in the trash, or
+  hanging off an already-trashed document, was skipped and orphaned for
+  good — nothing pointed at it, nothing would enumerate it again, and the
+  trash screen that could have reached it was gone with the workspace
+  (ARC-128). A workspace does not soft-delete, so this now unlinks
+  everything the workspace held regardless of where it sat.
+
+### Upgrading
+
+New tables (`document_attachment_versions`) and columns (soft-delete
+timestamps on `documents` and `document_attachments`, OCR review fields).
+Migrations run on upgrade and need nothing from an operator.
+
+Three new environment variables, all optional: `TRASH_RETENTION_DAYS`
+(default `30`), `OCR_BULK_QUEUE` (default `ocr-bulk`), and `API_RATE_LIMIT`
+(default `60`). `compose.prod.yaml` already starts the worker against both
+queues; a worker started by hand needs `--queue=default,ocr-bulk` or a bulk
+re-extraction sweep will sit queued and never run.
+
+Text extracted before this release is left exactly as it was — `ocr:reextract`
+is what catches it up, and nothing runs it automatically.
+
 ## [0.5.0] - 2026-09-07
 
 About the archive naming its own fields. Metadata has always been free-form
@@ -512,7 +651,8 @@ The first tagged release. Everything below shipped in it.
 - A brand-new user invited on a single-workspace installation is added with the
   role the admin chose, rather than failing with "already a member".
 
-[Unreleased]: https://github.com/jneto14/archivum/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/jneto14/archivum/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/jneto14/archivum/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/jneto14/archivum/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/jneto14/archivum/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/jneto14/archivum/compare/v0.3.1...v0.3.2
