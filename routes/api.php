@@ -48,6 +48,7 @@ Route::prefix('v1')
     ->middleware(['auth:sanctum', 'throttle:api'])
     ->group(function (): void {
         Route::get('/user', [UserController::class, 'show'])->name('user.show');
+        Route::patch('/user', [UserController::class, 'update'])->name('user.update');
 
         require __DIR__ . '/api/v1/documents.php';
         require __DIR__ . '/api/v1/vocabulary.php';

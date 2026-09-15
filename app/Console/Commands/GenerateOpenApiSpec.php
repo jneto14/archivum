@@ -463,6 +463,18 @@ class GenerateOpenApiSpec extends Command
                 'id' => $uuid,
                 'name' => ['type' => 'string'],
                 'email' => ['type' => 'string', 'format' => 'email'],
+                'email_verified_at' => array_merge($date, [
+                    'description' => 'Cleared when the email changes, so a client that has just changed it can see the new address needs confirming.',
+                ]),
+                'timezone' => [
+                    'type' => ['string', 'null'],
+                    'description' => "The user's own setting, and what the interface renders their dates in. Timestamps in this API are ISO 8601 in UTC regardless.",
+                ],
+                'locale' => [
+                    'type' => ['string', 'null'],
+                    'description' => 'Which language the application answers this user in, validation messages included.',
+                ],
+                'is_platform_admin' => ['type' => 'boolean'],
                 'created_at' => $date,
             ]),
 
@@ -764,6 +776,19 @@ class GenerateOpenApiSpec extends Command
                 'public' => true,
                 'returns' => "The OpenAPI spec, with `servers` resolved to the installation's own origin rather than the `{origin}` variable the committed file carries.",
                 'response' => ['type' => 'object', 'description' => 'An OpenAPI 3.1 document.'],
+            ],
+
+            'user.update' => [
+                'tag' => 'Identity',
+                'summary' => "Update the token's own profile",
+                'returns' => 'The updated profile.',
+                'request' => $this->object([
+                    'name' => ['type' => 'string', 'maxLength' => 255],
+                    'email' => ['type' => 'string', 'format' => 'email', 'maxLength' => 255],
+                    'timezone' => ['type' => ['string', 'null'], 'description' => 'Any IANA identifier.'],
+                    'locale' => ['type' => ['string', 'null']],
+                ], ['name', 'email']),
+                'response' => $this->one('User'),
             ],
 
             'user.show' => [

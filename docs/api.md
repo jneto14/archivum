@@ -92,6 +92,14 @@ Errors are JSON, never HTML:
 answer: an id belonging to another workspace is reported as missing, not as
 forbidden.
 
+## Updates take the whole resource
+
+`PATCH` here replaces the resource rather than merging into it: the required
+fields are required on every call. That is not REST pedantry lost — it is that
+these endpoints validate through the very same Form Requests the browser posts
+to, and forking a second, partial rule set is how the two drift apart. Read the
+resource, change what you want, send it back.
+
 ## Pagination
 
 `?per_page=` on any paginated listing, from 1 to 100, defaulting to 15. Values
@@ -114,7 +122,8 @@ installation running a bulk import against its own machine.
 
 | | |
 | --- | --- |
-| `GET /user` | Who this token belongs to |
+| `GET /user` | The profile of the user this token belongs to |
+| `PATCH /user` | Change their name, email, timezone or language |
 | `GET /workspaces` | The workspaces this token reaches — **start here**, since every route below names one |
 | `POST /workspaces` | Create one |
 | `GET /workspaces/{workspace}` | Read one |
@@ -129,6 +138,13 @@ installation running a bulk import against its own machine.
 | `GET /workspaces/{workspace}/activity` | The audit trail; filter with `event` and `log_name` |
 
 A missing limit is reported as `null`, which is not the same as `0`.
+
+A token reaches its own user's profile and no one else's — there is no user id
+in that route because there is no user but the token's own. Changing the email
+clears its verification, as it does in the browser. Managing *other* people is
+workspace membership: there is no instance-wide user administration here, nor
+in the interface, and the platform admin flag is granted with
+`php artisan platform-admin:grant`.
 
 ### Documents
 
@@ -272,7 +288,11 @@ Each of these is browser-only by nature, not an oversight:
 - **The phone's half of capture.** Already an unauthenticated signed URL by
   design — a phone scanning a code has no session and never will.
 - **Signing in**, password reset, email verification, two-factor, passkeys.
-- **Profile, account deletion, appearance**, and accepting an invitation.
+- **Deleting the account, and changing the password.** Both turn on proving the
+  current password, which a token holder may well not have: a token is a key to
+  the archive, not to the account behind it. (Reading and changing the profile
+  itself *is* on the API — see `GET`/`PATCH /user`.)
+- **Appearance and sidebar state**, and accepting an invitation.
 - **The PWA manifest and service worker.**
 
 ## Compatibility

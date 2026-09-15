@@ -23,7 +23,7 @@ class UserResource extends JsonResource
      *
      * @param Request $request The incoming request.
      *
-     * @return array{id: string, name: string, email: string, created_at: string|null} The user's public attributes.
+     * @return array<string, mixed> The user's profile.
      */
     public function toArray(Request $request): array
     {
@@ -31,6 +31,17 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
+            // Changing the email clears this, so a client that has just
+            // changed it can see the address now needs confirming.
+            'email_verified_at' => $this->email_verified_at?->toIso8601String(),
+            // Timestamps in this API are ISO 8601 in UTC whatever this says.
+            // It is here because it is the user's own setting and because it
+            // is what the interface renders their dates in.
+            'timezone' => $this->timezone,
+            // Which language the application answers this user in, validation
+            // messages included.
+            'locale' => $this->locale,
+            'is_platform_admin' => (bool) $this->is_platform_admin,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }
