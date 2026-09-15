@@ -118,21 +118,48 @@ class GenerateOpenApiSpec extends Command
     }
 
     /**
-     * @return array<int, array{name: string, description: string}> The groups operations are filed under.
+     * The groups operations are filed under.
+     *
+     * Small ones, and more of them than the areas of the application would
+     * suggest. A client renders one folder per tag, and a folder holding
+     * fifteen operations is a list somebody has to read rather than a group
+     * they can skip — which is what "Organization" had become.
+     *
+     * The names are short because a folder name truncates in a sidebar at
+     * about the same width an operation does, and they are chosen so that
+     * sorting them alphabetically puts related ones together: clients sort
+     * tags themselves and ignore the order declared here, so the only lever
+     * over adjacency is the first word. Hence "Archive schemes" and "Archive
+     * nodes" rather than "Schemes" and "Nodes", and hence "Archive" rather
+     * than the application's own longer word for it, which the descriptions
+     * carry instead.
+     *
+     * @return array<int, array{name: string, description: string}> The tags.
      */
     private function tags(): array
     {
         return [
-            ['name' => 'Meta', 'description' => 'The API describing itself.'],
-            ['name' => 'Identity', 'description' => 'The account a token belongs to.'],
-            ['name' => 'Workspaces', 'description' => 'Workspaces, their usage, their limits and their members.'],
+            ['name' => 'API spec', 'description' => 'The API describing itself.'],
+            ['name' => 'Account', 'description' => 'The account a token belongs to.'],
+            ['name' => 'Workspaces', 'description' => 'Workspaces, what they use and what they are allowed.'],
+            ['name' => 'Workspace members', 'description' => 'Who is in a workspace, and with what role. There is no instance-wide user administration, here or in the interface.'],
             ['name' => 'Documents', 'description' => 'Registering, finding and filing documents.'],
-            ['name' => 'Vocabulary', 'description' => 'The document types and tags a workspace files by.'],
-            ['name' => 'Attachments', 'description' => 'Scans, their files, their readings and their history.'],
+            ['name' => 'Document types', 'description' => 'The kinds of document a workspace files.'],
+            ['name' => 'Document tags', 'description' => 'The labels a workspace files by.'],
+            ['name' => 'Attachments', 'description' => "A document's scans, and their files."],
+            ['name' => 'Attachment versions', 'description' => 'The files an attachment used to hold, and putting one back.'],
+            ['name' => 'Attachment readings', 'description' => 'What OCR made of a scan: reading it again, keeping it, throwing it away.'],
             ['name' => 'Trash', 'description' => 'What was deleted, and the two ways out of it.'],
-            ['name' => 'Organization', 'description' => 'How the physical archive is laid out.'],
-            ['name' => 'Intake', 'description' => 'What the archive worked out on its own, and the answers to it.'],
-            ['name' => 'Tasks', 'description' => 'Background work, and the audit trail.'],
+            ['name' => 'Archive schemes', 'description' => 'How the physical archive is laid out. An organization scheme, in the rest of this application\'s words.'],
+            ['name' => 'Archive levels', 'description' => "A scheme's tiers — a cover, a letter, a position on a shelf."],
+            ['name' => 'Archive nodes', 'description' => 'The actual places in the archive, and what is filed at each.'],
+            ['name' => 'Archive rules', 'description' => "How a document's attributes decide where it is filed."],
+            ['name' => 'Archive labels', 'description' => 'What goes on the labels stuck to the shelves.'],
+            ['name' => 'Review queue', 'description' => 'What the archive worked out on its own and cannot confirm without being told.'],
+            ['name' => 'Learned labels', 'description' => 'Phrases this archive taught itself, and the answers to them.'],
+            ['name' => 'Phone capture', 'description' => 'Pairing a phone with a document to photograph a page of it.'],
+            ['name' => 'Tasks', 'description' => 'Background work: exports, sweeps of the archive, bulk moves.'],
+            ['name' => 'Activity log', 'description' => "A workspace's audit trail."],
         ];
     }
 
@@ -809,7 +836,7 @@ class GenerateOpenApiSpec extends Command
         return [
             // ── Meta ──────────────────────────────────────────────────────
             'openapi' => [
-                'tag' => 'Meta',
+                'tag' => 'API spec',
                 'summary' => 'Get the API spec',
                 'public' => true,
                 'description' => "This document, with `servers` resolved to the installation's own origin rather than the `{origin}` variable the committed file carries. The one endpoint that needs no token: it describes how to authenticate, so requiring authentication to read it would be a bootstrapping problem.",
@@ -819,13 +846,13 @@ class GenerateOpenApiSpec extends Command
 
             // ── Identity ──────────────────────────────────────────────────
             'user.show' => [
-                'tag' => 'Identity',
+                'tag' => 'Account',
                 'summary' => 'Get my profile',
                 'description' => 'Who this token belongs to. A token reaches its own account and nobody else\'s, which is why no user id appears in this route.',
                 'response' => $this->one('User'),
             ],
             'user.update' => [
-                'tag' => 'Identity',
+                'tag' => 'Account',
                 'summary' => 'Update my profile',
                 'description' => 'Name, email, timezone and language. Changing the email clears its verification, as it does in the browser. Deleting the account and changing the password are not here: both turn on proving the current password, which a token holder may well not have.',
                 'request' => $this->object([
@@ -888,12 +915,12 @@ class GenerateOpenApiSpec extends Command
                 'response' => $this->one('WorkspaceUsage'),
             ],
             'workspaces.users.index' => [
-                'tag' => 'Workspaces',
+                'tag' => 'Workspace members',
                 'summary' => 'List members',
                 'response' => $this->many('WorkspaceMember'),
             ],
             'workspaces.users.store' => [
-                'tag' => 'Workspaces',
+                'tag' => 'Workspace members',
                 'summary' => 'Add a member',
                 'description' => 'Invites them by email if they have no account yet, through the same invitation the interface sends.',
                 'status' => 201,
@@ -905,14 +932,14 @@ class GenerateOpenApiSpec extends Command
                 'response' => $this->one('WorkspaceMember'),
             ],
             'workspaces.users.update' => [
-                'tag' => 'Workspaces',
+                'tag' => 'Workspace members',
                 'summary' => "Change a member's role",
                 'description' => 'The last admin cannot be demoted.',
                 'request' => $this->object(['role' => ['type' => 'string', 'enum' => ['admin', 'user']]], ['role']),
                 'response' => $this->one('WorkspaceMember'),
             ],
             'workspaces.users.destroy' => [
-                'tag' => 'Workspaces',
+                'tag' => 'Workspace members',
                 'summary' => 'Remove a member',
                 'description' => 'The last admin cannot be removed.',
                 'status' => 204,
@@ -978,30 +1005,30 @@ class GenerateOpenApiSpec extends Command
 
             // ── Vocabulary ────────────────────────────────────────────────
             'document-types.index' => [
-                'tag' => 'Vocabulary',
+                'tag' => 'Document types',
                 'summary' => 'List document types',
                 'description' => 'Unpaginated: a workspace has a handful, and a client mapping its own vocabulary onto this one wants the whole set at once.',
                 'response' => $this->many('DocumentType'),
             ],
-            'document-types.store' => ['tag' => 'Vocabulary', 'summary' => 'Create a document type', 'status' => 201, 'request' => $typeBody, 'response' => $this->one('DocumentType')],
-            'document-types.update' => ['tag' => 'Vocabulary', 'summary' => 'Update a document type', 'request' => $typeBody, 'response' => $this->one('DocumentType')],
+            'document-types.store' => ['tag' => 'Document types', 'summary' => 'Create a document type', 'status' => 201, 'request' => $typeBody, 'response' => $this->one('DocumentType')],
+            'document-types.update' => ['tag' => 'Document types', 'summary' => 'Update a document type', 'request' => $typeBody, 'response' => $this->one('DocumentType')],
             'document-types.destroy' => [
-                'tag' => 'Vocabulary',
+                'tag' => 'Document types',
                 'summary' => 'Delete a document type',
                 'description' => 'Refused while documents are still filed under it.',
                 'status' => 204,
                 'validates' => true,
             ],
             'tags.index' => [
-                'tag' => 'Vocabulary',
+                'tag' => 'Document tags',
                 'summary' => 'List tags',
                 'description' => 'Unpaginated, and carrying how many documents wear each and when it was last applied.',
                 'response' => $this->many('Tag'),
             ],
-            'tags.store' => ['tag' => 'Vocabulary', 'summary' => 'Create a tag', 'status' => 201, 'request' => $tagBody, 'response' => $this->one('Tag')],
-            'tags.update' => ['tag' => 'Vocabulary', 'summary' => 'Rename a tag', 'request' => $tagBody, 'response' => $this->one('Tag')],
+            'tags.store' => ['tag' => 'Document tags', 'summary' => 'Create a tag', 'status' => 201, 'request' => $tagBody, 'response' => $this->one('Tag')],
+            'tags.update' => ['tag' => 'Document tags', 'summary' => 'Rename a tag', 'request' => $tagBody, 'response' => $this->one('Tag')],
             'tags.destroy' => [
-                'tag' => 'Vocabulary',
+                'tag' => 'Document tags',
                 'summary' => 'Delete a tag',
                 'description' => 'Unlike a document type, a tag in use is not protected: losing a label is not losing a filing.',
                 'status' => 204,
@@ -1042,35 +1069,35 @@ class GenerateOpenApiSpec extends Command
                 'response' => $this->one('Attachment'),
             ],
             'attachments.destroy' => ['tag' => 'Attachments', 'summary' => 'Trash an attachment', 'status' => 204],
-            'attachments.versions.index' => [
+            'attachments.duplicate.dismiss' => [
                 'tag' => 'Attachments',
+                'summary' => 'Dismiss a duplicate warning',
+                'response' => $this->one('Attachment'),
+            ],
+            'attachments.versions.index' => [
+                'tag' => 'Attachment versions',
                 'summary' => 'List previous files',
                 'description' => 'What this attachment used to hold, newest replacement first. Not numbered: the chain is the set of files it is *not* currently holding.',
                 'response' => $this->many('AttachmentVersion'),
             ],
-            'attachment-versions.file' => ['tag' => 'Attachments', 'summary' => 'Download a previous file', 'binary' => true],
+            'attachment-versions.file' => ['tag' => 'Attachment versions', 'summary' => 'Download a previous file', 'binary' => true],
             'attachment-versions.restore' => [
-                'tag' => 'Attachments',
+                'tag' => 'Attachment versions',
                 'summary' => 'Restore a previous file',
                 'description' => 'A swap, not an upload: the restored file keeps the path it already has, and the one it displaces takes its place in the history.',
                 'response' => $this->one('Attachment'),
             ],
             'attachments.extraction.store' => [
-                'tag' => 'Attachments',
+                'tag' => 'Attachment readings',
                 'summary' => 'Re-read an attachment',
                 'validates' => true,
                 'response' => $this->one('Attachment'),
             ],
-            'attachments.reading.confirm' => ['tag' => 'Attachments', 'summary' => 'Keep a reading', 'response' => $this->one('Attachment')],
+            'attachments.reading.confirm' => ['tag' => 'Attachment readings', 'summary' => 'Keep a reading', 'response' => $this->one('Attachment')],
             'attachments.reading.reject' => [
-                'tag' => 'Attachments',
+                'tag' => 'Attachment readings',
                 'summary' => 'Discard a reading',
                 'description' => 'The text is thrown away rather than flagged: it feeds the search index and the duplicate fingerprint, so a reading nobody believes has to stop being one.',
-                'response' => $this->one('Attachment'),
-            ],
-            'attachments.duplicate.dismiss' => [
-                'tag' => 'Attachments',
-                'summary' => 'Dismiss a duplicate warning',
                 'response' => $this->one('Attachment'),
             ],
 
@@ -1100,15 +1127,15 @@ class GenerateOpenApiSpec extends Command
             'trash.empty' => ['tag' => 'Trash', 'summary' => 'Empty the trash', 'status' => 204],
 
             // ── Organization ──────────────────────────────────────────────
-            'organization.schemes.index' => ['tag' => 'Organization', 'summary' => 'List schemes', 'response' => $this->many('OrganizationScheme')],
+            'organization.schemes.index' => ['tag' => 'Archive schemes', 'summary' => 'List schemes', 'response' => $this->many('OrganizationScheme')],
             'organization.schemes.show' => [
-                'tag' => 'Organization',
+                'tag' => 'Archive schemes',
                 'summary' => 'Get a scheme',
                 'description' => 'With its levels in order and the rules that file into them — what a client needs before it can file automatically.',
                 'response' => $this->one('OrganizationScheme'),
             ],
             'organization.schemes.store' => [
-                'tag' => 'Organization',
+                'tag' => 'Archive schemes',
                 'summary' => 'Create a scheme',
                 'description' => 'With the levels it is made of, in order: a scheme with no levels can hold nothing.',
                 'status' => 201,
@@ -1119,21 +1146,21 @@ class GenerateOpenApiSpec extends Command
                 'response' => $this->one('OrganizationScheme'),
             ],
             'organization.schemes.update' => [
-                'tag' => 'Organization',
+                'tag' => 'Archive schemes',
                 'summary' => 'Rename a scheme',
                 'request' => $this->object(['name' => ['type' => 'string']], ['name']),
                 'response' => $this->one('OrganizationScheme'),
             ],
-            'organization.schemes.levels.store' => ['tag' => 'Organization', 'summary' => 'Add a level', 'status' => 201, 'request' => $levelBody, 'response' => $this->one('OrganizationLevel')],
+            'organization.schemes.levels.store' => ['tag' => 'Archive levels', 'summary' => 'Add a level', 'status' => 201, 'request' => $levelBody, 'response' => $this->one('OrganizationLevel')],
             'organization.schemes.levels.update' => [
-                'tag' => 'Organization',
+                'tag' => 'Archive levels',
                 'summary' => 'Update a level',
                 'request' => $this->object(['has_printable_label' => ['type' => 'boolean']], ['has_printable_label']),
                 'response' => $this->one('OrganizationLevel'),
             ],
-            'organization.schemes.levels.destroy' => ['tag' => 'Organization', 'summary' => 'Remove a level', 'status' => 204, 'validates' => true],
+            'organization.schemes.levels.destroy' => ['tag' => 'Archive levels', 'summary' => 'Remove a level', 'status' => 204, 'validates' => true],
             'organization.schemes.nodes.index' => [
-                'tag' => 'Organization',
+                'tag' => 'Archive nodes',
                 'summary' => 'Browse nodes',
                 'description' => "One tier at a time. Without `parent_id` the root tier comes back; with it, that node's children. A client opening one cover does not want every shelf in the building.",
                 'query' => array_merge($listing, [[
@@ -1145,7 +1172,7 @@ class GenerateOpenApiSpec extends Command
                 'response' => $this->page('OrganizationNode'),
             ],
             'organization.schemes.nodes.store' => [
-                'tag' => 'Organization',
+                'tag' => 'Archive nodes',
                 'summary' => 'Create a node',
                 'status' => 201,
                 'request' => $this->object([
@@ -1155,26 +1182,26 @@ class GenerateOpenApiSpec extends Command
                 ], ['level_id']),
                 'response' => $this->one('OrganizationNode'),
             ],
-            'organization.schemes.nodes.destroy' => ['tag' => 'Organization', 'summary' => 'Delete a node', 'status' => 204, 'validates' => true],
+            'organization.schemes.nodes.destroy' => ['tag' => 'Archive nodes', 'summary' => 'Delete a node', 'status' => 204, 'validates' => true],
             'organization.nodes.documents' => [
-                'tag' => 'Organization',
+                'tag' => 'Archive nodes',
                 'summary' => 'List a node\'s documents',
                 'description' => 'What is filed there now, not what has been.',
                 'query' => $listing,
                 'response' => $this->page('Document'),
             ],
             'organization.nodes.migrate' => [
-                'tag' => 'Organization',
+                'tag' => 'Archive nodes',
                 'summary' => "Move a node's documents",
                 'description' => 'Queued — a full cover is a lot of documents. Read the task to follow it.',
                 'status' => 202,
                 'request' => $this->object(['target_node_id' => $uuid], ['target_node_id']),
             ],
-            'organization.schemes.rules.store' => ['tag' => 'Organization', 'summary' => 'Add a filing rule', 'status' => 201, 'request' => $ruleBody, 'response' => $this->one('OrganizationRule')],
-            'organization.schemes.rules.update' => ['tag' => 'Organization', 'summary' => 'Update a filing rule', 'request' => $ruleBody, 'response' => $this->one('OrganizationRule')],
-            'organization.schemes.rules.destroy' => ['tag' => 'Organization', 'summary' => 'Delete a filing rule', 'status' => 204],
+            'organization.schemes.rules.store' => ['tag' => 'Archive rules', 'summary' => 'Add a filing rule', 'status' => 201, 'request' => $ruleBody, 'response' => $this->one('OrganizationRule')],
+            'organization.schemes.rules.update' => ['tag' => 'Archive rules', 'summary' => 'Update a filing rule', 'request' => $ruleBody, 'response' => $this->one('OrganizationRule')],
+            'organization.schemes.rules.destroy' => ['tag' => 'Archive rules', 'summary' => 'Delete a filing rule', 'status' => 204],
             'organization.schemes.labels' => [
-                'tag' => 'Organization',
+                'tag' => 'Archive labels',
                 'summary' => 'List printable labels',
                 'description' => 'The nodes that carry one, with the URL their code points at rather than a rendered image — a client making labels has its own idea of size, margins and error correction.',
                 'query' => [['name' => 'level_id', 'in' => 'query', 'required' => false, 'schema' => $uuid]],
@@ -1183,7 +1210,7 @@ class GenerateOpenApiSpec extends Command
 
             // ── Intake ────────────────────────────────────────────────────
             'documents.review.index' => [
-                'tag' => 'Intake',
+                'tag' => 'Review queue',
                 'summary' => 'List the review queue',
                 'description' => 'The documents waiting on an answer, with the counts for every filter alongside — they are what decides which queue is worth working, and a client has no tab strip to read them off.',
                 'query' => array_merge($listing, [[
@@ -1198,7 +1225,7 @@ class GenerateOpenApiSpec extends Command
                 ]),
             ],
             'documents.review.bulk' => [
-                'tag' => 'Intake',
+                'tag' => 'Review queue',
                 'summary' => 'Answer the review queue',
                 'description' => 'For many documents at once. The filter travels with the answer, so answering everything means everything in the queue you were looking at rather than everything that qualifies by the time the request lands.',
                 'request' => $this->object([
@@ -1210,13 +1237,13 @@ class GenerateOpenApiSpec extends Command
                 'response' => $this->one('BulkReviewResult'),
             ],
             'documents.suggestions.index' => [
-                'tag' => 'Intake',
+                'tag' => 'Review queue',
                 'summary' => 'Get metadata suggestions',
                 'description' => 'What the archive would suggest for this document. Applies nothing.',
                 'response' => $this->one('MetadataSuggestions'),
             ],
             'documents.suggestions.accept' => [
-                'tag' => 'Intake',
+                'tag' => 'Review queue',
                 'summary' => 'Accept metadata suggestions',
                 'description' => 'By kind rather than wholesale: taking the date and leaving the counterparty is the ordinary case.',
                 'request' => $this->object([
@@ -1225,21 +1252,21 @@ class GenerateOpenApiSpec extends Command
                 'response' => $this->one('Document'),
             ],
             'workspaces.intake-labels.index' => [
-                'tag' => 'Intake',
+                'tag' => 'Learned labels',
                 'summary' => 'List learned labels',
                 'description' => 'The phrases this archive taught itself. Every one of them, unlike the settings screen, which shows only the accepted.',
                 'query' => [['name' => 'status', 'in' => 'query', 'required' => false, 'schema' => ['type' => 'string', 'enum' => ['pending', 'accepted', 'rejected']]]],
                 'response' => $this->many('IntakeLabel'),
             ],
             'workspaces.intake-labels.update' => [
-                'tag' => 'Intake',
+                'tag' => 'Learned labels',
                 'summary' => 'Answer a learned label',
                 'description' => 'Accept it, reject it, or retire one already accepted — all three are the same write.',
                 'request' => $this->object(['status' => ['type' => 'string', 'enum' => ['pending', 'accepted', 'rejected']]], ['status']),
                 'response' => $this->one('IntakeLabel'),
             ],
             'capture-sessions.store' => [
-                'tag' => 'Intake',
+                'tag' => 'Phone capture',
                 'summary' => 'Start a phone capture',
                 'description' => 'Answers with `pairing_url`, the signed link the phone loads and uploads through — the interface renders it as a QR code. Naming an attachment aims the session at replacing that file; such a session takes one photo and ends.',
                 'status' => 201,
@@ -1247,13 +1274,13 @@ class GenerateOpenApiSpec extends Command
                 'response' => $this->one('CaptureSession'),
             ],
             'capture-sessions.show' => [
-                'tag' => 'Intake',
+                'tag' => 'Phone capture',
                 'summary' => 'Get a capture session',
                 'description' => 'How a client waits for the phone.',
                 'response' => $this->one('CaptureSession'),
             ],
             'capture-sessions.cancel' => [
-                'tag' => 'Intake',
+                'tag' => 'Phone capture',
                 'summary' => 'Cancel a capture session',
                 'response' => $this->one('CaptureSession'),
             ],
@@ -1299,7 +1326,7 @@ class GenerateOpenApiSpec extends Command
                 'binary' => true,
             ],
             'workspaces.activity.index' => [
-                'tag' => 'Tasks',
+                'tag' => 'Activity log',
                 'summary' => 'Read the audit trail',
                 'description' => 'Filter by event and log name, which is what turns a feed into an answer to a question: everything deleted last week, everything one person did.',
                 'query' => array_merge($listing, [

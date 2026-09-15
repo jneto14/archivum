@@ -204,6 +204,72 @@ class OpenApiSpecTest extends TestCase
         }
     }
 
+    /**
+     * A folder holding fifteen operations is a list somebody has to read
+     * rather than a group they can skip. Splitting one is cheap; noticing it
+     * needed splitting is what this is for.
+     */
+    public function test_no_tag_grows_into_a_list_nobody_reads()
+    {
+        $spec = $this->spec();
+
+        $counts = [];
+
+        foreach ($spec['paths'] as $methods) {
+            foreach ($methods as $operation) {
+                $tag = $operation['tags'][0];
+                $counts[$tag] = ($counts[$tag] ?? 0) + 1;
+            }
+        }
+
+        foreach ($counts as $tag => $count) {
+            $this->assertLessThanOrEqual(
+                8,
+                $count,
+                "{$tag} holds {$count} operations. Split it — a client renders one folder per tag.",
+            );
+        }
+    }
+
+    /**
+     * A folder name truncates in a sidebar at about the width an operation
+     * does, and clients sort tags themselves, so the first word is the only
+     * lever over which groups end up next to each other.
+     */
+    public function test_every_tag_name_fits_where_it_is_read()
+    {
+        $spec = $this->spec();
+
+        foreach ($spec['tags'] as $tag) {
+            $this->assertLessThanOrEqual(
+                20,
+                mb_strlen($tag['name']),
+                "The tag \"{$tag['name']}\" is too long to read in a sidebar.",
+            );
+        }
+    }
+
+    public function test_every_tag_declared_is_used()
+    {
+        $spec = $this->spec();
+
+        $used = [];
+
+        foreach ($spec['paths'] as $methods) {
+            foreach ($methods as $operation) {
+                $used = [...$used, ...$operation['tags']];
+            }
+        }
+
+        foreach ($spec['tags'] as $tag) {
+            $this->assertContains(
+                $tag['name'],
+                $used,
+                "The tag \"{$tag['name']}\" is declared and files nothing.",
+            );
+        }
+    }
+
     public function test_every_tag_used_is_declared()
     {
         $spec = $this->spec();

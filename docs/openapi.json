@@ -23,44 +23,88 @@
     ],
     "tags": [
         {
-            "name": "Meta",
+            "name": "API spec",
             "description": "The API describing itself."
         },
         {
-            "name": "Identity",
+            "name": "Account",
             "description": "The account a token belongs to."
         },
         {
             "name": "Workspaces",
-            "description": "Workspaces, their usage, their limits and their members."
+            "description": "Workspaces, what they use and what they are allowed."
+        },
+        {
+            "name": "Workspace members",
+            "description": "Who is in a workspace, and with what role. There is no instance-wide user administration, here or in the interface."
         },
         {
             "name": "Documents",
             "description": "Registering, finding and filing documents."
         },
         {
-            "name": "Vocabulary",
-            "description": "The document types and tags a workspace files by."
+            "name": "Document types",
+            "description": "The kinds of document a workspace files."
+        },
+        {
+            "name": "Document tags",
+            "description": "The labels a workspace files by."
         },
         {
             "name": "Attachments",
-            "description": "Scans, their files, their readings and their history."
+            "description": "A document's scans, and their files."
+        },
+        {
+            "name": "Attachment versions",
+            "description": "The files an attachment used to hold, and putting one back."
+        },
+        {
+            "name": "Attachment readings",
+            "description": "What OCR made of a scan: reading it again, keeping it, throwing it away."
         },
         {
             "name": "Trash",
             "description": "What was deleted, and the two ways out of it."
         },
         {
-            "name": "Organization",
-            "description": "How the physical archive is laid out."
+            "name": "Archive schemes",
+            "description": "How the physical archive is laid out. An organization scheme, in the rest of this application's words."
         },
         {
-            "name": "Intake",
-            "description": "What the archive worked out on its own, and the answers to it."
+            "name": "Archive levels",
+            "description": "A scheme's tiers — a cover, a letter, a position on a shelf."
+        },
+        {
+            "name": "Archive nodes",
+            "description": "The actual places in the archive, and what is filed at each."
+        },
+        {
+            "name": "Archive rules",
+            "description": "How a document's attributes decide where it is filed."
+        },
+        {
+            "name": "Archive labels",
+            "description": "What goes on the labels stuck to the shelves."
+        },
+        {
+            "name": "Review queue",
+            "description": "What the archive worked out on its own and cannot confirm without being told."
+        },
+        {
+            "name": "Learned labels",
+            "description": "Phrases this archive taught itself, and the answers to them."
+        },
+        {
+            "name": "Phone capture",
+            "description": "Pairing a phone with a document to photograph a page of it."
         },
         {
             "name": "Tasks",
-            "description": "Background work, and the audit trail."
+            "description": "Background work: exports, sweeps of the archive, bulk moves."
+        },
+        {
+            "name": "Activity log",
+            "description": "A workspace's audit trail."
         }
     ],
     "paths": {
@@ -68,7 +112,7 @@
             "get": {
                 "operationId": "openapi",
                 "tags": [
-                    "Meta"
+                    "API spec"
                 ],
                 "summary": "Get the API spec",
                 "parameters": [],
@@ -97,7 +141,7 @@
             "get": {
                 "operationId": "user.show",
                 "tags": [
-                    "Identity"
+                    "Account"
                 ],
                 "summary": "Get my profile",
                 "parameters": [],
@@ -137,7 +181,7 @@
             "patch": {
                 "operationId": "user.update",
                 "tags": [
-                    "Identity"
+                    "Account"
                 ],
                 "summary": "Update my profile",
                 "parameters": [],
@@ -635,7 +679,7 @@
             "get": {
                 "operationId": "workspaces.users.index",
                 "tags": [
-                    "Workspaces"
+                    "Workspace members"
                 ],
                 "summary": "List members",
                 "parameters": [
@@ -689,7 +733,7 @@
             "post": {
                 "operationId": "workspaces.users.store",
                 "tags": [
-                    "Workspaces"
+                    "Workspace members"
                 ],
                 "summary": "Add a member",
                 "parameters": [
@@ -775,7 +819,7 @@
             "patch": {
                 "operationId": "workspaces.users.update",
                 "tags": [
-                    "Workspaces"
+                    "Workspace members"
                 ],
                 "summary": "Change a member's role",
                 "parameters": [
@@ -861,7 +905,7 @@
             "delete": {
                 "operationId": "workspaces.users.destroy",
                 "tags": [
-                    "Workspaces"
+                    "Workspace members"
                 ],
                 "summary": "Remove a member",
                 "parameters": [
@@ -1469,7 +1513,7 @@
             "get": {
                 "operationId": "document-types.index",
                 "tags": [
-                    "Vocabulary"
+                    "Document types"
                 ],
                 "summary": "List document types",
                 "parameters": [
@@ -1523,7 +1567,7 @@
             "post": {
                 "operationId": "document-types.store",
                 "tags": [
-                    "Vocabulary"
+                    "Document types"
                 ],
                 "summary": "Create a document type",
                 "parameters": [
@@ -1603,7 +1647,7 @@
             "patch": {
                 "operationId": "document-types.update",
                 "tags": [
-                    "Vocabulary"
+                    "Document types"
                 ],
                 "summary": "Update a document type",
                 "parameters": [
@@ -1681,7 +1725,7 @@
             "delete": {
                 "operationId": "document-types.destroy",
                 "tags": [
-                    "Vocabulary"
+                    "Document types"
                 ],
                 "summary": "Delete a document type",
                 "parameters": [
@@ -1722,7 +1766,7 @@
             "get": {
                 "operationId": "tags.index",
                 "tags": [
-                    "Vocabulary"
+                    "Document tags"
                 ],
                 "summary": "List tags",
                 "parameters": [
@@ -1776,7 +1820,7 @@
             "post": {
                 "operationId": "tags.store",
                 "tags": [
-                    "Vocabulary"
+                    "Document tags"
                 ],
                 "summary": "Create a tag",
                 "parameters": [
@@ -1851,7 +1895,7 @@
             "patch": {
                 "operationId": "tags.update",
                 "tags": [
-                    "Vocabulary"
+                    "Document tags"
                 ],
                 "summary": "Rename a tag",
                 "parameters": [
@@ -1924,7 +1968,7 @@
             "delete": {
                 "operationId": "tags.destroy",
                 "tags": [
-                    "Vocabulary"
+                    "Document tags"
                 ],
                 "summary": "Delete a tag",
                 "parameters": [
@@ -2347,11 +2391,64 @@
                 }
             }
         },
+        "/attachments/{attachment}/duplicate": {
+            "delete": {
+                "operationId": "attachments.duplicate.dismiss",
+                "tags": [
+                    "Attachments"
+                ],
+                "summary": "Dismiss a duplicate warning",
+                "parameters": [
+                    {
+                        "name": "attachment",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "example": "01998fa8-0000-7000-8000-000000000000"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Attachment"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/Forbidden"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    }
+                }
+            }
+        },
         "/attachments/{attachment}/versions": {
             "get": {
                 "operationId": "attachments.versions.index",
                 "tags": [
-                    "Attachments"
+                    "Attachment versions"
                 ],
                 "summary": "List previous files",
                 "parameters": [
@@ -2407,7 +2504,7 @@
             "get": {
                 "operationId": "attachment-versions.file",
                 "tags": [
-                    "Attachments"
+                    "Attachment versions"
                 ],
                 "summary": "Download a previous file",
                 "parameters": [
@@ -2453,7 +2550,7 @@
             "post": {
                 "operationId": "attachment-versions.restore",
                 "tags": [
-                    "Attachments"
+                    "Attachment versions"
                 ],
                 "summary": "Restore a previous file",
                 "parameters": [
@@ -2506,7 +2603,7 @@
             "post": {
                 "operationId": "attachments.extraction.store",
                 "tags": [
-                    "Attachments"
+                    "Attachment readings"
                 ],
                 "summary": "Re-read an attachment",
                 "parameters": [
@@ -2562,7 +2659,7 @@
             "post": {
                 "operationId": "attachments.reading.confirm",
                 "tags": [
-                    "Attachments"
+                    "Attachment readings"
                 ],
                 "summary": "Keep a reading",
                 "parameters": [
@@ -2613,62 +2710,9 @@
             "delete": {
                 "operationId": "attachments.reading.reject",
                 "tags": [
-                    "Attachments"
+                    "Attachment readings"
                 ],
                 "summary": "Discard a reading",
-                "parameters": [
-                    {
-                        "name": "attachment",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid"
-                        },
-                        "example": "01998fa8-0000-7000-8000-000000000000"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Success.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/components/schemas/Attachment"
-                                        }
-                                    },
-                                    "required": [
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/Unauthorized"
-                    },
-                    "403": {
-                        "$ref": "#/components/responses/Forbidden"
-                    },
-                    "404": {
-                        "$ref": "#/components/responses/NotFound"
-                    },
-                    "429": {
-                        "$ref": "#/components/responses/TooManyRequests"
-                    }
-                }
-            }
-        },
-        "/attachments/{attachment}/duplicate": {
-            "delete": {
-                "operationId": "attachments.duplicate.dismiss",
-                "tags": [
-                    "Attachments"
-                ],
-                "summary": "Dismiss a duplicate warning",
                 "parameters": [
                     {
                         "name": "attachment",
@@ -3137,7 +3181,7 @@
             "get": {
                 "operationId": "organization.schemes.index",
                 "tags": [
-                    "Organization"
+                    "Archive schemes"
                 ],
                 "summary": "List schemes",
                 "parameters": [
@@ -3191,7 +3235,7 @@
             "post": {
                 "operationId": "organization.schemes.store",
                 "tags": [
-                    "Organization"
+                    "Archive schemes"
                 ],
                 "summary": "Create a scheme",
                 "parameters": [
@@ -3301,7 +3345,7 @@
             "get": {
                 "operationId": "organization.schemes.show",
                 "tags": [
-                    "Organization"
+                    "Archive schemes"
                 ],
                 "summary": "Get a scheme",
                 "parameters": [
@@ -3352,7 +3396,7 @@
             "patch": {
                 "operationId": "organization.schemes.update",
                 "tags": [
-                    "Organization"
+                    "Archive schemes"
                 ],
                 "summary": "Rename a scheme",
                 "parameters": [
@@ -3426,7 +3470,7 @@
             "post": {
                 "operationId": "organization.schemes.levels.store",
                 "tags": [
-                    "Organization"
+                    "Archive levels"
                 ],
                 "summary": "Add a level",
                 "parameters": [
@@ -3521,7 +3565,7 @@
             "patch": {
                 "operationId": "organization.schemes.levels.update",
                 "tags": [
-                    "Organization"
+                    "Archive levels"
                 ],
                 "summary": "Update a level",
                 "parameters": [
@@ -3603,7 +3647,7 @@
             "delete": {
                 "operationId": "organization.schemes.levels.destroy",
                 "tags": [
-                    "Organization"
+                    "Archive levels"
                 ],
                 "summary": "Remove a level",
                 "parameters": [
@@ -3654,7 +3698,7 @@
             "get": {
                 "operationId": "organization.schemes.nodes.index",
                 "tags": [
-                    "Organization"
+                    "Archive nodes"
                 ],
                 "summary": "Browse nodes",
                 "parameters": [
@@ -3734,7 +3778,7 @@
             "post": {
                 "operationId": "organization.schemes.nodes.store",
                 "tags": [
-                    "Organization"
+                    "Archive nodes"
                 ],
                 "summary": "Create a node",
                 "parameters": [
@@ -3823,7 +3867,7 @@
             "delete": {
                 "operationId": "organization.schemes.nodes.destroy",
                 "tags": [
-                    "Organization"
+                    "Archive nodes"
                 ],
                 "summary": "Delete a node",
                 "parameters": [
@@ -3874,7 +3918,7 @@
             "get": {
                 "operationId": "organization.nodes.documents",
                 "tags": [
-                    "Organization"
+                    "Archive nodes"
                 ],
                 "summary": "List a node's documents",
                 "parameters": [
@@ -3947,7 +3991,7 @@
             "post": {
                 "operationId": "organization.nodes.migrate",
                 "tags": [
-                    "Organization"
+                    "Archive nodes"
                 ],
                 "summary": "Move a node's documents",
                 "parameters": [
@@ -4014,7 +4058,7 @@
             "post": {
                 "operationId": "organization.schemes.rules.store",
                 "tags": [
-                    "Organization"
+                    "Archive rules"
                 ],
                 "summary": "Add a filing rule",
                 "parameters": [
@@ -4100,7 +4144,7 @@
             "patch": {
                 "operationId": "organization.schemes.rules.update",
                 "tags": [
-                    "Organization"
+                    "Archive rules"
                 ],
                 "summary": "Update a filing rule",
                 "parameters": [
@@ -4194,7 +4238,7 @@
             "delete": {
                 "operationId": "organization.schemes.rules.destroy",
                 "tags": [
-                    "Organization"
+                    "Archive rules"
                 ],
                 "summary": "Delete a filing rule",
                 "parameters": [
@@ -4242,7 +4286,7 @@
             "get": {
                 "operationId": "organization.schemes.labels",
                 "tags": [
-                    "Organization"
+                    "Archive labels"
                 ],
                 "summary": "List printable labels",
                 "parameters": [
@@ -4307,7 +4351,7 @@
             "get": {
                 "operationId": "documents.review.index",
                 "tags": [
-                    "Intake"
+                    "Review queue"
                 ],
                 "summary": "List the review queue",
                 "parameters": [
@@ -4407,7 +4451,7 @@
             "post": {
                 "operationId": "documents.review.bulk",
                 "tags": [
-                    "Intake"
+                    "Review queue"
                 ],
                 "summary": "Answer the review queue",
                 "parameters": [
@@ -4503,7 +4547,7 @@
             "get": {
                 "operationId": "documents.suggestions.index",
                 "tags": [
-                    "Intake"
+                    "Review queue"
                 ],
                 "summary": "Get metadata suggestions",
                 "parameters": [
@@ -4554,7 +4598,7 @@
             "post": {
                 "operationId": "documents.suggestions.accept",
                 "tags": [
-                    "Intake"
+                    "Review queue"
                 ],
                 "summary": "Accept metadata suggestions",
                 "parameters": [
@@ -4632,7 +4676,7 @@
             "get": {
                 "operationId": "workspaces.intake-labels.index",
                 "tags": [
-                    "Intake"
+                    "Learned labels"
                 ],
                 "summary": "List learned labels",
                 "parameters": [
@@ -4701,7 +4745,7 @@
             "patch": {
                 "operationId": "workspaces.intake-labels.update",
                 "tags": [
-                    "Intake"
+                    "Learned labels"
                 ],
                 "summary": "Answer a learned label",
                 "parameters": [
@@ -4790,7 +4834,7 @@
             "post": {
                 "operationId": "capture-sessions.store",
                 "tags": [
-                    "Intake"
+                    "Phone capture"
                 ],
                 "summary": "Start a phone capture",
                 "parameters": [
@@ -4862,7 +4906,7 @@
             "get": {
                 "operationId": "capture-sessions.show",
                 "tags": [
-                    "Intake"
+                    "Phone capture"
                 ],
                 "summary": "Get a capture session",
                 "parameters": [
@@ -4925,7 +4969,7 @@
             "post": {
                 "operationId": "capture-sessions.cancel",
                 "tags": [
-                    "Intake"
+                    "Phone capture"
                 ],
                 "summary": "Cancel a capture session",
                 "parameters": [
@@ -5372,7 +5416,7 @@
             "get": {
                 "operationId": "workspaces.activity.index",
                 "tags": [
-                    "Tasks"
+                    "Activity log"
                 ],
                 "summary": "Read the audit trail",
                 "parameters": [
