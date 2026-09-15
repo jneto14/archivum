@@ -28,16 +28,9 @@ class CaptureSessionResource extends JsonResource
             'document_id' => $this->document_id,
             'status' => $this->status->value,
             'is_active' => $this->isActive(),
-            // The attachment this session is aimed at replacing, if it is
-            // aimed at one. Such a session takes a single photo and ends —
-            // there is one file to replace, so a second would have nothing
-            // left to act on (ARC-124).
             'replaces_attachment_id' => $this->replaces_attachment_id,
             'expires_at' => $this->expires_at->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
-            // The signed link the phone loads and uploads through. The
-            // interface renders this as a QR code; a client is handed the URL
-            // itself, which is the thing the code was only ever carrying.
             'pairing_url' => SignedLink::temporary(
                 'capture.show',
                 $this->expires_at,

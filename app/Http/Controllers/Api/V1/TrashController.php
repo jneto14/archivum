@@ -90,11 +90,9 @@ class TrashController extends Controller
                 'document_id',
                 Document::withTrashed()->where('workspace_id', $workspace->id)->select('id'),
             )
-            // The document's soft-delete scope is lifted, because an
-            // attachment in the trash very often went there with its document
-            // and the scope would otherwise leave the row naming nothing.
-            // Reached through the relation's own query: `withTrashed()` is a
-            // builder scope, and a relation only forwards it by __call.
+            // Reached through the relation's own query, not `withTrashed()`
+            // directly: that is a builder scope, and a relation only forwards
+            // it by __call.
             ->with([
                 'document' => fn (Relation $document) => $document->getQuery()
                     ->withoutGlobalScope(SoftDeletingScope::class),
@@ -105,10 +103,6 @@ class TrashController extends Controller
 
         $collection = AttachmentResource::collection($attachments);
 
-        // Opt every row into naming its document. `collection()` offers no
-        // per-item hook, and the document is the whole reason the eager load
-        // above lifts the soft-delete scope: a filename with nothing beside it
-        // does not tell a client what it is about to lose.
         $collection->collection->each(
             fn (AttachmentResource $resource) => $resource->withDocument(),
         );

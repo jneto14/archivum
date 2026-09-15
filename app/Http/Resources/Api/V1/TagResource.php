@@ -27,8 +27,6 @@ class TagResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'documents_count' => $this->whenCounted('documents'),
-            // Selected by the listing rather than stored on a tag, so it is
-            // read off the query result and absent everywhere else.
             'last_used_at' => $this->when(
                 $lastUsed !== null,
                 fn (): string => Carbon::parse($lastUsed)->toIso8601String(),

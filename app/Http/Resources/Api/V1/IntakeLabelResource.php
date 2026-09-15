@@ -25,12 +25,9 @@ class IntakeLabelResource extends JsonResource
         return [
             'id' => $this->id,
             'kind' => $this->kind,
-            // What the field is called here: a shipped name, or this
-            // workspace's own spelling of it.
             'field' => $this->field,
             'label' => $this->label,
             'status' => $this->status->value,
-            // How many times the archive saw it before proposing it.
             'support' => $this->support,
         ];
     }

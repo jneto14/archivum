@@ -47,10 +47,6 @@ class IntakeReviewController extends Controller
         $documents = (new ReviewQueue($filter))
             ->documents($workspace)
             ->with(['documentType', 'attachmentsAwaitingReview.duplicateOf'])
-            // The id settles the ties, as it does on the review page. A
-            // bulk answer stamps every document it touched with the same
-            // `updated_at`, which is exactly the queue a client pages
-            // through next.
             ->latest('documents.updated_at')
             ->orderByDesc('documents.id')
             ->paginate(PageSize::fromRequest($request))

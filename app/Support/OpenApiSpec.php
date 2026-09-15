@@ -52,10 +52,6 @@ class OpenApiSpec
                 'version' => '1.0.0',
                 'description' => 'The token-authenticated HTTP API. See docs/api.md for the reasoning behind these shapes.',
             ],
-            // A variable rather than a baked-in URL: the document this
-            // builds names no host, because every installation is served from
-            // its own. The endpoint substitutes the origin it is answering on,
-            // which is the one thing only a running installation knows.
             'servers' => [[
                 'url' => '{origin}/api/v1',
                 'variables' => ['origin' => [
@@ -154,8 +150,6 @@ class OpenApiSpec
             }
         }
 
-        // The catalogue leads: walk it in order and take the route each entry
-        // names, then let anything it does not name follow at the end.
         $ordered = [];
 
         foreach (array_keys($catalogue) as $key) {
@@ -202,16 +196,11 @@ class OpenApiSpec
             'operationId' => $key,
             'tags' => [$entry['tag'] ?? 'Documents'],
             'summary' => $entry['summary'] ?? $key,
-            // Straight after the summary, which is where a client renders it
-            // and where somebody reading the raw document expects it.
             ...(isset($entry['description']) ? ['description' => $entry['description']] : []),
             'parameters' => $this->parameters($route, $entry),
             'responses' => $this->responses($entry),
         ];
 
-        // Only one operation is public, and it says so rather than inheriting
-        // the document-level requirement: a client reading the spec to find
-        // out how to authenticate has no token yet.
         if (($entry['public'] ?? false) === true) {
             $operation['security'] = [];
         }
@@ -249,8 +238,6 @@ class OpenApiSpec
                 'in' => 'path',
                 'required' => true,
                 'schema' => ['type' => 'string', 'format' => 'uuid'],
-                // So an imported collection shows the shape of the thing that
-                // goes here instead of an empty box. Substitute a real id.
                 'example' => '01998fa8-0000-7000-8000-000000000000',
             ];
         }

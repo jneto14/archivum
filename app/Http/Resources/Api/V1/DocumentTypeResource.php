@@ -22,13 +22,8 @@ class DocumentTypeResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            // What the organization rules match on, so a client filing
-            // documents automatically needs it as much as the display name.
             'key' => $this->key,
             'name' => $this->name,
-            // Only on the listing, which counts them. A client deciding
-            // whether a type is safe to delete wants this; a document's own
-            // `document_type` has no use for it.
             'documents_count' => $this->whenCounted('documents'),
         ];
     }

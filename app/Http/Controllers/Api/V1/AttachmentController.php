@@ -71,15 +71,6 @@ class AttachmentController extends Controller
 
         $created = $action->handleMany($document, $request->attachments(), $request->user());
 
-        // Re-read rather than serialize what `create()` handed back. The
-        // reading status is a NOT NULL column with a database-side default, so
-        // a freshly created instance carries no value for it and the response
-        // would report `null` for a status that is really `pending`.
-        //
-        // Narrowed to the ids just created: a 201 answers with what it
-        // created, and a document that already held forty scans would
-        // otherwise hand back all forty-one as though the upload had made
-        // them.
         $attachments = $document->attachments()
             ->whereKey(array_map(
                 static fn (DocumentAttachment $attachment): string => $attachment->id,

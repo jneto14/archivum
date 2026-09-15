@@ -30,9 +30,6 @@ class ActivityResource extends JsonResource
             'id' => $this->id,
             'log_name' => $this->log_name,
             'event' => $this->event,
-            // What the entry is about, in the archive's own words — a document
-            // title, a filename — recorded when it happened, so it survives
-            // the thing it names being deleted.
             'label' => is_string($label) ? $label : null,
             'subject_type' => $this->subject_type,
             'subject_id' => $this->subject_id,

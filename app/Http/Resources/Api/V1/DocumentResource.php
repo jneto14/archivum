@@ -41,8 +41,6 @@ class DocumentResource extends JsonResource
             'metadata' => $this->metadata ?? [],
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
-            // Only ever present on something in the trash, which is exactly
-            // where it means anything.
             'deleted_at' => $this->when(
                 $this->deleted_at !== null,
                 fn (): ?string => $this->deleted_at?->toIso8601String(),
@@ -53,9 +51,6 @@ class DocumentResource extends JsonResource
                 'id' => $this->creator->id,
                 'name' => $this->creator->name,
             ]),
-            // Where the physical document is now, not where it has been. The
-            // node's id travels with the path because the path is assembled
-            // for reading and the id is what a client moves it by.
             'current_location' => $this->whenLoaded(
                 'currentLocation',
                 fn (): ?array => $this->currentLocation?->node === null ? null : [

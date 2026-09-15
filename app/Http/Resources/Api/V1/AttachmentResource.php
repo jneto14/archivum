@@ -80,21 +80,14 @@ class AttachmentResource extends JsonResource
             'mime_type' => $this->mime_type,
             'size' => $this->size,
             'checksum' => $this->checksum,
-            // Whether this application will serve the file inline. An SVG is
-            // `image/*` and is still served as an opaque download, so a client
-            // cannot work this out from the mime type alone.
             'is_previewable' => $this->is_previewable,
             'ocr_status' => $this->ocr_status->value,
             'ocr_text' => $this->when($this->withText, fn (): ?string => $this->resource->ocr_text),
             'created_at' => $this->created_at?->toIso8601String(),
-            // Only ever present on something in the trash, which is exactly
-            // where it means anything.
             'deleted_at' => $this->when(
                 $this->deleted_at !== null,
                 fn (): ?string => $this->deleted_at?->toIso8601String(),
             ),
-            // When the file sitting here now arrived, which stops agreeing
-            // with `created_at` the first time something replaces it.
             'file_uploaded_at' => $this->fileUploadedAt()?->toIso8601String(),
             'document' => $this->when($this->withDocument, fn (): ?array => $this->resource->document === null ? null : [
                 'id' => $this->resource->document->id,
@@ -104,8 +97,6 @@ class AttachmentResource extends JsonResource
                 'id' => $this->uploader->id,
                 'name' => $this->uploader->name,
             ]),
-            // The earlier copy this file appears to be of, until somebody
-            // dismisses the warning.
             'duplicate_of' => $this->whenLoaded('duplicateOf', fn (): ?array => $this->duplicateOf === null ? null : [
                 'attachment_id' => $this->duplicateOf->id,
                 'document_id' => $this->duplicateOf->document_id,
