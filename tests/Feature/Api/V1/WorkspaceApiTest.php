@@ -93,7 +93,6 @@ class WorkspaceApiTest extends TestCase
             ->getJson("/api/v1/workspaces/{$this->workspace->id}/usage")
             ->assertOk()
             ->assertJsonPath('data.documents.used', 2)
-            // No limit is null, which is not the same as a limit of zero.
             ->assertJsonPath('data.documents.limit', null)
             ->assertJsonPath('data.users.used', 1);
     }

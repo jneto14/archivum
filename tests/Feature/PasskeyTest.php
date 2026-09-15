@@ -36,10 +36,6 @@ class PasskeyTest extends TestCase
     {
         $this->skipUnlessFortifyHas(Features::passkeys());
 
-        // The `passkeys` limiter keys on the submitted credential id, falling
-        // back to the session when there isn't one — a guest asking for login
-        // options is exactly that fallback, and getting the key wrong would
-        // throttle every visitor against one shared bucket.
         $this->get(route('passkey.login-options'))->assertOk();
 
         $this->assertGuest();

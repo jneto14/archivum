@@ -28,15 +28,9 @@ class OrganizationLevelResource extends JsonResource
             'name' => $this->name,
             'key' => $this->key,
             'position' => $this->position,
-            // How many children a node here may hold before the next one is
-            // allocated. Null means no ceiling.
             'capacity' => $this->capacity,
             'has_printable_label' => $this->has_printable_label,
-            // Whether a node's value is allocated in sequence or typed by
-            // hand, which decides whether a client may create one without
-            // naming it.
             'value_strategy' => $this->value_strategy->value,
-            // The bottom tier: where documents actually come to rest.
             'is_leaf' => $this->isLeaf(),
         ];
     }

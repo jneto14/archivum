@@ -88,8 +88,6 @@ class OrganizationLabelController extends Controller
         $parentId = $request->validated('parent_id');
 
         if ($parentId !== null) {
-            // Checked for its own sake: without it, a parent id from another
-            // scheme would silently print nothing rather than say why.
             $this->schemeNodes($scheme)->where('id', $parentId)->firstOrFail();
         }
 

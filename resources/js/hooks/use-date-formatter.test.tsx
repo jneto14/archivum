@@ -56,8 +56,6 @@ it('formats in the app locale, not the browser one', () => {
     page.props.locale = 'pt';
     const inPortuguese = formatters().formatDate(INSTANT);
 
-    // Month first against day first — the difference a person actually sees,
-    // and the one the year's width would not tell us anything about.
     expect(inEnglish).toMatch(/^8\/31\//);
     expect(inPortuguese).toMatch(/^31\/08\//);
 });

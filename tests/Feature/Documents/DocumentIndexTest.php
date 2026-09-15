@@ -135,7 +135,6 @@ class DocumentIndexTest extends TestCase
                     static fn (array $link): bool => ctype_digit($link['label']),
                 ));
 
-                // onEachSide(1) over four pages, from page two: 1 2 3 4.
                 $this->assertSame(
                     ['1', '2', '3', '4'],
                     array_column($numbered, 'label'),

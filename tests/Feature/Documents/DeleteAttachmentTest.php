@@ -77,8 +77,6 @@ class DeleteAttachmentTest extends TestCase
 
         $this->actingAs($member->user)->delete(route('attachments.destroy', $attachment))->assertRedirect();
 
-        // The file stays until the trash is emptied or pruned, which is the
-        // only reason a restore can bring the scan back rather than the row.
         Storage::disk('local')->assertExists($path);
 
         app(PurgeAttachment::class)->handle($attachment->fresh());

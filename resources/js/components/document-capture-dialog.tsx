@@ -75,14 +75,10 @@ export function DocumentCaptureDialog({
     const startingSessionRef = useRef(false);
 
     const targetId = replacesAttachment?.id ?? null;
-    // A session already running for this document is only reusable if it is
-    // pointed at the same thing. One opened to add pages, reused for a
-    // replacement, would send the photo somewhere the user never asked for.
     const sessionIsOnTarget =
         activeSession !== null &&
         activeSession.replaces_attachment_id === targetId;
 
-    // A convenience refresh, not a live feed — worth far fewer requests.
     const { start, stop } = usePoll(
         5000,
         { only: ['document', 'active_capture_session'] },
@@ -99,10 +95,6 @@ export function DocumentCaptureDialog({
         return stop;
     }, [open, start, stop]);
 
-    // Opening with no usable session starts one, including after an earlier
-    // session ended — that's how a new QR code is issued. `CreateCaptureSession`
-    // cancels whatever was open, so a session aimed elsewhere is superseded
-    // rather than left running beside this one.
     useEffect(() => {
         if (!open || sessionIsOnTarget || startingSessionRef.current) {
             return;
@@ -124,8 +116,8 @@ export function DocumentCaptureDialog({
     }, [open, sessionIsOnTarget, documentId, targetId]);
 
     const endSession = () => {
-        // Closed before the request goes out: closing afterwards leaves a
-        // window where the effect above starts a replacement session.
+        // Closed before the request goes out, or the effect above races this
+        // and starts a replacement session in the gap.
         onOpenChange(false);
 
         if (activeSession !== null) {

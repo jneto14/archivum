@@ -111,7 +111,6 @@ class SignedLinksTest extends TestCase
 
         $fromConsole = $this->probeLink();
 
-        // Establishes a request whose base URL is empty, as the proxy leaves it.
         $this->get(self::HOST . '/login');
 
         $fromRequest = $this->probeLink();

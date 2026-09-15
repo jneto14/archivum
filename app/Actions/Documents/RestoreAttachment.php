@@ -22,8 +22,6 @@ class RestoreAttachment
     {
         $attachment->restore();
 
-        // Its text belongs back in the document's searchable mirror, which was
-        // rebuilt without it when it was trashed.
         $attachment->document->refreshOcrText();
 
         $this->calculateUsage->forget($attachment->document->workspace);

@@ -35,8 +35,6 @@ it('names the deadline on a demo', () => {
 
     render(<DemoBanner />);
 
-    // The hour is the point: a demo that wipes without warning punishes the
-    // visitor who took it seriously enough to set something up.
     expect(screen.getByText(/2026/)).toHaveTextContent(/sep/i);
 });
 

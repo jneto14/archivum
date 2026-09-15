@@ -102,9 +102,6 @@ export default function DocumentReview({
 }: Props) {
     const t = useTranslation();
     const [selected, setSelected] = useState<string[]>([]);
-    // Set when somebody extends the selection past the page they can see, so
-    // the answer is resolved from the filter on the server rather than from a
-    // list of four thousand ids in a request body.
     const [allMatching, setAllMatching] = useState(false);
 
     const sorting = tableSort(
@@ -161,8 +158,6 @@ export default function DocumentReview({
             {
                 action,
                 filter,
-                // Empty means "everything this filter matches", which is what
-                // the server resolves for itself.
                 documents: allMatching ? [] : selected,
             },
             { preserveScroll: true, onSuccess: clearSelection },

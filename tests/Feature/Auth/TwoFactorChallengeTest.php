@@ -63,11 +63,6 @@ class TwoFactorChallengeTest extends TestCase
             'password' => 'password',
         ]);
 
-        // Posting here is what puts the request through the `two-factor` rate
-        // limiter, which keys on the pending login id rather than the session:
-        // a wrong key there would either throttle everyone at once or nobody.
-        // A recovery code rather than a TOTP code, so the assertion is about
-        // the route and not about this factory's placeholder secret.
         $this->post(route('two-factor.login.store'), ['recovery_code' => 'not-a-recovery-code'])
             ->assertRedirect(route('two-factor.login'))
             ->assertSessionHasErrors('recovery_code');

@@ -61,9 +61,6 @@ class CaptureSessionController extends Controller
 
         $session = $action->handle($document, $request->user(), $replaces);
 
-        // Re-read: `status` is a NOT NULL column with a database-side default,
-        // so the instance `create()` hands back carries no value for it and
-        // the response would report a session with no state.
         return (new CaptureSessionResource($session->refresh()))
             ->response()
             ->setStatusCode(201);

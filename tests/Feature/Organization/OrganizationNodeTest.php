@@ -43,9 +43,6 @@ class OrganizationNodeTest extends TestCase
         $workspace = Workspace::factory()->create();
         $scheme = OrganizationScheme::factory()->for($workspace)->create();
 
-        // The demo seeder numbered its levels from zero, which left the top two
-        // levels of that archive unable to take nodes at all: the root was not
-        // recognised as the root, and the level below it was.
         $room = OrganizationLevel::factory()->for($scheme, 'scheme')->create([
             'name' => 'Room', 'key' => 'room', 'position' => 0, 'value_strategy' => NodeValueStrategy::Manual,
         ]);
@@ -211,8 +208,6 @@ class OrganizationNodeTest extends TestCase
         $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
         $scheme = $this->createScheme($workspace);
 
-        // A workspace holds one scheme, so the foreign parent has to come from
-        // a second workspace this admin also belongs to.
         $otherWorkspace = Workspace::factory()->create();
         WorkspaceUser::factory()->for($otherWorkspace)->create([
             'user_id' => $admin->user_id,

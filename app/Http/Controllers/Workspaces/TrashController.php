@@ -54,9 +54,6 @@ class TrashController extends Controller
             ->paginate(15, ['*'], 'documents')
             ->withQueryString();
 
-        // Only the ones trashed on their own: an attachment that went down
-        // with its document carries that document's timestamp and is already
-        // represented by the row above.
         $attachments = DocumentAttachment::onlyTrashed()
             ->whereHas('document', fn (Builder $query) => $query->where('workspace_id', $workspace->id))
             ->with('document:id,title')

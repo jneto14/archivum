@@ -39,8 +39,6 @@ class BackfillMetadataSuggestionsTest extends TestCase
 
         $this->artisan('archivum:backfill-suggestions')->assertSuccessful();
 
-        // Read, and empty: not the same state as never having been read, which
-        // is what stops the next run picking it up again.
         $this->assertSame([], $document->refresh()->metadata_suggestions);
     }
 
@@ -51,8 +49,6 @@ class BackfillMetadataSuggestionsTest extends TestCase
 
         $this->artisan('archivum:backfill-suggestions')->assertSuccessful();
 
-        // The text holds a date and a total, so a second reading would not
-        // come back empty — this is only empty because it was skipped.
         $this->assertSame(
             [],
             $document->refresh()->metadata_suggestions,

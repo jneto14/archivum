@@ -49,9 +49,6 @@ class OrganizationStorageController extends Controller
             ])->values()->all(),
             'tree' => $this->buildTree($scheme->levels),
             'canManage' => $scheme->workspace->isManageableBy($request->user()),
-            // Only the location named by `?node=`, and null without one: the
-            // panel fetches it by partial reload when a location is opened, and
-            // a label's QR code lands here with it already in the URL.
             'nodeDocuments' => $this->nodeDocuments($scheme, $request->query('node')),
         ]);
     }

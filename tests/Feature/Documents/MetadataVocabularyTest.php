@@ -40,10 +40,6 @@ class MetadataVocabularyTest extends TestCase
 
         $vocabulary = app(SuggestMetadataVocabulary::class)->handle($workspace);
 
-        // One entry, not three: the drift is what this is meant to stop, so
-        // offering every spelling of it would be handing the drift back.
-        // `Contribuinte` collapses in because it is a shipped alias of the
-        // same kind, not merely a different casing — see IntakeVocabulary.
         $this->assertSame(['NIF'], array_column($vocabulary, 'key'));
         $this->assertEqualsCanonicalizing(
             ['501234567', '502345678', '503456789'],
@@ -88,11 +84,6 @@ class MetadataVocabularyTest extends TestCase
         $vocabulary = app(SuggestMetadataVocabulary::class)->handle($workspace);
         $values = array_column($vocabulary, 'values', 'key');
 
-        // A field somebody filed and left empty is still a field this
-        // workspace uses. Dropping the key with its value is what emptied the
-        // one row the suggestions are for: the row being added excludes every
-        // key the document already holds, so the vocabulary has to carry the
-        // ones it does not.
         // Canonicalised: MySQL normalises the key order inside a JSON object,
         // so which of two keys filed on the same document ranks first is not
         // something this can assert.

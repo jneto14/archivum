@@ -45,8 +45,6 @@ class DemoSeederTest extends TestCase
         $this->assertSame(1, Workspace::query()->count());
         $this->assertGreaterThan(0, Document::query()->count());
 
-        // Filed, not just created: the split between where a document is and
-        // how it is found is the thing the demo exists to show.
         $this->assertGreaterThan(0, OrganizationNode::query()->count());
         $this->assertSame(
             Document::query()->count(),

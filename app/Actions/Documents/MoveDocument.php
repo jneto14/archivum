@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace App\Actions\Documents;
 
+use App\Actions\Concerns\FlashesValidationFailure;
 use App\Actions\Organization\CountFiledDocuments;
 use App\Models\Document;
 use App\Models\DocumentLocation;
 use App\Models\OrganizationNode;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
 
 class MoveDocument
 {
+    use FlashesValidationFailure;
+
     public function __construct(private readonly CountFiledDocuments $countFiledDocuments) {}
 
     /**
@@ -58,14 +60,7 @@ class MoveDocument
     private function assertNodeBelongsToWorkspace(Document $document, OrganizationNode $node): void
     {
         if ($node->level->scheme->workspace_id !== $document->workspace_id) {
-            // Flashed as well as thrown: the message is addressed to a
-            // field — 'node_id' — that no page renders, so on its own it
-            // arrives and is dropped. The toast is what is actually seen.
-            Inertia::flash('toast', ['type' => 'error', 'message' => __('document.location_workspace_mismatch')]);
-
-            throw ValidationException::withMessages([
-                'node_id' => __('document.location_workspace_mismatch'),
-            ]);
+            $this->flashAndFail('node_id', __('document.location_workspace_mismatch'));
         }
     }
 
@@ -100,14 +95,7 @@ class MoveDocument
         }
 
         if ($filed >= $level->capacity) {
-            // Flashed as well as thrown: the message is addressed to a
-            // field — 'node_id' — that no page renders, so on its own it
-            // arrives and is dropped. The toast is what is actually seen.
-            Inertia::flash('toast', ['type' => 'error', 'message' => __('document.location_full')]);
-
-            throw ValidationException::withMessages([
-                'node_id' => __('document.location_full'),
-            ]);
+            $this->flashAndFail('node_id', __('document.location_full'));
         }
     }
 }

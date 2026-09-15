@@ -50,9 +50,6 @@ export function DateRangePicker({ from, to, onChange, className }: Props) {
           }
         : undefined;
 
-    // While the popover is open the calendar shows the draft, so that clicking
-    // the first day of a range does not fire a request and re-render the page
-    // out from under the second click.
     const selected = open ? draft : committed;
 
     const commit = (range: DateRange | undefined) => {
@@ -82,9 +79,6 @@ export function DateRangePicker({ from, to, onChange, className }: Props) {
                     return;
                 }
 
-                // Whatever was picked before closing is kept: a lone start
-                // date is a legitimate open-ended filter, and a single day is
-                // a legitimate one-day one.
                 if (!sameRange(draft, committed)) {
                     commit(draft);
                 }
@@ -138,12 +132,9 @@ export function DateRangePicker({ from, to, onChange, className }: Props) {
                     onSelect={(range) => {
                         setDraft(range);
 
-                        // A single click yields a one-day range in
-                        // react-day-picker, so `to` being set is not enough to
-                        // mean "finished" — closing on it made picking a real
-                        // range impossible. Only a span of more than one day
-                        // ends the interaction; anything else is committed when
-                        // the popover closes.
+                        // A single click yields a one-day range in react-day-picker
+                        // (`to` set equal to `from`), so only a span of more than
+                        // one day ends the interaction here.
                         if (
                             range?.from &&
                             range.to &&

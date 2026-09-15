@@ -245,8 +245,6 @@ class IntakeVocabulary
 
         $labels = array_values(array_unique($labels));
 
-        // Longest first, so "vat registration" is tried before "vat" and the
-        // gap after the label is measured from the end of the longer phrase.
         usort($labels, static fn (string $first, string $second): int => mb_strlen($second) <=> mb_strlen($first));
 
         return $this->labels[$cacheKey] = $labels;
@@ -302,10 +300,6 @@ class IntakeVocabulary
             return $name;
         }
 
-        // What was recorded beats what is sampled. A key that has not been
-        // filed in the last few hundred documents falls out of the sample, and
-        // a name that degrades to "auto_n" the moment an archive grows past it
-        // is showing somebody the machinery.
         return $filedAs ?? $this->keyFor($kind, $workspaceId);
     }
 

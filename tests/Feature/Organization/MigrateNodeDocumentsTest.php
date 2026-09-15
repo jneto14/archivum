@@ -88,8 +88,6 @@ class MigrateNodeDocumentsTest extends TestCase
         $filed = app(CreateDocument::class)->handle($workspace, $creator, $type, 'Already there', null, null);
         app(MoveDocument::class)->handle($filed, $targetNode);
 
-        // The target holds one of its two, and two are on their way: filing
-        // both would leave it holding three.
         try {
             app(MigrateNodeDocuments::class)->handle($sourceNode, $targetNode);
             $this->fail('Expected the migration to be refused.');
@@ -97,8 +95,6 @@ class MigrateNodeDocumentsTest extends TestCase
             $this->assertArrayHasKey('target_node_id', $exception->errors());
         }
 
-        // Refused whole: not one of them moved, rather than the first fitting
-        // and the second being turned away halfway through.
         foreach ($moving as $document) {
             $this->assertSame($sourceNode->id, $document->refresh()->currentLocation->organization_node_id);
         }

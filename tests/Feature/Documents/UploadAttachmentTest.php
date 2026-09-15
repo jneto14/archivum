@@ -73,7 +73,6 @@ class UploadAttachmentTest extends TestCase
             DocumentAttachment::query()->orderBy('created_at')->pluck('filename')->all(),
         );
 
-        // One extraction task per attachment, as ARC-84 established.
         $this->assertSame(3, Task::query()->where('type', TaskType::AttachmentTextExtraction)->count());
     }
 
@@ -97,7 +96,6 @@ class UploadAttachmentTest extends TestCase
 
         $response->assertSessionHasErrors('files');
 
-        // All or nothing: the two that would have fit are not stored either.
         $this->assertDatabaseCount('document_attachments', 0);
         $this->assertSame(0, Task::query()->count());
         $this->assertEmpty(Storage::disk('local')->allFiles());
@@ -157,7 +155,6 @@ class UploadAttachmentTest extends TestCase
         $type = DocumentType::factory()->for($workspace)->create();
         $document = app(CreateDocument::class)->handle($workspace, $member->user, $type, 'Invoice', null, null);
 
-        // Room for one of the two files, but not for both together.
         WorkspaceLimit::factory()->for($workspace)->create(['storage_bytes' => 15 * 1024]);
 
         $response = $this->actingAs($member->user)->post(route('attachments.store', $document), [

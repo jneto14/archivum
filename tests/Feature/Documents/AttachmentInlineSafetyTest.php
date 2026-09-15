@@ -202,9 +202,9 @@ class AttachmentInlineSafetyTest extends TestCase
     {
         Storage::fake('local');
 
-        // The upload queues text extraction, which runs inline under the
-        // suite's sync queue. Nothing here is about extraction, and letting
-        // tesseract loose on an SVG fails the test for the wrong reason.
+        // Queue::fake() rather than letting the sync driver run this inline:
+        // nothing here is about extraction, and tesseract has no reason to run
+        // against an SVG.
         Queue::fake();
 
         $workspace = Workspace::factory()->create();

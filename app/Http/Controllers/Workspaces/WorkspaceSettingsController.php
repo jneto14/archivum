@@ -37,12 +37,6 @@ class WorkspaceSettingsController extends Controller
         $scheme = OrganizationScheme::query()->where('workspace_id', $workspace->id)->first(['id', 'name']);
         $isPlatformAdmin = (bool) $request->user()->is_platform_admin;
 
-        // Only the ones in use. Unanswered candidates are a queue of work, and
-        // they live on the review page with everything else the application
-        // worked out and cannot confirm on its own; what belongs here is the
-        // standing list, and the way to retire something off it. Rejected ones
-        // are not sent either: they are recorded so mining stops asking, not so
-        // anybody re-reads them.
         $intakeLabels = IntakeLabel::query()
             ->where('workspace_id', $workspace->id)
             ->accepted()
@@ -62,10 +56,6 @@ class WorkspaceSettingsController extends Controller
                 'name' => $token->name,
                 'created_at_diff' => $token->created_at?->diffForHumans(),
                 'last_used_at_diff' => $token->last_used_at?->diffForHumans(),
-                // Sanctum stops accepting the token the moment this passes, and
-                // the failure lands wherever the token is used rather than
-                // here. So the row says when that happens, and says it plainly
-                // once it has.
                 'expires_at_diff' => $token->expires_at?->diffForHumans(),
                 'is_expired' => $token->expires_at?->isPast() ?? false,
             ])->values()->all(),
@@ -95,8 +85,6 @@ class WorkspaceSettingsController extends Controller
             $presented[] = [
                 'id' => $label->id,
                 'kind' => $label->kind,
-                // A shipped kind has a name in the interface language; one the
-                // archive invented is shown as this workspace spells it.
                 'field' => $vocabulary->nameFor($label->kind, $workspace->id, $label->field),
                 'label' => $label->label,
                 'support' => $label->support,

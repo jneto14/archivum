@@ -90,9 +90,6 @@ class SuggestMetadataVocabulary
         Document::query()
             ->where('workspace_id', $workspace->id)
             ->whereNotNull('metadata')
-            // By id as well as by date, so a batch filed in one second does not
-            // reorder the sample — and with it the tie-breaks below — between
-            // two renders of the same form.
             ->latest('created_at')
             ->latest('id')
             ->limit(self::DOCUMENT_SAMPLE)
@@ -105,28 +102,18 @@ class SuggestMetadataVocabulary
 
                     $kind = $this->vocabulary->kindForKey((string) $key);
 
-                    // The key counts whatever is under it. A field somebody
-                    // filed and left empty is still a field this workspace
-                    // uses, and dropping it is how the one place the
-                    // suggestions matter — the empty row being added — ends up
-                    // with nothing to offer: every key the document already
-                    // holds is excluded there, so the vocabulary has to carry
-                    // the ones it does not.
                     $spellings[$kind][(string) $key] = ($spellings[$kind][(string) $key] ?? 0) + 1;
                     $counts[$kind] = ($counts[$kind] ?? 0) + 1;
                     $types[$kind][$document->document_type_id] = true;
 
-                    // The value is a separate judgement: only something that
-                    // can be offered back as text goes into the value list.
                     if ((is_string($value) || is_int($value)) && filled($value)) {
                         $values[$kind][(string) $value] = ($values[$kind][(string) $value] ?? 0) + 1;
                     }
                 }
             });
 
-        // Sorts are stable in PHP 8, and the sample is walked newest first, so
-        // everything tied here stays in most-recently-filed order rather than
-        // in whatever order the array happened to be built.
+        // PHP's sorts are stable, so ties here keep the newest-first order the
+        // sample was walked in.
         arsort($counts);
 
         $entries = [];
@@ -135,8 +122,6 @@ class SuggestMetadataVocabulary
             $spelt = $spellings[$kind];
             arsort($spelt);
 
-            // A key every document left empty has no values to offer, and is
-            // still a key worth offering.
             $filed = $values[$kind] ?? [];
             arsort($filed);
 

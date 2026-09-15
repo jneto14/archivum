@@ -75,8 +75,6 @@ class TagTest extends TestCase
         $workspace = Workspace::factory()->create();
         $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
 
-        // Uniqueness is scoped to the workspace, so an unscoped unique rule
-        // would let one workspace's vocabulary block another's.
         Tag::factory()->create(['name' => 'Utilities']);
 
         $this->actingAs($member->user)

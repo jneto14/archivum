@@ -54,8 +54,6 @@ it('offers the suggestions on focus and fills one in when it is clicked', async 
 
     expect(onChange).toHaveBeenLastCalledWith('Apólice');
     expect(screen.getByPlaceholderText('Key')).toHaveValue('Apólice');
-    // Picking one is the end of the interaction; leaving the list up would
-    // cover the row below it.
     expect(screen.queryByRole('listbox')).toBeNull();
 });
 

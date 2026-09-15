@@ -124,8 +124,6 @@ class ProfileApiTest extends TestCase
     {
         $other = User::factory()->create(['name' => 'Someone else']);
 
-        // There is no user this route is addressed by; the only profile a
-        // token can reach is its own.
         $this->withToken($this->token)
             ->patchJson("/api/v1/users/{$other->id}", ['name' => 'Hijacked'])
             ->assertNotFound();

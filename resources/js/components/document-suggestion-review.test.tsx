@@ -48,8 +48,6 @@ it('sends nothing at all when the whole row is dismissed', async () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Nothing here' }));
 
-    // Still a request: the document has been reviewed, which is what takes it
-    // off the queue.
     expect(router.post).toHaveBeenCalledTimes(1);
     expect(sentKinds()).toEqual([]);
 });

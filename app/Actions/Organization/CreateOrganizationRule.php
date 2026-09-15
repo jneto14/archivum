@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace App\Actions\Organization;
 
+use App\Actions\Concerns\FlashesValidationFailure;
 use App\Models\OrganizationLevel;
 use App\Models\OrganizationRule;
 use App\Models\OrganizationScheme;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
 
 class CreateOrganizationRule
 {
+    use FlashesValidationFailure;
+
     /**
      * Create a new OrganizationRule mapping a matcher to a target level and preferred value.
      *
@@ -50,14 +52,7 @@ class CreateOrganizationRule
     private function assertTargetLevelBelongsToScheme(OrganizationScheme $scheme, OrganizationLevel $targetLevel): void
     {
         if ($targetLevel->scheme_id !== $scheme->id) {
-            // Flashed as well as thrown: the message is addressed to a
-            // field — 'target_level_id' — that no page renders, so on its own it
-            // arrives and is dropped. The toast is what is actually seen.
-            Inertia::flash('toast', ['type' => 'error', 'message' => __('organization.invalid_rule_target_level')]);
-
-            throw ValidationException::withMessages([
-                'target_level_id' => __('organization.invalid_rule_target_level'),
-            ]);
+            $this->flashAndFail('target_level_id', __('organization.invalid_rule_target_level'));
         }
     }
 
@@ -79,14 +74,7 @@ class CreateOrganizationRule
             ->exists();
 
         if ($exists) {
-            // Flashed as well as thrown: the message is addressed to a
-            // field — 'matcher_value' — that no page renders, so on its own it
-            // arrives and is dropped. The toast is what is actually seen.
-            Inertia::flash('toast', ['type' => 'error', 'message' => __('organization.duplicate_rule_matcher')]);
-
-            throw ValidationException::withMessages([
-                'matcher_value' => __('organization.duplicate_rule_matcher'),
-            ]);
+            $this->flashAndFail('matcher_value', __('organization.duplicate_rule_matcher'));
         }
     }
 }

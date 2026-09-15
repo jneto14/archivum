@@ -109,38 +109,21 @@ export default function DocumentShow({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { workspace } = usePage().props;
     const [moveOpen, setMoveOpen] = useState(false);
-    // The picker starts on the suggestions and only reveals the full list when
-    // asked, which is also what triggers loading it.
     const [browsingLocations, setBrowsingLocations] = useState(false);
     const [locationQuery, setLocationQuery] = useState('');
-    // Always starts closed, even if the page loads with a session already
-    // active (a reload mid-pairing, or one left open from an earlier visit)
-    // — popping the dialog open on its own, unasked, was more surprising
-    // than useful. The button still finds that same session rather than
-    // starting a redundant one, since DocumentCaptureDialog only creates a
-    // new session when it opens with none active.
     const [captureOpen, setCaptureOpen] = useState(false);
     const [cameraOpen, setCameraOpen] = useState(false);
-    // Decides which scan this button offers: the camera in your hand, or a QR
-    // code to bring another device to it. When it is the QR because there was
-    // no camera to open, that dialog says so rather than leaving the user to
-    // wonder why the scanner never appeared.
     const cameraAccess = useCameraAccess();
     const cameraAvailable = cameraAccess === 'available';
     // Each queued file carries an id rather than being identified by its
-    // position. Rows are removed one at a time, and keying them by index made
-    // React reuse a removed row's DOM for the row that moved up into its
-    // place. A name is not enough on its own — picking the same file twice is
-    // legitimate, and two identical keys is its own bug.
+    // position: rows are removed one at a time, and keying them by index made
+    // React reuse a removed row's DOM for the row that moved up into its place.
     const [queue, setQueue] = useState<{ id: string; file: File }[]>([]);
     const [uploadError, setUploadError] = useState<string | undefined>(
         undefined,
     );
     const [previewAttachment, setPreviewAttachment] =
         useState<Attachment | null>(null);
-    // Set when the phone pairing dialog was opened to re-shoot one page rather
-    // than to add new ones. Cleared when the dialog closes, so the next press
-    // of the card's own scan button starts an ordinary session.
     const [replacingAttachment, setReplacingAttachment] =
         useState<Attachment | null>(null);
 
@@ -192,9 +175,6 @@ export default function DocumentShow({
                     setQueue([]);
                     setUploadError(undefined);
                 },
-                // The whole batch is rejected or none of it is, so a single
-                // message is the whole story. Without this the upload used to
-                // fail in complete silence.
                 onError: (errors) =>
                     setUploadError(
                         errors.files ??
@@ -747,9 +727,6 @@ export default function DocumentShow({
                 onOpenChange={(open) => {
                     setCaptureOpen(open);
 
-                    // Cleared on close, so the card's own scan button opens an
-                    // ordinary session next time rather than inheriting the
-                    // row somebody pressed before.
                     if (!open) {
                         setReplacingAttachment(null);
                     }

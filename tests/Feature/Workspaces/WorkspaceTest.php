@@ -112,9 +112,6 @@ class WorkspaceTest extends TestCase
         $workspace = Workspace::factory()->create();
         $user = User::factory()->create();
 
-        // On a single-workspace installation there is no invitation flow to
-        // join through, so a user created any other way — the seeder, an
-        // console command — would otherwise be locked out of every route.
         $this->assertTrue($workspace->isMember($user));
         $this->assertFalse($workspace->isAdmin($user));
     }

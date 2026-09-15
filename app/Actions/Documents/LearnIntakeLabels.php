@@ -130,11 +130,6 @@ class LearnIntakeLabels
                     [
                         'status' => IntakeLabelStatus::Pending,
                         'support' => 0,
-                        // Recorded now, while the key somebody typed is in
-                        // hand. Working it out later means sampling the
-                        // archive, and a key that has aged out of the sample
-                        // would leave the interface showing the normalised
-                        // form of it.
                         'field' => $key,
                     ],
                 )->id;
@@ -229,9 +224,6 @@ class LearnIntakeLabels
                 continue;
             }
 
-            // A value that does not look like the others filed under this key
-            // says nothing about what introduces one. This is where an "n/a"
-            // typed into an identifier field stops.
             if (!$this->vocabulary->shape($kind, $workspaceId)->matches((string) $value)) {
                 continue;
             }
@@ -250,8 +242,6 @@ class LearnIntakeLabels
 
             foreach ($matches[0] as [, $offset]) {
                 foreach ($this->phrasesBefore($folded, (int) $offset) as $phrase) {
-                    // Already read this way, whether it shipped in a language
-                    // file or the workspace accepted it earlier.
                     if (in_array($phrase, $known, true)) {
                         continue;
                     }
@@ -282,7 +272,6 @@ class LearnIntakeLabels
         $lineStart = mb_strrpos($before, "\n");
         $line = $lineStart === false ? $before : mb_substr($before, $lineStart + 1);
 
-        // The separators the reader itself allows between a label and a value.
         $line = (string) preg_replace('/[ \t:.#-]+$/', '', $line);
 
         /** @var list<string> $words */
@@ -294,8 +283,6 @@ class LearnIntakeLabels
 
         $adjacent = (string) end($words);
 
-        // A value introduced by a number is not introduced by anything: that is
-        // the previous field's value, or a line number.
         if (preg_match('/^[a-z]/', $adjacent) !== 1) {
             return [];
         }
@@ -309,8 +296,6 @@ class LearnIntakeLabels
         for ($length = 1; $length <= min(self::MAX_LABEL_WORDS, count($words)); $length++) {
             $phrase = implode(' ', array_slice($words, -$length));
 
-            // A digit anywhere in the phrase means it has reached back into
-            // another value rather than into words.
             if (preg_match('/\d/', $phrase) !== 1) {
                 $phrases[] = $phrase;
             }

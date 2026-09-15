@@ -75,9 +75,9 @@ final readonly class ReviewQueue
      */
     private function whereHasSuggestions(Builder $query): void
     {
-        // Length rather than "not null": an empty list is a document that has
-        // been read and has nothing waiting, which is not the same as one
-        // nothing has read yet. See Document::recordMetadataSuggestions().
+        // Length rather than "not null": an empty list means read with nothing
+        // waiting, which is not the same as not yet read. See
+        // Document::recordMetadataSuggestions().
         $query->whereRaw('json_length(documents.metadata_suggestions) > 0');
     }
 

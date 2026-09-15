@@ -198,9 +198,6 @@ class DocumentSearchModeTest extends TestCase
         $workspace = Workspace::factory()->create();
         $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
 
-        // docs/search.md promises a filtered view can be bookmarked and
-        // reloaded, so the values this enum used to answer to must resolve
-        // rather than come back as a validation error.
         foreach (['exact', 'broad'] as $legacy) {
             $this->actingAs($member->user)
                 ->get(route('documents.index', ['workspace' => $workspace, 'mode' => $legacy]))

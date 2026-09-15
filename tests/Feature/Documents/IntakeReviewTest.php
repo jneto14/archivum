@@ -86,9 +86,6 @@ class IntakeReviewTest extends TestCase
             'metadata' => ['amount' => '999,99 EUR'],
         ])->save();
 
-        // The findings are still stored — they are cleared on the document's
-        // next edit — so the page itself has to leave it out rather than list a
-        // row with nothing in it.
         $this->actingAs($this->member($workspace))
             ->get(route('documents.review', $workspace))
             ->assertOk()
@@ -100,8 +97,6 @@ class IntakeReviewTest extends TestCase
         $workspace = $this->workspace();
         $document = $this->reviewable($workspace, 'Scan sem titulo');
 
-        // Filled in behind the queue's back — how the real one drifted: a
-        // backfill re-read a document whose fields were already complete.
         $document->forceFill([
             'document_date' => '2026-01-05',
             'metadata' => ['amount' => '999,99 EUR'],
@@ -243,7 +238,6 @@ class IntakeReviewTest extends TestCase
             ->get(route('documents.review', $workspace))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                // Two documents with suggestions, plus the flagged attachment.
                 ->where('intakeReviewCount', 3),
             );
 
@@ -254,10 +248,6 @@ class IntakeReviewTest extends TestCase
         $this->assertSame('Manutencao agosto', $flagged[0]['duplicate_of']['document_title']);
     }
 
-    // The engine's confidence says how sure it was of each word, which is not
-    // the same question as whether the reading is right — a confident
-    // misreading scores as well as a correct one. Only somebody looking at the
-    // page can tell them apart, so the text goes in front of them (ARC-118).
     public function test_the_queue_shows_what_was_read_off_each_scan()
     {
         $workspace = $this->workspace();
@@ -270,7 +260,6 @@ class IntakeReviewTest extends TestCase
             ->get(route('documents.review', $workspace))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                // The one document with suggestions, plus the reading.
                 ->where('intakeReviewCount', 2),
             );
 
@@ -282,9 +271,6 @@ class IntakeReviewTest extends TestCase
         $this->assertSame(4, $readings[0]['unread_word_count']);
     }
 
-    // The queue is for the readings that went badly. A page where every word
-    // cleared the floor is not worth anybody's time, and a queue that asks
-    // about every upload is one people stop opening.
     public function test_a_reading_the_engine_was_sure_of_is_never_asked_about()
     {
         $workspace = $this->workspace();
@@ -297,7 +283,6 @@ class IntakeReviewTest extends TestCase
             ->get(route('documents.review', $workspace))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                // Only the document's own suggestions are waiting.
                 ->where('intakeReviewCount', 1),
             );
 
@@ -346,10 +331,6 @@ class IntakeReviewTest extends TestCase
         $this->assertSame([], $this->findings($response, 'readings'));
     }
 
-    // Refusing deletes the text rather than flagging it. `ocr_text` is what
-    // feeds the search index and the duplicate fingerprint, so a reading
-    // nobody believes has to stop being one — flagging it would leave it doing
-    // its damage.
     public function test_refusing_a_reading_throws_the_text_away()
     {
         $workspace = $this->workspace();
@@ -370,7 +351,6 @@ class IntakeReviewTest extends TestCase
         $this->assertSame(OcrStatus::PoorlyRead, $scan->ocr_status);
         $this->assertNotNull($scan->ocr_reviewed_at);
 
-        // The document mirrors its attachments, and is what search reads.
         $this->assertNull($document->refresh()->ocr_text);
     }
 
@@ -421,8 +401,6 @@ class IntakeReviewTest extends TestCase
                 ->has('labels', 1)
                 ->where('labels.0.label', 'steuernummer')
                 ->where('labels.0.field', 'Tax number')
-                // The documents that taught it, so the candidate can be judged
-                // rather than believed.
                 ->where('labels.0.documents.0.title', 'Rechnung 2026'),
             );
     }

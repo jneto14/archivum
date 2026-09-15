@@ -68,10 +68,6 @@ class CountIntakeReview
                 OcrStatus::Completed->value,
                 $workspace->id,
                 IntakeLabelStatus::Pending->value,
-                // Kept in the same round trip and discarded rather than
-                // branched on: a second query shape would be a second thing for
-                // `QueryBudgetTest` to hold to account, for a subquery on an
-                // indexed column.
                 $canAnswerLabels ? IntakeLabel::minimumSupport() : PHP_INT_MAX,
             ],
         );

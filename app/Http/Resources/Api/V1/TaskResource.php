@@ -33,15 +33,8 @@ class TaskResource extends JsonResource
                 'id' => $this->user->id,
                 'name' => $this->user->name,
             ]),
-            // What the task is about, where it is about one thing: the
-            // filename, for the readings that make up most of this list.
             'subject' => $this->payload['filename'] ?? null,
             'progress' => $this->progress(),
-            // Read out of `result`, which is where a failure records itself.
-            // The rest of that array is the disk and path an export was
-            // written to, which is this application's business and not a
-            // client's — hence a flag saying the file is there to fetch,
-            // rather than the location it is at.
             'error' => is_array($this->result) ? ($this->result['error'] ?? null) : null,
             'result_available' => $this->type === TaskType::DocumentExport
                 && $this->status === TaskStatus::Completed

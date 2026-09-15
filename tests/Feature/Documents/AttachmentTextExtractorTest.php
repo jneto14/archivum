@@ -67,8 +67,6 @@ class AttachmentTextExtractorTest extends TestCase
     {
         $engine = $this->fakeEngine('text from ocr');
 
-        // Shorter than min_text_length: the stray characters a scanner stamps
-        // onto an otherwise imaged page, not a real text layer.
         $attachment = $this->attachmentHolding($this->pdfContaining('Page 1'), 'scan.pdf', 'application/pdf');
 
         $extracted = app(AttachmentTextExtractor::class)->handle($attachment);
@@ -143,8 +141,6 @@ class AttachmentTextExtractorTest extends TestCase
         $this->fakeEngine('never called');
         $attachment = $this->attachmentHolding('this is not a pdf at all', 'broken.pdf', 'application/pdf');
 
-        // Distinct from a generic failure: the bytes will not improve on a
-        // retry, and ExtractAttachmentText relies on the type to know that.
         $this->expectException(UnreadableAttachment::class);
 
         app(AttachmentTextExtractor::class)->handle($attachment);
@@ -165,10 +161,6 @@ class AttachmentTextExtractorTest extends TestCase
         app(AttachmentTextExtractor::class)->handle($attachment);
     }
 
-    // The point of the whole confidence filter: what the engine mostly guessed
-    // at never becomes text. Storing the fragment that scored well would put
-    // it in the search index, where it is a result for a word nobody wrote,
-    // and in the duplicate fingerprint (ARC-118).
     public function test_a_page_the_engine_mostly_guessed_at_stores_no_text()
     {
         $this->fakeEngine(new RecognizedText('four words got through', 20, 4));
@@ -180,11 +172,6 @@ class AttachmentTextExtractorTest extends TestCase
         $this->assertSame('', $extracted->text, 'The words that survived are as likely to be noise that scored well.');
     }
 
-    // Why the filter is per word rather than per page. A printed form filled
-    // in by hand is the common case in an archive, and the printed labels are
-    // exactly what the reader needs: a value is found by the words in front of
-    // it, so losing the labels along with the handwriting would cost more than
-    // the handwriting was worth.
     public function test_a_form_keeps_its_printed_labels_when_the_handwriting_is_dropped()
     {
         $this->fakeEngine(new RecognizedText("Nome\nMorada\nData", 10, 6));
@@ -196,8 +183,6 @@ class AttachmentTextExtractorTest extends TestCase
         $this->assertStringContainsString('Morada', $extracted->text);
     }
 
-    // A blank page was read perfectly and simply has nothing on it. Reporting
-    // it as poorly read would flag every blank sheet in an archive.
     public function test_a_blank_page_is_completed_rather_than_poorly_read()
     {
         $this->fakeEngine(RecognizedText::empty());

@@ -76,8 +76,6 @@ class BrandingTest extends TestCase
             resource_path('views/vendor/mail/html/header.blade.php'),
         );
 
-        // The published header shipped a hard-coded `<img>` pointing at
-        // laravel.com, behind a check on the app name being "Laravel".
         $this->assertStringNotContainsString('laravel.com', $header);
         $this->assertStringContainsString('email-logo.png', $header);
     }
@@ -108,8 +106,6 @@ class BrandingTest extends TestCase
     {
         $boot = (string) file_get_contents(base_path('resources/js/app.tsx'));
 
-        // Asserted positively: the negative reads badly here, since the reason
-        // the build-time variable is not used is worth naming in a comment.
         $this->assertStringContainsString(
             'page.props.name',
             $boot,

@@ -25,8 +25,6 @@ describe('defaultCorners', () => {
     it('keeps the inset proportional, so a small image is not swallowed by it', () => {
         const corners = defaultCorners(100, 100);
 
-        // 8% of 100 is 8 either side — comfortably inside a tiny image
-        // rather than the corners colliding or crossing.
         expect(corners.topLeft.x).toBeGreaterThan(0);
         expect(corners.topLeft.x).toBeLessThan(corners.topRight.x);
         expect(corners.topLeft.y).toBeLessThan(corners.bottomLeft.y);
@@ -56,10 +54,6 @@ describe('isImplausibleDocument', () => {
     });
 
     it('refuses a quad small enough to be something printed on the page', () => {
-        // The other direction, and the one that reached a user: an invoice
-        // with a bordered totals box in the middle of it. The box has crisper
-        // edges than a sheet of paper on a desk, so it wins on area and the
-        // page gets filed as that box (ARC-110).
         expect(isImplausibleDocument(centred(300, 200), 1000, 800)).toBe(true);
     });
 
@@ -74,8 +68,6 @@ describe('isImplausibleDocument', () => {
     });
 
     it('accepts a page photographed with room around it', () => {
-        // Half the frame: further away than anyone normally holds a phone, and
-        // still a page rather than a detail on one.
         expect(isImplausibleDocument(centred(700, 570), 1000, 800)).toBe(false);
     });
 });
@@ -88,10 +80,6 @@ describe('scaleCorners', () => {
         bottomRight: { x: 90, y: 80 },
     };
 
-    // The viewfinder detects on a downscaled frame and draws on the full-size
-    // one. Getting this wrong draws an outline that is the right shape in the
-    // wrong place, which reads as detection being broken rather than as a
-    // scaling bug.
     it('carries a quad from the detection frame up to the full-size one', () => {
         const scaled = scaleCorners(
             corners,
@@ -123,8 +111,8 @@ describe('scaleCorners', () => {
         ).toEqual(corners);
     });
 
-    // A video element reports 0x0 until it has a frame, and dividing by that
-    // would put every corner at NaN and draw nothing anyone could debug.
+    // A video element reports 0x0 until it has a frame; dividing by that
+    // would put every corner at NaN.
     it('survives a source frame that has no size yet', () => {
         const scaled = scaleCorners(
             corners,
@@ -187,10 +175,6 @@ describe('orderCorners', () => {
         return [points[2], points[0], points[3], points[1]];
     }
 
-    // Contour tracing usually hands the points over already in perimeter
-    // order, which hides an ordering bug completely — any stable sort leaves a
-    // correct sequence correct. Scrambling first is what makes these assert
-    // that the angular sort is doing the work.
     it.each([0, 15, 30, 45, 60, 75, 89])(
         'walks the perimeter of a page turned %i degrees, in whatever order the points arrive',
         (degrees) => {
@@ -199,8 +183,6 @@ describe('orderCorners', () => {
             );
 
             expect(ordered).not.toBeNull();
-            // A wrong order is not a wrong-looking quad, it is a bowtie: the
-            // outline crosses itself and the warp folds the page over.
             expect(isConvexQuad(ordered!)).toBe(true);
         },
     );
@@ -262,8 +244,6 @@ describe('isConvexQuad', () => {
     });
 
     it('accepts a page seen from an angle, which is the normal case', () => {
-        // A rectangle projected from any viewpoint stays convex, which is what
-        // makes convexity usable as a test at all.
         expect(
             isConvexQuad({
                 topLeft: { x: 20, y: 8 },
@@ -322,9 +302,6 @@ describe('isImplausibleDocument, viewfinder and shape', () => {
         };
     }
 
-    // A photo is framed before it is taken; a viewfinder is aimed, and the
-    // page is legitimately small in the frame on the way in. Holding it to the
-    // photo's floor meant the outline only appeared once it was not needed.
     it('accepts a page still being approached, which a framed photo would refuse', () => {
         const approaching = centred(420, 340);
 
@@ -351,11 +328,6 @@ describe('isImplausibleDocument, viewfinder and shape', () => {
     });
 
     it('refuses a band, which clears the area floor but is not a sheet of paper', () => {
-        // A rule under a letterhead, or the front edge of the desk: a clean
-        // convex quadrilateral, nearly nine times wider than it is tall. Only
-        // the viewfinder can actually reach this — under the framed-photo
-        // floor a quad this thin is already too small to be offered — which is
-        // the point, since lowering that floor is what lets bands through.
         const band = centred(950, 110);
 
         expect(
@@ -427,8 +399,6 @@ describe('isDifferentSubject', () => {
     });
 
     it('treats a corner jumping across the frame as a new subject', () => {
-        // Averaging across a real change would draw the outline through the
-        // space between two documents, matching neither.
         expect(
             isDifferentSubject(
                 previous,

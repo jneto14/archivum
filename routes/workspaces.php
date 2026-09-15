@@ -48,8 +48,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('workspaces.limits.update');
     Route::get('workspaces/{workspace}/settings', [WorkspaceSettingsController::class, 'show'])->name('workspaces.settings.show');
 
-    // Answering a label the archive taught itself. Accept, reject, and retire
-    // an accepted one are the same write — see IntakeLabelController.
     Route::patch('workspaces/{workspace}/intake-labels/{intakeLabel}', [IntakeLabelController::class, 'update'])
         ->name('workspaces.intake-labels.update');
 

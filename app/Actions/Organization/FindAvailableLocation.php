@@ -93,8 +93,6 @@ class FindAvailableLocation
         foreach ($levels as $level) {
             $preferredValue = $this->preferredValueFor($rule, $level);
 
-            // Once a level has to be created, everything below it is new too:
-            // a node that does not exist yet cannot have children to reuse.
             if ($pending !== []) {
                 $pending[] = $this->valueUnderNewParent($level, $preferredValue);
 
@@ -119,7 +117,6 @@ class FindAvailableLocation
         }
 
         if ($pending === []) {
-            // Every level resolved to an existing node, the last of them the leaf.
             return ['node' => $node, 'value' => $node->value, 'path' => $node->path()];
         }
 

@@ -141,7 +141,6 @@ class IntakeApiTest extends TestCase
             ->assertJsonPath('data.document_id', $document->id)
             ->assertJsonPath('data.is_active', true)
             ->assertJsonPath('data.replaces_attachment_id', null)
-            // The signed URL itself, not a picture of it.
             ->assertJsonPath('data.pairing_url', fn (string $url): bool => str_contains($url, 'signature='));
     }
 

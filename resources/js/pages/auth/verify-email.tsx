@@ -1,4 +1,3 @@
-// Components
 import { Form, Head, setLayoutProps } from '@inertiajs/react';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';

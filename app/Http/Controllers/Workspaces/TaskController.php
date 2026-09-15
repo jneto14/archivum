@@ -47,10 +47,6 @@ class TaskController extends Controller
             'created_at' => 'tasks.created_at',
         ], 'created_at', 'desc');
 
-        // Paginated because attachment text extraction creates a task per
-        // uploaded file. An unbounded list would bury the deliberate,
-        // user-triggered work — an export someone is waiting on — under
-        // however many files were uploaded since.
         $tasks = Task::query()
             ->where('workspace_id', $workspace->id)
             ->with('user')
@@ -102,10 +98,6 @@ class TaskController extends Controller
             return null;
         }
 
-        // Capped at the total, which was settled before the sweep started: a
-        // chunk that ran out of clock hands its remainder back as a fresh
-        // chunk, so the jobs can outnumber the attachments even though the
-        // attachments do not.
         return [
             'processed' => min($total, (int) ($task->payload['processed'] ?? 0)),
             'total' => $total,

@@ -214,9 +214,6 @@ class ActivityTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->where('sort.key', 'event')
-                // Creating the workspace and its membership logs its own
-                // entries, so the feed holds several `created` rows and exactly
-                // one `updated`. Descending puts it first.
                 ->where('activities.data.0.event', 'updated')
                 ->where('activities.data.1.event', 'created'),
             );

@@ -58,11 +58,6 @@ class HandleInertiaRequests extends Middleware
             ? $user->workspaces()->orderBy('workspace_user.created_at')->get()
             : collect();
 
-        // `$workspaces` already carries each membership's pivot role, so the
-        // current workspace's role is in hand — `isManageableBy()` would spend
-        // another `exists` query re-reading what we just selected. A platform
-        // admin managing a workspace they don't belong to isn't in the list, but
-        // the flag alone makes them an admin, so the short-circuit covers it.
         $isWorkspaceAdmin = $workspace !== null && $user !== null && (
             $user->is_platform_admin
             // The relation doesn't declare `using(WorkspaceUser::class)`, so the
@@ -88,10 +83,6 @@ class HandleInertiaRequests extends Middleware
                 'name' => $w->name,
                 'role' => (string) $w->pivot->role,
             ])->all(),
-            // Present on every page, signed in or not: the login screen needs
-            // the credentials and the banner needs the deadline, and a visitor
-            // who spends ten minutes filing something deserves to know it will
-            // be gone by morning.
             'demo' => DemoMode::enabled() ? [
                 'email' => (string) config('archivum.demo.email'),
                 'password' => (string) config('archivum.demo.password'),
@@ -100,9 +91,6 @@ class HandleInertiaRequests extends Middleware
             'canSwitchWorkspace' => (bool) config('archivum.multi_workspace_enabled'),
             'isWorkspaceAdmin' => $isWorkspaceAdmin,
             'documentsCount' => $workspace ? app(CalculateWorkspaceUsage::class)->documents($workspace) : null,
-            // The sidebar badge on the intake review queue. Costs one query on
-            // every request, which is the price of the queue being noticed at
-            // all — see CountIntakeReview. `QueryBudgetTest` covers it.
             'intakeReviewCount' => $workspace ? app(CountIntakeReview::class)->handle($workspace, $isWorkspaceAdmin) : null,
             // Selected as a subquery on the workspace row by ResolveWorkspace,
             // rather than fetched here — see that middleware's withSchemeId().

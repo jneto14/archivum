@@ -135,8 +135,6 @@ class DocumentSearchTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonCount(1, 'data');
-        // Where a document is, not where it has been: the one that moved on
-        // still has a location row for this shelf, and must not come back.
         $response->assertJsonPath('data.0.id', $filed->id);
     }
 
@@ -181,8 +179,6 @@ class DocumentSearchTest extends TestCase
             route('documents.search', ['workspace' => $workspace, 'node_id' => $foreignNode->id])
         );
 
-        // Dropping the filter instead would answer "what is in that location"
-        // with this workspace's whole archive.
         $response->assertOk();
         $response->assertJsonCount(0, 'data');
     }

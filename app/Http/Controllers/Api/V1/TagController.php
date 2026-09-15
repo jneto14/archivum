@@ -39,10 +39,6 @@ class TagController extends Controller
             Tag::query()
                 ->where('workspace_id', $workspace->id)
                 ->withCount('documents')
-                // Selected rather than fetched separately and merged, which is
-                // what the interface's listing does and for the same reason:
-                // a value assembled after the query costs an extra round trip
-                // and cannot be ordered by.
                 ->addSelect(['last_used_at' => DocumentTag::query()
                     ->selectRaw('max(created_at)')
                     ->whereColumn('tag_id', 'tags.id'),

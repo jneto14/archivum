@@ -33,7 +33,6 @@ it('hands the accepted suggestion to the form and stops offering it', async () =
     expect(
         screen.queryByRole('button', { name: 'Use 1250.50 for total' }),
     ).toBeNull();
-    // The others are untouched: each suggestion is accepted on its own.
     expect(
         screen.getByRole('button', {
             name: 'Use 2026-08-20 for Document date',
@@ -59,8 +58,6 @@ it('renders nothing at all when there is nothing to suggest', () => {
         <MetadataSuggestions suggestions={[]} onAccept={vi.fn()} />,
     );
 
-    // Not an empty panel: a heading with no suggestions under it reads as a
-    // feature that failed rather than one with nothing to say.
     expect(container.innerHTML).toBe('');
     expect(
         screen.queryByText(en['documents.form.suggestions_title']),

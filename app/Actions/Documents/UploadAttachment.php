@@ -88,9 +88,6 @@ class UploadAttachment
         if ($limits->exceedsAttachments($currentCount, $count)) {
             $remaining = $limits->remainingAttachments($currentCount) ?? 0;
 
-            // Naming the number of free slots is what keeps an all-or-nothing
-            // rejection from being a dead end: without it, someone with two
-            // slots left and ten files picked has no way to know what to retry.
             throw ValidationException::withMessages([
                 'files' => match (true) {
                     $remaining === 0 => __('document.attachment_limit_reached'),

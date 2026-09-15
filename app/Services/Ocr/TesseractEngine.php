@@ -83,15 +83,12 @@ class TesseractEngine implements OcrEngine
     {
         $command = new Command($imagePath);
 
-        // Write to stdout rather than a temp file, so there is nothing to clean
-        // up and the result is read straight off the process.
         $command->useFileAsOutput = false;
         $command->options[] = Option::lang(...$this->languageCodes());
 
         // TSV rather than plain text: the same recognition pass, but it also
-        // reports what tesseract thought of each word. Asking for the text
-        // alone throws that away, and a guess then arrives indistinguishable
-        // from a reading (ARC-118).
+        // reports what tesseract thought of each word, which is what turns a
+        // guess into a reading with a confidence score (ARC-118).
         $command->configFile = 'tsv';
 
         $process = Process::fromShellCommandline((string) $command);

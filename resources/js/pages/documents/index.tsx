@@ -137,7 +137,7 @@ export default function DocumentIndex({
         try {
             window.localStorage.setItem(LAYOUT_STORAGE_KEY, layout);
         } catch {
-            // Persisting the preference is a convenience; ignore storage failures.
+            // Ignore storage failures; the preference is a convenience.
         }
     }, [layout]);
 
@@ -153,9 +153,6 @@ export default function DocumentIndex({
         );
     };
 
-    // The card layout has no column heads at all, so the menu carries the whole
-    // list — including registration date, which is the default order and has no
-    // column of its own to click on either.
     const sorting = tableSort(
         documentsIndex.url(workspace.id),
         sort,

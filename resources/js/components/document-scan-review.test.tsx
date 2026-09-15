@@ -101,7 +101,6 @@ it('falls back to the original photo if straightening throws, rather than upload
     );
 
     await waitFor(() => expect(onConfirm).toHaveBeenCalledWith(file));
-    // Otherwise the fallback is indistinguishable from a successful scan.
     expect(onStraightenFailed).toHaveBeenCalledWith('warp failed');
 });
 

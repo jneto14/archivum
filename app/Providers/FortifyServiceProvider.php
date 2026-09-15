@@ -23,10 +23,7 @@ class FortifyServiceProvider extends ServiceProvider
      *
      * @return void No services are registered here.
      */
-    public function register(): void
-    {
-        //
-    }
+    public function register(): void {}
 
     /**
      * Bootstrap any application services.

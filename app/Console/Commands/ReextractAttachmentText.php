@@ -104,9 +104,6 @@ class ReextractAttachmentText extends Command
             return $matching;
         }
 
-        // The action refuses an empty sweep and a workspace already running
-        // one. Across every workspace on an installation both are ordinary,
-        // so they are reported and stepped over rather than ending the run.
         try {
             $start->handle($workspace, $this->operator($workspace), $filter, $limit);
         } catch (ValidationException $exception) {

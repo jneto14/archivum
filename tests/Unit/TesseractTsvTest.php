@@ -56,11 +56,6 @@ class TesseractTsvTest extends TestCase
         $this->assertStringNotContainsString('xxx', $read->text);
     }
 
-    // The regression this class was pulled out for. On a real scan the line read
-    // `3 — 49051 242344062 1165797`; the em dash scored 29 and was dropped,
-    // which closed the space it held. SuggestDocumentMetadata decides where a
-    // value ends by adjacency — groups one space apart are one value — so it
-    // offered four unrelated numbers as a single tax number (ARC-118).
     public function test_a_dropped_word_leaves_a_wider_gap_instead_of_closing_it()
     {
         $read = (new TesseractTsv(60))->read($this->tsv([
@@ -91,8 +86,6 @@ class TesseractTsvTest extends TestCase
         $this->assertSame('total  98.80', $read->text);
     }
 
-    // A line break already separates more strongly than any run can cross, so a
-    // gap at the start of a line would be a margin, not information.
     public function test_a_gap_at_the_start_of_a_line_leaves_no_marker()
     {
         $read = (new TesseractTsv(60))->read($this->tsv([
@@ -104,9 +97,6 @@ class TesseractTsvTest extends TestCase
         $this->assertSame("Contribuinte\n501234567", $read->text);
     }
 
-    // A value is found by the words in front of it, along a line. Reassembled
-    // as one run, a label would reach into the line below and take the next
-    // field's value.
     public function test_it_rebuilds_the_lines_of_the_page()
     {
         $read = (new TesseractTsv(0))->read($this->tsv([
@@ -124,8 +114,6 @@ class TesseractTsvTest extends TestCase
             "1\t1\t0\t0\t0\t0\t0\t0\t100\t100\t-1\t",
             "2\t1\t1\t0\t0\t0\t0\t0\t100\t100\t-1\t",
             $this->word(1, 95.0, 'Factura'),
-            // Tesseract emits empty word rows as spacing; counting them would
-            // drag the page's ratio down by however many it happened to write.
             $this->word(1, 95.0, '   '),
         ]));
 
@@ -133,11 +121,6 @@ class TesseractTsvTest extends TestCase
         $this->assertSame(1, $read->wordCount);
     }
 
-    // Tesseract lays out lines before it recognises anything, so a page of
-    // handwriting comes back with a line on it and no readable word — which is
-    // what tells it apart from a blank sheet, where it lays out nothing at all.
-    // Counting only words made both "no words", and a photographed page of
-    // handwriting was recorded as a blank page read perfectly (ARC-118).
     public function test_it_counts_the_lines_the_engine_laid_out_but_could_not_read()
     {
         $handwritten = (new TesseractTsv(60))->read($this->tsv([

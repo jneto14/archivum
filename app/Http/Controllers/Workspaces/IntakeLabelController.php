@@ -44,8 +44,6 @@ class IntakeLabelController extends Controller
     ): RedirectResponse {
         $this->authorize('update', $workspace);
 
-        // A label reached through a workspace it does not belong to is not a
-        // permission error to explain — from here that row does not exist.
         abort_unless($intakeLabel->workspace_id === $workspace->id, 404);
 
         $intakeLabel->update([

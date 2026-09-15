@@ -166,9 +166,7 @@ function PdfPreview({ url }: { url: string }) {
 
             renderTaskRef.current = task;
 
-            task.promise.catch(() => {
-                // Cancellation is expected whenever the page, zoom or width changes.
-            });
+            task.promise.catch(() => {});
         });
 
         return () => {

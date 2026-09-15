@@ -45,8 +45,6 @@ class ActivityController extends Controller
             ->tap(fn (Builder $query) => $sort->apply($query, 'activity_log.id'))
             ->paginate(25)
             ->onEachSide(1)
-            // Without this the chosen order is dropped the moment somebody
-            // turns the page, and the feed silently reverts to its default.
             ->withQueryString();
 
         return Inertia::render('workspace/activity', [

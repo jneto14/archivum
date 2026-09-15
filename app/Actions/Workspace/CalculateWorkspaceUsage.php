@@ -261,9 +261,9 @@ class CalculateWorkspaceUsage
             $documents->withTrashed();
         }
 
-        // A subquery rather than `whereHas`, so the trashed-document case can
-        // be expressed at all: inside a `whereHas` closure the builder is
-        // typed against the base model and `withTrashed()` is not on it.
+        // A subquery rather than `whereHas`: inside a `whereHas` closure the
+        // builder is typed against the base model, and `withTrashed()` is not
+        // on it.
         return $attachments->whereIn(
             'document_id',
             $documents->where('workspace_id', $workspace->id)->select('id'),

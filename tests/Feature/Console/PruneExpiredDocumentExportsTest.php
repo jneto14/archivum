@@ -72,8 +72,6 @@ class PruneExpiredDocumentExportsTest extends TestCase
 
         $workspace = Workspace::factory()->create();
 
-        // A completed export whose result carries something other than a file
-        // reference — nothing to delete, and no reason to blow up on it.
         Task::factory()->for($workspace)->completed()->create([
             'result' => ['documents_count' => 0],
             'finished_at' => now()->subDays(8),

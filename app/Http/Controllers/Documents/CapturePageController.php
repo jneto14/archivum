@@ -41,17 +41,8 @@ class CapturePageController extends Controller
 
         return Inertia::render('capture/show', [
             'document_title' => $captureSession->document->title,
-            // The page this session was opened to re-shoot, when it was opened
-            // for one. The phone has to say so: pointing a camera at a page
-            // that will replace an existing scan is a different act from
-            // adding one, and the only chance to say which is before the
-            // shutter (ARC-124).
             'replaces_filename' => $captureSession->replacesAttachment?->filename,
             'active' => $captureSession->isActive(),
-            // Distinct from `active`: this is why not, when it isn't — the
-            // session was cancelled or completed deliberately versus simply
-            // having run out its clock. `active` alone can't tell those
-            // apart, since `isActive()` folds expiry into the same false.
             'status' => $captureSession->status->value,
             'photos_count' => $captureSession->photos_count,
         ]);

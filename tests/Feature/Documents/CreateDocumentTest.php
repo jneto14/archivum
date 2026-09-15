@@ -48,10 +48,6 @@ class CreateDocumentTest extends TestCase
         $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
         $type = DocumentType::factory()->for($workspace)->create();
 
-        // The keys are whatever the workspace types, but the value has to be
-        // text. Validating only the array let a null through, and a stored
-        // null reached the form's folding as `null.normalize()` and rendered
-        // no page at all (ARC-126).
         $this->actingAs($member->user)
             ->post(route('documents.store', $workspace), [
                 'document_type_id' => $type->id,

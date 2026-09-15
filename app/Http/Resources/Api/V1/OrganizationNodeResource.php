@@ -27,8 +27,6 @@ class OrganizationNodeResource extends JsonResource
             'level_id' => $this->level_id,
             'parent_id' => $this->parent_id,
             'value' => $this->value,
-            // Assembled by walking the node's ancestors, which is why no
-            // column holds it and nothing can be sorted by it.
             'path' => $this->path(),
             'level' => new OrganizationLevelResource($this->whenLoaded('level')),
             'children_count' => $this->whenCounted('children'),

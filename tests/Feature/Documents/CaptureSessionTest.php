@@ -102,8 +102,6 @@ class CaptureSessionTest extends TestCase
             $member->user,
         );
 
-        // The QR code is addressed by document. An id from somewhere else
-        // would point the phone at a file this page never showed.
         $this->actingAs($member->user)
             ->post(route('capture-sessions.store', $document), ['attachment' => $attachment->id])
             ->assertSessionHasErrors('attachment');

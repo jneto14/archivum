@@ -42,12 +42,9 @@ class QueueAttachmentTextExtraction
             return null;
         }
 
-        // No lock, unlike exports and bulk moves: extraction is scoped to one
-        // file and several may run at once. See `TaskType::lockKey()`.
-        //
-        // The filename lives in the payload rather than only in the result,
-        // because `Task::markFailed()` replaces the result wholesale — and a
-        // failed row that cannot say which file it was is not worth showing.
+        // The filename lives in the payload rather than only in the result:
+        // `Task::markFailed()` replaces the result wholesale, and a failed row
+        // that cannot say which file it was is not worth showing.
         $task = Task::query()->create([
             'workspace_id' => $attachment->document->workspace_id,
             'user_id' => $user->id,
@@ -60,8 +57,6 @@ class QueueAttachmentTextExtraction
             ],
         ]);
 
-        // Queued rather than inline: OCR on a multi-page scan takes seconds per
-        // page, and the request that brought the file in must not wait for it.
         ExtractAttachmentText::dispatch($attachment, $task);
 
         return $task;

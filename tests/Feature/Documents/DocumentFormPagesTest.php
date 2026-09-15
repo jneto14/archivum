@@ -90,8 +90,6 @@ class DocumentFormPagesTest extends TestCase
         $this->actingAs($member->user)
             ->get(route('documents.create', $workspace))
             ->assertOk()
-            // A document being registered has no attachments yet, so the prop
-            // is absent rather than empty and the form falls back to none.
             ->assertInertia(fn (Assert $page) => $page->missing('metadataSuggestions'));
     }
 

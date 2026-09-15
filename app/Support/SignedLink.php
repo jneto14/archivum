@@ -71,8 +71,6 @@ final class SignedLink
 
         $path = URL::temporarySignedRoute($name, $expiration, $parameters, absolute: false);
 
-        // Nothing else forces a root, so releasing it is releasing it — there is
-        // no earlier value to put back.
         URL::forceRootUrl(null);
 
         return $root . $path;

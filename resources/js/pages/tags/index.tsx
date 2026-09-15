@@ -43,8 +43,6 @@ export default function TagIndex({ workspace, sort, tags }: Props) {
     const [renameValue, setRenameValue] = useState('');
     const [removeTarget, setRemoveTarget] = useState<TagRow | null>(null);
 
-    // A list of rows rather than a table, so the menu is the whole control:
-    // there is no column head here to click.
     const sorting = tableSort(index.url(workspace.id), sort, [
         { key: 'name', label: t('tags.index.sort_name') },
         {

@@ -45,7 +45,7 @@ class ResetDemo extends Command
             return self::FAILURE;
         }
 
-        // Files first. If the run dies between the two halves, orphaned rows
+        // Files first: if the run dies between the two halves, orphaned rows
         // pointing at deleted files are repaired by the next reset, whereas
         // files orphaned by a wiped database are invisible and accumulate on
         // the volume until it fills.
@@ -72,11 +72,9 @@ class ResetDemo extends Command
      */
     private function wipeDatabase(): void
     {
-        // A demo runs with APP_ENV=production, and AppServiceProvider prohibits
-        // destructive migrations there — correct for every other installation,
-        // and it would stop this command dead. Lifted only after both locks in
-        // handle() have already cleared, so the protection is spent on a run
-        // that has proven it is allowed to destroy data.
+        // A demo runs with APP_ENV=production, where AppServiceProvider
+        // prohibits destructive migrations; lifted only here, after both
+        // locks in handle() have already cleared.
         DB::prohibitDestructiveCommands(false);
 
         Artisan::call('migrate:fresh', [

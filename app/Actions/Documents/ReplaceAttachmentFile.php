@@ -42,15 +42,6 @@ class ReplaceAttachmentFile
         $workspace = $document->workspace;
         $limits = $workspace->limits;
 
-        // The storage limit applies and the attachment limit does not, which
-        // is the same answer the trash got in ARC-123 and for the same reason:
-        // the superseded file still occupies the disk it is charged against,
-        // while the archive holds exactly as many attachments as it did
-        // before — one — and a count that said otherwise would contradict the
-        // list the user is looking at.
-        //
-        // The file being replaced is not credited back. It stays on disk, so
-        // the replacement genuinely costs its own size on top.
         if ($limits !== null && $limits->exceedsStorage($this->calculateUsage->storageBytes($workspace), (int) $file->getSize())) {
             throw ValidationException::withMessages([
                 'file' => __('document.storage_limit_exceeded'),
@@ -61,10 +52,6 @@ class ReplaceAttachmentFile
         $path = $file->store("documents/{$document->id}", $disk);
         $checksum = hash_file('sha256', $file->getRealPath());
 
-        // A replacement that cannot be stored must not be recorded. The
-        // attachment still holds a file that works, and half-applying this
-        // would point it at a path with nothing behind it while pushing the
-        // only good copy into a history nobody thinks to look in.
         if ($path === false || $checksum === false) {
             throw new RuntimeException("Could not store the replacement for attachment {$attachment->id}.");
         }
@@ -73,21 +60,11 @@ class ReplaceAttachmentFile
             'disk' => $disk,
             'path' => $path,
             'filename' => $file->getClientOriginalName(),
-            // Stated rather than left null: `mime_type` is what decides
-            // whether the browser may render the file inline, and a null
-            // there is not in `INLINE_SAFE_TYPES` but is also not a type
-            // anything downstream can reason about.
             'mime_type' => $file->getMimeType() ?? 'application/octet-stream',
             'size' => (int) $file->getSize(),
             'checksum' => $checksum,
         ], $uploader->id));
 
-        // The old reading described a file that is now in the history, so it
-        // goes before anything can read it again — and the document's mirror
-        // is rebuilt from what is left immediately rather than when the new
-        // reading lands. Waiting would leave the archive findable by a scan
-        // nobody can open any more, and on an installation with extraction
-        // switched off it would leave it that way for good.
         $attachment->markOcrProcessing();
         $document->refreshOcrText();
 

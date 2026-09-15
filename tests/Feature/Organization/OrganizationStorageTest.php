@@ -45,8 +45,6 @@ class OrganizationStorageTest extends TestCase
                 ->component('organization/storage')
                 ->where('scheme.name', 'Traditional Archive')
                 ->has('levels', 2)
-                // The add-node dialog asks for a value outright at a Manual
-                // level, and offers to generate one everywhere else.
                 ->where('levels.0.value_strategy', 'manual')
                 ->where('levels.1.value_strategy', 'sequential')
                 ->has('tree', 1)
@@ -69,9 +67,6 @@ class OrganizationStorageTest extends TestCase
         app(MoveDocument::class)->handle($filed, $node);
         Document::factory()->for($workspace)->create(['title' => 'Filed nowhere']);
 
-        // Nothing is loaded for a page nobody asked a location of, and a label's
-        // QR code lands here with `?node=` already in the URL, so the sheet
-        // opens on arrival rather than after a second round trip.
         $this->actingAs($member->user)
             ->get(route('organization.schemes.storage', $scheme))
             ->assertInertia(fn (Assert $page) => $page->where('nodeDocuments', null));
@@ -104,8 +99,6 @@ class OrganizationStorageTest extends TestCase
         ]);
         $foreignNode = app(CreateOrganizationNode::class)->handle($foreignScheme->levels->first(), null, '001');
 
-        // The page is loaded first, as the panel's own reload always is: the
-        // asset version the partial reload has to send is settled by then.
         $this->actingAs($member->user)
             ->get(route('organization.schemes.storage', $scheme))
             ->assertOk();
@@ -177,8 +170,6 @@ class OrganizationStorageTest extends TestCase
             ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
         ]);
 
-        // Nothing stops the last level being deleted while it is still empty,
-        // so the page has to render an empty tree rather than fail.
         app(DeleteOrganizationLevel::class)->handle($scheme->levels->first());
 
         $this->actingAs($admin->user)
