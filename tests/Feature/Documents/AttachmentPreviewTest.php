@@ -82,8 +82,6 @@ class AttachmentPreviewTest extends TestCase
 
         $response->assertOk();
 
-        // Unlike the preview route, this one has to arrive as a saved file
-        // under the name the user uploaded, not the hashed path on disk.
         $this->assertStringStartsWith('attachment;', $response->headers->get('content-disposition'));
         $this->assertStringContainsString('contrato.pdf', (string) $response->headers->get('content-disposition'));
     }

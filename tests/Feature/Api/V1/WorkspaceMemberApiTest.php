@@ -40,8 +40,6 @@ class WorkspaceMemberApiTest extends TestCase
             ->getJson("/api/v1/workspaces/{$this->workspace->id}/users")
             ->assertOk()
             ->assertJsonCount(1, 'data')
-            // Keyed by the user's id, which is what a document's `creator`
-            // already hands a client.
             ->assertJsonPath('data.0.id', $this->admin->id)
             ->assertJsonPath('data.0.role', WorkspaceRole::Admin->value);
     }

@@ -129,8 +129,6 @@ class OrganizationRuleTest extends TestCase
 
         $rule = app(CreateOrganizationRule::class)->handle($scheme, 'document_type', 'invoice', $letter, 'A');
 
-        // The uniqueness check has to exclude the rule being edited, or a rule
-        // could never be saved without also changing its matcher.
         $response = $this->actingAs($admin)->patch(
             route('organization.schemes.rules.update', [$scheme, $rule]),
             [
@@ -254,9 +252,6 @@ class OrganizationRuleTest extends TestCase
         $scheme = $this->createScheme($workspace);
         $foreignLevel = $this->otherSchemeFor($admin)->levels()->where('key', 'letter')->firstOrFail();
 
-        // The controller resolves the level out of the scheme and 404s first,
-        // so the action's own guard is only reachable by calling it directly —
-        // which is what any other caller of the action would hit.
         $this->expectException(ValidationException::class);
 
         app(CreateOrganizationRule::class)->handle($scheme, 'document_type', 'invoice', $foreignLevel, 'A');

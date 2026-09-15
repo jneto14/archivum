@@ -64,7 +64,6 @@ class OrganizationApiTest extends TestCase
             ->assertJsonPath('data.name', 'Traditional Archive')
             ->assertJsonCount(2, 'data.levels')
             ->assertJsonPath('data.levels.0.key', 'cover')
-            // The bottom tier, where documents come to rest.
             ->assertJsonPath('data.levels.1.is_leaf', true);
     }
 
@@ -77,8 +76,6 @@ class OrganizationApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.id', $scheme->id)
             ->assertJsonCount(2, 'data.levels')
-            // Ordered by position, which is what tells a client which tier
-            // is the cover and which is the shelf.
             ->assertJsonPath('data.levels.0.key', 'cover')
             ->assertJsonPath('data.levels.1.key', 'position');
     }
@@ -220,9 +217,6 @@ class OrganizationApiTest extends TestCase
     {
         $scheme = $this->scheme();
 
-        // In another workspace, because a workspace holds one scheme. The rule
-        // is never reachable here; what is being asserted is that naming it
-        // under a scheme it does not belong to answers 404 rather than acting.
         $other = app(CreateScheme::class)->handle(Workspace::factory()->create(), 'Other', [
             ['name' => 'Box', 'key' => 'box', 'value_strategy' => NodeValueStrategy::Sequential],
         ]);

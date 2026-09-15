@@ -52,8 +52,6 @@ class TesseractEngineTest extends TestCase
 
         $this->assertStringContainsString('exited with code', $message);
 
-        // The temporary path is deleted moments later and means nothing to
-        // whoever reads the Tasks page, so it must not end up in the message.
         $this->assertStringNotContainsString(sys_get_temp_dir(), $message);
         $this->assertStringNotContainsString("\n", $message, 'A task row shows one line, not a stack dump.');
     }
@@ -81,11 +79,6 @@ class TesseractEngineTest extends TestCase
         $this->assertSame(1.0, $recognized->confidentRatio());
     }
 
-    // The filter this exists for, exercised from the other end: printed text
-    // scores 91-96, so a floor above that must drop all of it. Proving it on
-    // real handwriting would need handwriting to render, but the mechanism
-    // being tested — a word's score deciding whether it is kept — is the same
-    // one (ARC-118).
     public function test_words_below_the_configured_floor_are_dropped()
     {
         config()->set('archivum.ocr.min_word_confidence', 99);
@@ -98,9 +91,6 @@ class TesseractEngineTest extends TestCase
         $this->assertSame(0.0, $recognized->confidentRatio());
     }
 
-    // A value is recognised by the words in front of it, along a line. Text
-    // reassembled as one long run would join the end of one line to the start
-    // of the next and invent labels nobody wrote.
     public function test_it_keeps_the_line_structure_of_the_page()
     {
         $recognized = $this->engine()->extract(

@@ -39,8 +39,6 @@ class SuggestDocumentLocationsTest extends TestCase
         $this->assertCount(1, $suggestions);
         $this->assertTrue($suggestions[0]['recommended']);
         $this->assertSame(0, $suggestions[0]['documentsCount']);
-        // Nothing has been filed here yet, so the recommendation is a location
-        // that does not exist: offered as a path, with no node behind it.
         $this->assertNull($suggestions[0]['node']['id']);
         $this->assertSame('001', $suggestions[0]['node']['path']);
         $this->assertSame(0, OrganizationNode::query()->count());
@@ -111,8 +109,6 @@ class SuggestDocumentLocationsTest extends TestCase
 
         $suggestions = app(SuggestDocumentLocations::class)->handle($document->refresh(), $scheme);
 
-        // 001 has room, so it is where the rules resolve to — but the document
-        // is in it, and offering to move it there is offering to do nothing.
         $this->assertFalse(collect($suggestions)->contains(fn ($s) => $s['node']['id'] === $filedIn->id));
         $this->assertNotEmpty($suggestions);
     }

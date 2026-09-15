@@ -42,8 +42,6 @@ class FindAvailableLocationTest extends TestCase
 
         $second = app(FindAvailableLocation::class)->handle($scheme);
 
-        // The position holds one of its five documents, so the next document
-        // goes in beside it rather than opening a position of its own.
         $this->assertTrue($second->is($first));
         $this->assertSame('001-001', $second->path());
     }
@@ -58,8 +56,6 @@ class FindAvailableLocationTest extends TestCase
 
         $second = app(FindAvailableLocation::class)->handle($scheme);
 
-        // Nothing says how many documents fit in a position, so filing into an
-        // occupied one would be a guess. Each document opens its own instead.
         $this->assertSame('001-002', $second->path());
     }
 
@@ -101,8 +97,6 @@ class FindAvailableLocationTest extends TestCase
 
         $node = app(FindAvailableLocation::class)->handle($scheme, ['document_type' => 'invoice']);
 
-        // The rule names a branch that has never been filed into before, so the
-        // action has to open it rather than fall back to some other cover.
         $this->assertSame('FACTURAS-001', $node->path());
     }
 

@@ -56,8 +56,6 @@ class TrashTest extends TestCase
         $deletedEarlier = $this->attachment($document, $admin);
         $cascaded = $this->attachment($document, $admin);
 
-        // Deleted on its own first, so it carries a different timestamp from
-        // the one the document's deletion stamps across the rest.
         app(TrashAttachment::class)->handle($deletedEarlier);
         app(TrashDocument::class)->handle($document->fresh());
 
@@ -95,14 +93,9 @@ class TrashTest extends TestCase
         app(TrashDocument::class)->handle($document);
         $usage->forget($workspace);
 
-        // The bytes are still on the disk, so the quota still knows about them.
         $this->assertSame($before, $usage->storageBytes($workspace));
         $this->assertSame($attachment->size, $usage->trashedStorageBytes($workspace));
 
-        // The counts answer "what does this archive hold", and a trashed
-        // document is not held — it is gone from every listing, from search
-        // and from the sidebar badge, so counting it would contradict
-        // everything on screen.
         $this->assertSame(0, $usage->documents($workspace));
         $this->assertSame(0, $usage->attachments($workspace));
         $this->assertSame(1, $usage->trashedDocuments($workspace));
@@ -117,9 +110,6 @@ class TrashTest extends TestCase
         app(TrashDocument::class)->handle($document);
         app(CalculateWorkspaceUsage::class)->forget($workspace);
 
-        // The document limit counts what the archive holds. A deleted document
-        // occupies bytes, which the storage limit charges for, but it does not
-        // occupy a slot.
         $this->document($workspace, $admin, 'Filed after the deletion');
 
         $this->assertSame(1, app(CalculateWorkspaceUsage::class)->documents($workspace));
@@ -184,8 +174,6 @@ class TrashTest extends TestCase
 
         app(TrashDocument::class)->handle($document);
 
-        // Trashing is reversible and purging is not, so the irreversible one
-        // is narrower than the delete that put it there.
         $this->actingAs($member)
             ->delete(route('trash.documents.purge', [$workspace, $document->id]))
             ->assertForbidden();

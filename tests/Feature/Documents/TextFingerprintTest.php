@@ -49,8 +49,6 @@ class TextFingerprintTest extends TestCase
 
     public function test_a_rescan_of_the_same_page_stays_within_the_threshold()
     {
-        // The same page photographed again: a handful of characters
-        // misrecognised, which is what a second pass over one invoice produces.
         $rescanned = str_replace(
             ['Oliveiras', 'quadro', 'trinta', 'Lisboa', 'bancaria'],
             ['Ollveiras', 'quaclro', 'trlnta', 'Llsboa', 'banoaria'],
@@ -68,10 +66,6 @@ class TextFingerprintTest extends TestCase
 
     public function test_next_months_invoice_from_the_same_supplier_is_not_a_duplicate()
     {
-        // The same template, the same supplier, the same wording — only the
-        // number, the date and the total differ. Without weighting the shingles
-        // that carry numbers, this pair sits as close as a rescan does and the
-        // warning fires on every invoice anybody files.
         $next = str_replace(
             ['FT2026/1240', '20/08/2026', '1.250,50', 'manutencao anual da instalacao'],
             ['FT2026/1998', '04/11/2026', '389,90', 'reparacao pontual da instalacao'],

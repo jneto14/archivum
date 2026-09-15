@@ -105,13 +105,6 @@ class QueryBudgetTest extends TestCase
     {
         $workspace = $this->seedWorkspace();
 
-        // 12 rather than 10 since ARC-123: the page reports what the trash
-        // holds alongside the totals, which is two more aggregates. Counted
-        // separately from the totals they break down, because a trashed
-        // document is charged for its bytes and not for a slot, so neither
-        // number can be derived from the other. Only this page pays it —
-        // the sidebar badge and the dashboard read the metrics one by one
-        // and none of them changed.
         $this->assertLessThanOrEqual(12, $this->queriesFor(route('workspaces.usage', $workspace)));
     }
 
@@ -128,8 +121,6 @@ class QueryBudgetTest extends TestCase
         $this->seedReviewable($workspace, $type, 5);
         $baseline = $this->queriesFor(route('documents.review', $workspace));
 
-        // Otherwise an empty page would compare equal to an empty page and this
-        // would pass with the N+1 still in it.
         $this->assertSame(5, Document::query()->whereNotNull('metadata_suggestions')->count());
 
         $this->seedReviewable($workspace, $type, 10);

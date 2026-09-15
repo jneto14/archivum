@@ -76,8 +76,6 @@ class MoveDocumentTest extends TestCase
         $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
         [$document, $scheme] = $this->createDocumentAndScheme($workspace, $admin);
 
-        // What the show page posts when the user picks a recommendation the
-        // suggestion deliberately did not create.
         $response = $this->actingAs($admin->user)->post(route('documents.move', $document), [
             'scheme_id' => $scheme->id,
         ]);
@@ -102,8 +100,6 @@ class MoveDocumentTest extends TestCase
 
         $document = app(CreateDocument::class)->handle($workspace, $admin->user, $type, 'Late', null, null);
 
-        // The suggestions leave a full shelf out, but nothing stopped a node
-        // picked by id: six documents went into a shelf with room for six.
         $this->actingAs($admin->user)->post(route('documents.move', $document), [
             'node_id' => $shelf->id,
         ])->assertSessionHasErrors('node_id');
@@ -125,8 +121,6 @@ class MoveDocumentTest extends TestCase
         $document = app(CreateDocument::class)->handle($workspace, $admin->user, $type, 'Filed', null, null);
         app(MoveDocument::class)->handle($document, $shelf);
 
-        // The shelf is full *of this document*, which does not take a second
-        // place on it, so re-filing it there is not what capacity is guarding.
         app(MoveDocument::class)->handle($document->refresh(), $shelf);
 
         $this->assertCount(2, $document->refresh()->locations);

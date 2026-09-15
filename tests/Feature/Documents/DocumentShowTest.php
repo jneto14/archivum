@@ -99,8 +99,6 @@ class DocumentShowTest extends TestCase
                 ->where('locationSuggestions.0.node.path', '001'),
             );
 
-        // Looking at a document is a read. Before, each view left a position
-        // behind, so browsing an archive quietly filled it with empty ones.
         $this->assertSame(0, OrganizationNode::query()->count());
     }
 
@@ -125,8 +123,8 @@ class DocumentShowTest extends TestCase
                 ->missing('locations'),
             );
 
-        // A partial reload answers with JSON rather than the page view, which
-        // is why this asserts on the payload instead of assertInertia().
+        // A partial reload answers with JSON rather than a page view, hence
+        // asserting on the payload instead of assertInertia().
         $this->partialReload($admin, $document)
             ->assertOk()
             ->assertJsonCount(2, 'props.locations')
@@ -183,8 +181,6 @@ class DocumentShowTest extends TestCase
         $type = DocumentType::factory()->for($workspace)->create();
         $document = app(CreateDocument::class)->handle($workspace, $admin->user, $type, 'Original', null, null);
 
-        // A workspace that has not configured its archive yet: the user may
-        // file, but there is nowhere to suggest.
         $this->actingAs($admin->user)
             ->get(route('documents.show', $document))
             ->assertOk()
@@ -234,8 +230,6 @@ class DocumentShowTest extends TestCase
         $filed = app(UploadAttachment::class)->handle($original, $file(), $member->user);
         $duplicate = app(UploadAttachment::class)->handle($copy, $file(), $member->user);
 
-        // What extraction concludes is covered by AttachmentDuplicateTest; this
-        // is only about the flag reaching the page that has to show it.
         $duplicate->recordTextFingerprint(1234, $filed);
 
         $this->actingAs($member->user)

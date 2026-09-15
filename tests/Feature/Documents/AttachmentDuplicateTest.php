@@ -59,7 +59,6 @@ class AttachmentDuplicateTest extends TestCase
         $workspace = $this->workspace();
         $original = $this->extracted($this->document($workspace, 'Manutencao agosto'), self::INVOICE);
 
-        // Photographed a second time: the same page, read slightly differently.
         $copy = $this->extracted(
             $this->document($workspace, 'Scan sem titulo'),
             str_replace(['Oliveiras', 'quadro'], ['Ollveiras', 'quaclro'], self::INVOICE),
@@ -168,8 +167,6 @@ class AttachmentDuplicateTest extends TestCase
         app(TrashAttachment::class)->handle($original);
         app(PurgeAttachment::class)->handle($original->fresh());
 
-        // Belt and braces: the column's `nullOnDelete` covers this one, and
-        // the assertion is here so a change to that constraint is noticed.
         $this->assertNull($copy->refresh()->duplicate_of_attachment_id);
     }
 

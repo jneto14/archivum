@@ -67,8 +67,6 @@ class DeleteDocumentTest extends TestCase
 
         $this->actingAs($creator->user)->delete(route('documents.destroy', $document))->assertRedirect();
 
-        // The location history is the reason the trash exists: it cannot be
-        // reconstructed from the paper, so trashing must not touch it.
         $this->assertDatabaseHas('document_tags', ['document_id' => $document->id]);
         $this->assertDatabaseHas('document_locations', ['document_id' => $document->id]);
     }
@@ -84,9 +82,6 @@ class DeleteDocumentTest extends TestCase
 
         $this->actingAs($creator->user)->delete(route('documents.destroy', $document))->assertRedirect();
 
-        // Trashing is reversible, so nothing leaves the disk until the item is
-        // purged. The attachment goes down with the document, stamped with the
-        // document's own timestamp so the restore can tell them apart.
         Storage::disk($attachment->disk)->assertExists($attachment->path);
         $this->assertSoftDeleted('document_attachments', ['id' => $attachment->id]);
     }

@@ -100,8 +100,6 @@ class AttachmentVersionTest extends TestCase
         $this->assertSame($other->id, $attachment->uploaded_by);
         $this->assertTrue($attachment->fileUploadedAt()->isAfter($uploadedAt));
 
-        // The superseded row keeps the original uploader and the moment its
-        // file arrived, which is the whole point of the history.
         $this->assertSame($member->id, $version->uploaded_by);
         $this->assertSame($uploadedAt->toIso8601String(), $version->uploaded_at->toIso8601String());
     }
@@ -121,9 +119,6 @@ class AttachmentVersionTest extends TestCase
             'file' => UploadedFile::fake()->create('better.pdf', 20, 'application/pdf'),
         ]);
 
-        // The mirror is rebuilt immediately rather than when the new reading
-        // lands: until then the archive would be findable by a scan nobody
-        // can open any more.
         $this->assertNull($document->fresh()->ocr_text);
         $this->assertSame(OcrStatus::Processing, $attachment->fresh()->ocr_status);
 
@@ -148,9 +143,6 @@ class AttachmentVersionTest extends TestCase
 
         $attachment->refresh();
 
-        // Nothing derived from the old reading survives: keeping the
-        // fingerprint would have the next reading report itself a duplicate
-        // of the page it replaced.
         $this->assertNull($attachment->ocr_text);
         $this->assertNull($attachment->text_simhash);
         $this->assertNull($attachment->duplicate_of_attachment_id);
@@ -160,8 +152,6 @@ class AttachmentVersionTest extends TestCase
     {
         [$workspace, $member, , $attachment] = $this->archive();
 
-        // Room for the 10KB already stored and a little more, but not for
-        // another 20KB on top — the file being replaced stays on disk.
         WorkspaceLimit::factory()->for($workspace)->create(['storage_bytes' => 15 * 1024]);
 
         $this->actingAs($member)
@@ -201,7 +191,6 @@ class AttachmentVersionTest extends TestCase
         $usage = app(CalculateWorkspaceUsage::class);
         $usage->forget($workspace);
 
-        // Both files are on the disk, so both are charged for.
         $this->assertSame(
             $attachment->fresh()->size + $attachment->versions()->sum('size'),
             $usage->storageBytes($workspace),
@@ -221,8 +210,6 @@ class AttachmentVersionTest extends TestCase
         $usage = app(CalculateWorkspaceUsage::class);
         $usage->forget($workspace);
 
-        // Purging the attachment unlinks its whole chain, so every byte of it
-        // is recoverable and not just the file it was holding.
         $expected = $attachment->fresh()->size + $attachment->versions()->sum('size');
 
         $this->assertSame($expected, $usage->trashedStorageBytes($workspace));
@@ -268,9 +255,6 @@ class AttachmentVersionTest extends TestCase
         $this->assertSame('first.pdf', $attachment->filename);
         $this->assertSame($originalPath, $attachment->path);
 
-        // The history holds the file it displaced, and no longer holds the one
-        // that came back — two rows pointing at one path is what the purge
-        // would get wrong.
         $restoredInto = $attachment->versions()->sole();
         $this->assertSame('better.pdf', $restoredInto->filename);
         $this->assertSame($replacementPath, $restoredInto->path);
@@ -365,9 +349,6 @@ class AttachmentVersionTest extends TestCase
 
         $other = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User])->user;
 
-        // Deliberately wider than deleting, which this member may not do:
-        // replacing loses nothing, and is undone by restoring the version it
-        // just created.
         $this->actingAs($other)
             ->delete(route('attachments.destroy', $attachment))
             ->assertForbidden();

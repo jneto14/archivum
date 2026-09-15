@@ -50,10 +50,6 @@ class DocumentMoveApiTest extends TestCase
         $type = DocumentType::factory()->for($workspace)->create(['key' => 'invoice']);
         $document = Document::factory()->for($workspace)->for($type)->create();
 
-        // Three levels, not two: the rule points at Letter/A, and the document
-        // lands on the level below it. With Letter as the leaf there is no
-        // sequential level left to allocate into, and a Manual one cannot be
-        // created without a value.
         $scheme = app(CreateScheme::class)->handle($workspace, 'Traditional Archive', [
             ['name' => 'Cover', 'key' => 'cover', 'value_strategy' => NodeValueStrategy::Sequential],
             ['name' => 'Letter', 'key' => 'letter', 'value_strategy' => NodeValueStrategy::Manual],

@@ -117,9 +117,6 @@ class ApiQueryBudgetTest extends TestCase
     {
         $api = $this->queriesFor("/api/v1/workspaces/{$this->workspace->id}/documents");
 
-        // The documents index is budgeted at 14 in QueryBudgetTest, because a
-        // page pays ResolveWorkspace and the Inertia shared props before it
-        // does any work of its own. This pays neither.
         $this->assertLessThan(14, $api);
     }
 }

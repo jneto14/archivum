@@ -34,8 +34,6 @@ class OrganizationLabelTest extends TestCase
                 ->has('labels', 1)
                 ->where('labels.0.path', '001')
                 ->where('labels.0.level', 'Cover')
-                // Embedded rather than fetched: a sheet of a hundred labels
-                // must not race the print dialog loading its images.
                 ->where('labels.0.qr', fn (string $qr) => str_starts_with($qr, 'data:image/png;base64,')),
             );
     }
@@ -49,8 +47,6 @@ class OrganizationLabelTest extends TestCase
         $cover = app(CreateOrganizationNode::class)->handle($scheme->levels->first(), null, '001');
         $slot = app(CreateOrganizationNode::class)->handle($position, $cover, '001');
 
-        // A position is a slot on a page. Nothing stops a workspace enabling
-        // labels there, but until it does, asking for one is refused.
         $this->actingAs($member->user)
             ->get(route('organization.schemes.labels', ['scheme' => $scheme, 'node_id' => $slot->id]))
             ->assertSessionHasErrors('level_id');
@@ -78,7 +74,6 @@ class OrganizationLabelTest extends TestCase
             ->get(route('organization.schemes.labels', ['scheme' => $scheme, 'level_id' => $positionLevel->id]))
             ->assertInertia(fn (Assert $page) => $page->has('labels', 3));
 
-        // Every drawer in one cabinet, rather than every drawer there is.
         $this->actingAs($member->user)
             ->get(route('organization.schemes.labels', [
                 'scheme' => $scheme,

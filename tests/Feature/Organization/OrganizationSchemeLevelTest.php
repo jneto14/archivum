@@ -108,8 +108,6 @@ class OrganizationSchemeLevelTest extends TestCase
         $scheme = $this->createScheme($workspace);
         $level = $scheme->levels()->orderBy('position')->first();
 
-        // An archive whose levels already exist is the normal case, so the flag
-        // has to be reachable after the scheme was created, not only during.
         $this->actingAs($admin->user)->patch(
             route('organization.schemes.levels.update', [$scheme, $level]),
             ['has_printable_label' => true],

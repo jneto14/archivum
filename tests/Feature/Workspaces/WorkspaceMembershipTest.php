@@ -94,8 +94,6 @@ class WorkspaceMembershipTest extends TestCase
     {
         Notification::fake();
 
-        // The admin exists before single-workspace mode is switched on, the
-        // way a real installation gets there: seeded admin, then the flag.
         $adminUser = User::factory()->create();
         $workspace = Workspace::factory()->create();
         WorkspaceUser::factory()->for($workspace)->create([
@@ -187,9 +185,6 @@ class WorkspaceMembershipTest extends TestCase
         $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
         $member = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::User]);
 
-        // Submitting the form without touching the select must not be treated
-        // as a demotion — which is what the last-admin guard below it would
-        // otherwise refuse for the only admin.
         $response = $this->actingAs($admin->user)->patch(
             route('workspaces.users.update', [$workspace, $admin->user]),
             ['role' => WorkspaceRole::Admin->value],

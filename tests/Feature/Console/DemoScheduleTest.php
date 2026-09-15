@@ -61,7 +61,6 @@ class DemoScheduleTest extends TestCase
         $event = collect(app(Schedule::class)->events())
             ->first(fn ($event): bool => str_contains((string) $event->command, 'demo:reset'));
 
-        // 04:00 is the configured default: minute 0 of hour 4, every day.
         $this->assertSame('0 4 * * *', $event->expression);
     }
 

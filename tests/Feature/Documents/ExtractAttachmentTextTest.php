@@ -133,7 +133,6 @@ class ExtractAttachmentTextTest extends TestCase
             $this->runExtraction($attachment);
             $this->fail('The job must rethrow so the queue can retry it.');
         } catch (RuntimeException) {
-            // Expected.
         }
 
         $attachment->refresh();
@@ -158,10 +157,6 @@ class ExtractAttachmentTextTest extends TestCase
             'mime_type' => 'application/pdf',
         ]);
 
-        // Deliberately not wrapped in expectException: the job must return
-        // normally, so that the queue does not retry a file that will never
-        // parse — and so that a corrupt upload cannot fail the upload request
-        // on a `sync` queue.
         $this->runExtraction($attachment);
 
         $attachment->refresh();
@@ -176,9 +171,8 @@ class ExtractAttachmentTextTest extends TestCase
 
         $document = $this->document();
 
-        // UploadedFile::fake()->create() produces zero-filled bytes, so this is
-        // a file claiming to be a PDF that no PDF reader can open — the same
-        // shape as a truncated upload from a real user.
+        // UploadedFile::fake()->create() produces zero-filled bytes: this file
+        // claims to be a PDF that no PDF reader can open.
         $this->actingAs($document->creator)->post(route('attachments.store', $document), [
             'files' => [UploadedFile::fake()->create('scan.pdf', 10, 'application/pdf')],
         ])->assertRedirect();
@@ -238,9 +232,6 @@ class ExtractAttachmentTextTest extends TestCase
         $this->assertSame($document->workspace_id, $task->workspace_id);
         $this->assertSame($document->created_by, $task->user_id);
 
-        // The filename lives in the payload, not only the result, because
-        // Task::markFailed() replaces the result — and a failed row that cannot
-        // say which file it was is not worth showing.
         $this->assertSame('contrato.pdf', $task->payload['filename']);
     }
 
@@ -256,8 +247,6 @@ class ExtractAttachmentTextTest extends TestCase
             ])->assertRedirect();
         }
 
-        // An export would have refused the second one. Extraction is scoped to a
-        // single file, so both are queued — see TaskType::lockKey().
         $this->assertSame(2, Task::query()->where('type', TaskType::AttachmentTextExtraction)->count());
     }
 
@@ -308,7 +297,6 @@ class ExtractAttachmentTextTest extends TestCase
             app(RetryTask::class)->handle($task);
             $this->fail('Retrying a task whose attachment is gone must be refused.');
         } catch (ValidationException) {
-            // Expected.
         }
 
         $this->assertSame(
@@ -329,8 +317,6 @@ class ExtractAttachmentTextTest extends TestCase
 
         $attachment->refresh();
 
-        // Skipped, not failed: there is nothing wrong with the file, it just
-        // isn't the kind of thing text extraction applies to.
         $this->assertSame(OcrStatus::Skipped, $attachment->ocr_status);
         $this->assertNull($attachment->ocr_error);
         $this->assertSame(TaskStatus::Completed, $task->refresh()->status);
@@ -353,10 +339,6 @@ class ExtractAttachmentTextTest extends TestCase
         $this->assertNull($attachment->ocr_text);
         $this->assertNull($attachment->ocr_error, 'Nothing went wrong; the page simply could not be read.');
 
-        // The half of this that matters as much as the empty text. Two
-        // unrelated pages of noise can land close enough to be flagged as
-        // copies of each other, so a reading nobody trusts must never reach
-        // the fingerprint (ARC-118).
         $this->assertNull($attachment->text_simhash);
         $this->assertNull($attachment->document->refresh()->ocr_text);
 
@@ -390,8 +372,8 @@ class ExtractAttachmentTextTest extends TestCase
             'payload' => ['attachment_id' => $attachment->id],
         ]);
 
-        // A timeout or a missing model is raised by the queue around handle(),
-        // so it never reaches the catch inside it — without failed() both rows
+        // A timeout or a missing model is raised by the queue around handle()
+        // and never reaches the catch inside it: without failed(), both rows
         // would sit on "processing" forever.
         (new ExtractAttachmentText($attachment, $task))->failed(new RuntimeException('Job exceeded its timeout.'));
 

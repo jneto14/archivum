@@ -184,8 +184,6 @@ class LearnIntakeLabelsTest extends TestCase
         $this->assertDatabaseHas('intake_labels', [
             'label' => 'steuernummer',
             'status' => IntakeLabelStatus::Rejected->value,
-            // The evidence is refreshed even so, so an old decision can be
-            // reconsidered against what the archive says now.
             'support' => 3,
         ]);
     }
@@ -285,9 +283,7 @@ class LearnIntakeLabelsTest extends TestCase
         $this->assertSame(1, app(LearnIntakeLabels::class)->handle($workspace));
         $this->assertDatabaseHas('intake_labels', [
             'workspace_id' => $workspace->id,
-            // The metadata key, normalised. There is no enum this had to be in.
             'kind' => 'no_apolice',
-            // And as it was typed, because that is what an admin gets shown.
             'field' => 'Nº Apólice',
             'label' => 'apolice',
             'support' => 3,
@@ -312,9 +308,6 @@ class LearnIntakeLabelsTest extends TestCase
 
         $label = IntakeLabel::query()->where('label', 'apolice')->sole();
 
-        // Nothing left in the archive to work the spelling out from, and a
-        // vocabulary that has not already memoised it — which is what a later
-        // request, on an archive grown past the sample, would be looking at.
         Document::query()->where('workspace_id', $workspace->id)->update(['metadata' => null]);
 
         $this->assertSame(

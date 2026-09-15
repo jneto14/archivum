@@ -155,7 +155,6 @@ class ReextractAttachmentTextTest extends TestCase
 
         $this->assertSame($original->id, $copy->refresh()->duplicate_of_attachment_id);
 
-        // A better reading of the second file shows it was never the same page.
         $this->fakeEngine(self::DEED);
         $this->extract($copy);
 
@@ -293,8 +292,6 @@ class ReextractAttachmentTextTest extends TestCase
         $missing = $this->attachment($document, 'gone.png', 'image/png');
         $alsoGood = $this->attachment($document, 'also-good.png', 'image/png');
 
-        // The row survives, the bytes do not: the file was purged from the
-        // disk behind the archive's back.
         Storage::disk('local')->delete($missing->path);
 
         $this->fakeEngine(self::INVOICE);
@@ -345,11 +342,10 @@ class ReextractAttachmentTextTest extends TestCase
 
     public function test_every_job_a_sweep_pushes_lands_on_the_low_priority_queue()
     {
-        // Driven through the real database queue rather than a fake, because
-        // the thing being asserted is which queue a row lands in. `Batch::add()`
-        // pushes with the batch's queue and ignores each job's own, so a sweep
-        // that set `onQueue()` on the extractions put all of them on `default`
-        // while a test reading the job objects' `queue` property passed.
+        // Driven through the real database queue rather than a fake: what is
+        // being asserted is which queue a row actually lands in, and
+        // `Batch::add()` pushes with the batch's own queue regardless of what a
+        // job object's own `queue` property says.
         config(['queue.default' => 'database']);
 
         $document = $this->document();
@@ -366,7 +362,6 @@ class ReextractAttachmentTextTest extends TestCase
             'The loader itself must be on the sweep queue.',
         );
 
-        // Run the loader, so the extractions it adds are pushed for real.
         $this->artisan('queue:work', [
             '--once' => true,
             '--queue' => 'ocr-bulk',

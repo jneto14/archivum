@@ -210,9 +210,6 @@ class OrganizationSchemeTest extends TestCase
     {
         $workspace = Workspace::factory()->create();
 
-        // The form request rejects an empty `levels` array before the action
-        // sees it, so the action's own guard — which any other caller relies
-        // on — is only reachable directly.
         try {
             app(CreateScheme::class)->handle($workspace, 'Empty Archive', []);
             $this->fail('A scheme with no levels is not a scheme.');

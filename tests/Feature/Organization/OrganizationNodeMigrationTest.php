@@ -122,7 +122,6 @@ class OrganizationNodeMigrationTest extends TestCase
         $source = $this->createNode($scheme, '001');
         $target = $this->createNode($scheme, '002');
 
-        // Two documents on the move, one already at the target, room for two.
         foreach ([$source, $source, $target] as $node) {
             $document = app(CreateDocument::class)->handle($workspace, $admin->user, $type, 'Filed', null, null);
             app(MoveDocument::class)->handle($document, $node);
@@ -132,7 +131,6 @@ class OrganizationNodeMigrationTest extends TestCase
             'target_node_id' => $target->id,
         ]);
 
-        // Told at the dialog rather than by a task that fails minutes later.
         $response->assertSessionHasErrors('target_node_id');
         Queue::assertNothingPushed();
         $this->assertDatabaseCount('tasks', 0);

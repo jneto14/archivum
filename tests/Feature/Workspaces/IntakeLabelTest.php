@@ -51,8 +51,6 @@ class IntakeLabelTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->has('intakeLabels', 1)
                 ->where('intakeLabels.0.label', 'contribuinte')
-                // Named in the interface language rather than shown as the
-                // normalised key, which is machinery.
                 ->where('intakeLabels.0.field', 'Tax number'),
             );
     }

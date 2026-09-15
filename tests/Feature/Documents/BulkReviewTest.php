@@ -205,8 +205,6 @@ class BulkReviewTest extends TestCase
             $this->reviewable($workspace, "Fatura {$n}");
         }
 
-        // More than the fifteen a page shows, so this cannot be passing by
-        // only answering for what was on screen.
         $this->assertSame(20, app(CountIntakeReview::class)->handle($workspace));
 
         $this->actingAs($this->member($workspace))
@@ -228,8 +226,6 @@ class BulkReviewTest extends TestCase
         $scan = $this->attachment($withReading, 'scan.jpg');
         $scan->markOcrCompleted('Factura 2026/0044', 10, 4);
 
-        // Answering the readings must not touch the document that only has
-        // suggestions, even though "everything matching" was asked for.
         $this->actingAs($this->member($workspace))
             ->post(route('documents.review.bulk', $workspace), [
                 'action' => 'dismiss_readings',

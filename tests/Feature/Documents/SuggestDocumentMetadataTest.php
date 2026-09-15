@@ -38,8 +38,6 @@ class SuggestDocumentMetadataTest extends TestCase
         $this->assertSame('2026-08-20', $suggestions['document_date']);
         $this->assertSame('501442600', $suggestions['tax_id']);
         $this->assertSame('12-AB-34', $suggestions['vehicle_registration']);
-        // The total, not the subtotal or the VAT: an invoice's total is by
-        // construction the largest number on it.
         $this->assertSame('1250.50', $suggestions['amount']);
     }
 
@@ -78,9 +76,6 @@ class SuggestDocumentMetadataTest extends TestCase
     {
         $suggestions = $this->suggestionsFor($this->documentWithText($text));
 
-        // Says what was read, not just that it was wrong: "null" alone cannot
-        // tell a label that failed to match from a value that came out
-        // differently, and this line is read on a machine nobody can attach to.
         $this->assertSame(
             $expected,
             $suggestions[$kind] ?? null,
@@ -94,12 +89,6 @@ class SuggestDocumentMetadataTest extends TestCase
     public static function foreignDocuments(): array
     {
         return [
-            // As the page wrote it, spacing and all. Stripping separators was
-            // a rule the tax-number reader carried and the plate reader did
-            // not, and with the kinds no longer written down in the code there
-            // is nobody left to hold an opinion about one kind's punctuation.
-            // A user can delete a space; they cannot put back a dash that a
-            // policy number needed.
             'a spaced British VAT number' => ['VAT registration 501 234 567', 'tax_id', '501 234 567'],
             'a Spanish VAT number with a letter in it' => ['VAT number ESB12345678', 'tax_id', 'ESB12345678'],
             'an Irish VAT number ending in a letter' => ['VAT no. IE1234567T', 'tax_id', 'IE1234567T'],
@@ -111,10 +100,9 @@ class SuggestDocumentMetadataTest extends TestCase
 
     public function test_a_label_cannot_reach_across_a_line_break_to_claim_a_value()
     {
-        // Folding the page with Str::ascii() in one go replaces every newline
-        // with a space, and the whole document becomes a single line — where
-        // this label swallowed the invoice number on the line below it and the
-        // value came out as "501 234 567 invoice no".
+        // Str::ascii() folds the whole page onto one line, replacing every
+        // newline with a space — this label used to reach across it and
+        // swallow the invoice number on the line below.
         $suggestions = $this->suggestionsFor($this->documentWithText(<<<'TEXT'
             VAT registration 501 234 567
             INVOICE No. 2026/0184
@@ -137,7 +125,6 @@ class SuggestDocumentMetadataTest extends TestCase
         $workspace = Workspace::factory()->create();
         $type = DocumentType::factory()->for($workspace)->create();
 
-        // Three filed plates, so the workspace has said what one looks like.
         foreach (['00-EV-80', '12-AB-34', 'AA-11-BC'] as $plate) {
             $this->document($workspace, $type, metadata: ['Matrícula' => $plate]);
         }
@@ -215,11 +202,8 @@ class SuggestDocumentMetadataTest extends TestCase
             315.00
             TEXT));
 
-        // The issue date, not the due date below it.
         $this->assertSame('2026-03-14', $suggestions['document_date']);
-        // The total, not a line item and not the subtotal.
         $this->assertSame('315.00', $suggestions['amount']);
-        // Labelled, so the spacing and the country's format do not matter.
         $this->assertSame('501 234 567', $suggestions['tax_id']);
     }
 

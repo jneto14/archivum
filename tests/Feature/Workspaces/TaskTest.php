@@ -401,8 +401,6 @@ class TaskTest extends TestCase
         $admin = WorkspaceUser::factory()->for($workspace)->create(['role' => WorkspaceRole::Admin]);
         $task = Task::factory()->for($workspace)->for($admin->user)->create();
 
-        // A disk name nothing is configured for: the shape a misconfigured
-        // installation has, and it throws exactly where the export writes.
         config()->set('archivum.attachments.disk', 'no-such-disk');
 
         $lock = Cache::lock(TaskType::DocumentExport->lockKey($workspace->id), 600);
@@ -435,8 +433,6 @@ class TaskTest extends TestCase
         $lock = Cache::lock(TaskType::BulkDocumentMove->lockKey($workspace->id), 600);
         $this->assertTrue($lock->get());
 
-        // Moving a node onto itself is what MigrateNodeDocuments refuses, and
-        // is the shortest way to make the job's own work throw.
         (new BulkMoveDocuments($task, $node, $node, (string) $lock->owner()))
             ->handle(app(MigrateNodeDocuments::class), app(CauserResolver::class));
 

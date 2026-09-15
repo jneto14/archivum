@@ -98,9 +98,6 @@ class CaptureUploadTest extends TestCase
 
         $attachment = DocumentAttachment::query()->where('document_id', $document->id)->firstOrFail();
 
-        // No phone session exists to attribute this to, so it's the desktop
-        // user who started the pairing — the same person the session was
-        // opened for.
         $this->assertSame($creator->id, $attachment->uploaded_by);
         $this->assertSame(1, $session->fresh()->photos_count);
     }
@@ -130,14 +127,10 @@ class CaptureUploadTest extends TestCase
 
         $response->assertRedirect();
 
-        // One attachment still, now holding the re-shot page, with the badly
-        // lit one behind it.
         $this->assertDatabaseCount('document_attachments', 1);
         $this->assertSame('page-1.jpg', $attachment->fresh()->filename);
         $this->assertSame('dark.jpg', $attachment->versions()->sole()->filename);
 
-        // There is one file to replace, so a second photo would have nothing
-        // left to act on.
         $this->assertSame(CaptureSessionStatus::Completed, $session->fresh()->status);
     }
 
@@ -186,9 +179,8 @@ class CaptureUploadTest extends TestCase
             ->for($creator, 'creator')
             ->create(['replaces_attachment_id' => $attachment->id]);
 
-        // Trashing is a soft delete, so the foreign key never fires — the
-        // relation is what drops the target, and a live QR code must keep
-        // working rather than failing on a row it can no longer see.
+        // Trashing is a soft delete, so the foreign key never fires; the
+        // relation is what drops the target.
         app(TrashAttachment::class)->handle($attachment);
 
         $this->post($this->signedShowUrl($session), [
@@ -226,10 +218,6 @@ class CaptureUploadTest extends TestCase
         $creator = WorkspaceUser::factory()->for($workspace)->create()->user;
         $type = DocumentType::factory()->for($workspace)->create();
         $document = app(CreateDocument::class)->handle($workspace, $creator, $type, 'Invoice', null, null);
-        // Already past its own expiry, but the signature below outlives it —
-        // this can't happen through the app's own QR code (both come from the
-        // same `expires_at`), but the model's own expiry check must still
-        // hold as the last line of defence.
         $session = DocumentCaptureSession::factory()->expired()->for($document)->for($creator, 'creator')->create();
 
         $url = SignedLink::temporary('capture.show', now()->addDay(), ['captureSession' => $session->id]);
