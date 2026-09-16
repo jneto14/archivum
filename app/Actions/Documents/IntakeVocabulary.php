@@ -63,7 +63,7 @@ class IntakeVocabulary
      */
     private const int DOCUMENT_SAMPLE = 300;
 
-    /** @var array<string, array{shapes: array<string, ValueShape>, keys: array<string, string>}> What each workspace's keys hold — see filed(). */
+    /** @var array<string, array{shapes: array<string, ValueShape>, keys: array<string, string>, values: array<string, array<string, int>>}> What each workspace's keys hold — see filed(). */
     private array $filedByWorkspace = [];
 
     /** @var array<string, list<string>> Folded label words per "kind:workspace" — see labelsFor(). */
@@ -185,6 +185,27 @@ class IntakeVocabulary
     public function shape(string $kind, ?string $workspaceId): ValueShape
     {
         return $this->filed($workspaceId)['shapes'][$kind] ?? ValueShape::generic();
+    }
+
+    /**
+     * How often this workspace has already filed each value of this kind.
+     *
+     * A document can carry more than one candidate value of the same kind —
+     * an invoice's own tax number and the customer's, both introduced by the
+     * same generic label — with nothing on the page saying which is which.
+     * This is what lets `SuggestDocumentMetadata` prefer whichever one the
+     * workspace already keeps filing: the value that repeats across an
+     * archive is far more likely to be the one that belongs to the archive
+     * than one that only ever appears once.
+     *
+     * @param string $kind The kind whose history is wanted.
+     * @param string|null $workspaceId The workspace whose filed values to read.
+     *
+     * @return array<string, int> Value to the number of sampled documents it was found on, most filed first.
+     */
+    public function knownValues(string $kind, ?string $workspaceId): array
+    {
+        return $this->filed($workspaceId)['values'][$kind] ?? [];
     }
 
     /**
@@ -338,12 +359,12 @@ class IntakeVocabulary
      *
      * @param string|null $workspaceId The workspace to look at.
      *
-     * @return array{shapes: array<string, ValueShape>, keys: array<string, string>} The derived shape per kind, for the keys whose values describe one, and the spelling each kind is most often written as.
+     * @return array{shapes: array<string, ValueShape>, keys: array<string, string>, values: array<string, array<string, int>>} The derived shape per kind, the spelling each kind is most often written as, and how often each of its values was filed.
      */
     private function filed(?string $workspaceId): array
     {
         if ($workspaceId === null) {
-            return ['shapes' => [], 'keys' => []];
+            return ['shapes' => [], 'keys' => [], 'values' => []];
         }
 
         if (isset($this->filedByWorkspace[$workspaceId])) {
@@ -397,7 +418,16 @@ class IntakeVocabulary
             $keys[$kind] = (string) array_key_first($counts);
         }
 
-        return $this->filedByWorkspace[$workspaceId] = ['shapes' => $shapes, 'keys' => $keys];
+        $countedValues = [];
+
+        foreach ($values as $kind => $filed) {
+            $counted = array_count_values($filed);
+            arsort($counted);
+
+            $countedValues[$kind] = $counted;
+        }
+
+        return $this->filedByWorkspace[$workspaceId] = ['shapes' => $shapes, 'keys' => $keys, 'values' => $countedValues];
     }
 
     /**
