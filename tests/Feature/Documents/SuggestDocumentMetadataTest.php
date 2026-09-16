@@ -151,6 +151,47 @@ class SuggestDocumentMetadataTest extends TestCase
         $this->assertArrayNotHasKey('tax_id', $suggestions);
     }
 
+    /**
+     * The case this exists for: an invoice carries the issuer's own tax number
+     * and the customer's, both introduced by the same generic label, with
+     * nothing on the page saying which is which. The issuer's sits first.
+     */
+    public function test_a_value_already_filed_is_preferred_over_the_first_one_on_the_page()
+    {
+        $workspace = Workspace::factory()->create();
+        $type = DocumentType::factory()->for($workspace)->create();
+
+        foreach (range(1, 3) as $ignored) {
+            $this->document($workspace, $type, metadata: ['Contribuinte' => '501442600']);
+        }
+
+        $suggestions = $this->suggestionsFor($this->documentWithText(
+            'Exemplo Lda. Contribuinte 999888777. Cliente: Joao Silva, contribuinte 501442600.',
+            $workspace,
+            $type,
+        ));
+
+        $this->assertSame(
+            '501442600',
+            $suggestions['tax_id'] ?? null,
+            'The workspace has filed 501442600 as its tax number three times; 999888777 has never been filed and sits first on the page.',
+        );
+    }
+
+    /**
+     * Nothing to prefer yet: the first candidate on the page is what a reader
+     * with no history falls back to, same as before this workspace filed
+     * anything.
+     */
+    public function test_with_no_filed_history_the_first_value_on_the_page_wins()
+    {
+        $suggestions = $this->suggestionsFor($this->documentWithText(
+            'Contribuinte 111222333. Contribuinte 444555666.',
+        ));
+
+        $this->assertSame('111222333', $suggestions['tax_id'] ?? null);
+    }
+
     public function test_the_ambiguous_date_order_follows_the_configured_one()
     {
         config()->set('archivum.intake.date_order', 'month');

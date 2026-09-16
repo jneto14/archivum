@@ -574,6 +574,11 @@ class SuggestDocumentMetadata
      * anything, the generic shape applies — long enough not to match by
      * accident, and carrying a digit. See ValueShape.
      *
+     * A page can hold more than one value the shape accepts — an invoice's own
+     * tax number and the customer's, both introduced by "NIF" — with nothing
+     * in the label saying which is which. Every candidate is read, and
+     * `preferKnown()` decides between them.
+     *
      * @param string $folded The extracted text, lowercased and ASCII-folded.
      * @param string $kind The kind of value to read.
      * @param string|null $workspaceId The workspace whose vocabulary and filed values to read with, if any.
@@ -583,16 +588,62 @@ class SuggestDocumentMetadata
     private function labelledValue(string $folded, string $kind, ?string $workspaceId): ?array
     {
         $shape = $this->vocabulary->shape($kind, $workspaceId);
+        $candidates = [];
 
         foreach ($this->labelled($folded, $kind, $workspaceId) as $candidate) {
             foreach ($this->runsOf($candidate['value']) as $run) {
                 if ($shape->matches($run)) {
-                    return [...$candidate, 'value' => mb_strtoupper(mb_trim($run))];
+                    $candidates[] = [...$candidate, 'value' => mb_strtoupper(mb_trim($run))];
+
+                    continue 2;
                 }
             }
         }
 
-        return null;
+        if ($candidates === []) {
+            return null;
+        }
+
+        return $this->preferKnown($candidates, $kind, $workspaceId);
+    }
+
+    /**
+     * Between several candidate values for one kind, keep the one this
+     * workspace has already filed the most.
+     *
+     * The candidates arrive in the order their labels sat on the page, which
+     * is what a reader falls back to knowing nothing else — but position is an
+     * accident of layout, not a claim about which value is the archive's own.
+     * A value that recurs across the workspace's own documents is one; a
+     * one-off number that happens to share a label with it is the other
+     * candidate on the same page, and the archive has never filed it before.
+     *
+     * Ties, and a first document with no history to draw on, fall back to the
+     * first candidate — the position the reader has always preferred.
+     *
+     * @param list<array{value: string, start: int, length: int}> $candidates Every value on the page this kind's shape accepted, in page order.
+     * @param string $kind The kind these candidates are values of.
+     * @param string|null $workspaceId The workspace whose filed history to prefer.
+     *
+     * @return array{value: string, start: int, length: int} The candidate to use.
+     */
+    private function preferKnown(array $candidates, string $kind, ?string $workspaceId): array
+    {
+        $known = $this->vocabulary->knownValues($kind, $workspaceId);
+
+        $best = $candidates[0];
+        $bestSupport = $known[$best['value']] ?? 0;
+
+        foreach ($candidates as $candidate) {
+            $support = $known[$candidate['value']] ?? 0;
+
+            if ($support > $bestSupport) {
+                $best = $candidate;
+                $bestSupport = $support;
+            }
+        }
+
+        return $best;
     }
 
     /**
