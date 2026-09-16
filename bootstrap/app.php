@@ -15,6 +15,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -61,5 +62,22 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return new JsonResponse(['message' => __('api.not_found')], 404);
+        });
+
+        /*
+         * A CSRF token is only as fresh as the session it lives in, so a
+         * login (or any other) form left open past the session lifetime
+         * submits a stale one. The 419 Laravel answers with isn't a valid
+         * Inertia response — nothing else handles it, so Inertia's client
+         * would show its own error modal instead of the form. Redirect back
+         * with the reason flashed through the same `status` prop the login
+         * page already renders.
+         */
+        $exceptions->respond(function (Response $response, Throwable $exception, Request $request) {
+            if (!$request->is('api/*') && $response->getStatusCode() === 419) {
+                return back()->with('status', __('auth.session_expired'));
+            }
+
+            return $response;
         });
     })->create();

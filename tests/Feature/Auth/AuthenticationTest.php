@@ -78,6 +78,29 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_invalid_csrf_token_on_login_redirects_back_with_a_status_message()
+    {
+        $user = User::factory()->create();
+
+        $this->get(route('login'));
+
+        $this->app['env'] = 'local';
+
+        try {
+            $response = $this->post(route('login.store'), [
+                '_token' => 'invalid-token',
+                'email' => $user->email,
+                'password' => 'password',
+            ]);
+        } finally {
+            $this->app['env'] = 'testing';
+        }
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('status', __('auth.session_expired'));
+        $this->assertGuest();
+    }
+
     public function test_users_are_rate_limited()
     {
         $user = User::factory()->create();
