@@ -11,6 +11,20 @@ release. Read this file before upgrading.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-09-16
+
+### Fixed
+
+- **A document carrying two values of the same kind could have its metadata
+  suggestion filled with the wrong one** — an invoice's own tax number and the
+  customer's, both introduced by the same generic label, with nothing on the
+  page saying which is which (ARC-130). The suggestion took whichever sat
+  first in the text, usually the issuer's, printed ahead of the customer's own
+  details further down. It now prefers whichever value the workspace has
+  already filed under that field before, which is the value most likely to be
+  the archive's own; a document with only one candidate, or a workspace's
+  first document, is read exactly as before.
+
 ## [0.6.0] - 2026-09-15
 
 About the archive holding up once a mistake is made and once it grows past a
@@ -651,7 +665,8 @@ The first tagged release. Everything below shipped in it.
 - A brand-new user invited on a single-workspace installation is added with the
   role the admin chose, rather than failing with "already a member".
 
-[Unreleased]: https://github.com/jneto14/archivum/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/jneto14/archivum/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/jneto14/archivum/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/jneto14/archivum/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/jneto14/archivum/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/jneto14/archivum/compare/v0.3.2...v0.4.0
