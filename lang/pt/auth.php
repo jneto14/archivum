@@ -18,5 +18,6 @@ return [
     'failed' => 'Estas credenciais não coincidem com os nossos registos.',
     'password' => 'A password indicada está incorreta.',
     'throttle' => 'Demasiadas tentativas de login. Tenta novamente dentro de :seconds segundos.',
+    'session_expired' => 'A tua sessão expirou. Tenta novamente.',
 
 ];
