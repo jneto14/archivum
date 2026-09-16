@@ -14,6 +14,23 @@ class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_guests_are_returned_to_the_intended_page_with_the_path_prefix_after_login()
+    {
+        config(['app.url' => 'http://localhost/archivum']);
+
+        $user = User::factory()->create();
+
+        $this->get('http://localhost/dashboard')
+            ->assertRedirect('http://localhost/archivum/login');
+
+        $this->post('http://localhost/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ])->assertRedirect('http://localhost/archivum/dashboard');
+
+        $this->assertAuthenticated();
+    }
+
     public function test_login_screen_can_be_rendered()
     {
         $response = $this->get(route('login'));
