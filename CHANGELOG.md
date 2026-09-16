@@ -11,6 +11,17 @@ release. Read this file before upgrading.
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-09-16
+
+### Fixed
+
+- **A login page (or any other Inertia form) left open past the session
+  lifetime submitted a stale CSRF token** — Laravel's 419 response isn't a
+  valid Inertia response, so nothing in the app handled it and Inertia's
+  client fell back to its own error modal instead of the form (ARC-131). It
+  now redirects back to the form with the reason flashed through the same
+  `status` message the login page already renders.
+
 ## [0.6.1] - 2026-09-16
 
 ### Fixed
@@ -665,7 +676,8 @@ The first tagged release. Everything below shipped in it.
 - A brand-new user invited on a single-workspace installation is added with the
   role the admin chose, rather than failing with "already a member".
 
-[Unreleased]: https://github.com/jneto14/archivum/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/jneto14/archivum/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/jneto14/archivum/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/jneto14/archivum/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/jneto14/archivum/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/jneto14/archivum/compare/v0.4.0...v0.5.0
