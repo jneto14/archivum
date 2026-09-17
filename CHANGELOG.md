@@ -11,6 +11,17 @@ release. Read this file before upgrading.
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-09-17
+
+### Fixed
+
+- **A signed-out visitor landing on a protected page, behind a proxy that
+  serves this installation under a path prefix, was sent back outside the
+  installation after logging in** — the redirect to the login form already
+  honored the prefix, but the page to return to afterward was remembered
+  from the raw request rather than through the same prefix-aware URL
+  generator, so it lost the prefix along the way (ARC-131).
+
 ## [0.6.2] - 2026-09-16
 
 ### Fixed
@@ -676,7 +687,8 @@ The first tagged release. Everything below shipped in it.
 - A brand-new user invited on a single-workspace installation is added with the
   role the admin chose, rather than failing with "already a member".
 
-[Unreleased]: https://github.com/jneto14/archivum/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/jneto14/archivum/compare/v0.6.3...HEAD
+[0.6.3]: https://github.com/jneto14/archivum/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/jneto14/archivum/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/jneto14/archivum/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/jneto14/archivum/compare/v0.5.0...v0.6.0
