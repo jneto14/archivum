@@ -8,6 +8,7 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\PreventSearchIndexing;
 use App\Http\Middleware\ResolveLocale;
 use App\Http\Middleware\ResolveWorkspace;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -76,6 +77,26 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->respond(function (Response $response, Throwable $exception, Request $request) {
             if (!$request->is('api/*') && $response->getStatusCode() === 419) {
                 return back()->with('status', __('auth.session_expired'));
+            }
+
+            /*
+             * A guest turned away from a protected page is sent to log in,
+             * and Laravel remembers the page they wanted as
+             * `$request->fullUrl()` so it can send them back after. Behind
+             * the proxy that strips this installation's path prefix (see
+             * ForceApplicationUrl), that's the prefix-less URL the proxy
+             * forwarded rather than the one the browser asked for — built
+             * straight from the request, not through the URL generator, so
+             * ForceApplicationUrl's forced root never touches it. Left
+             * alone, login sends the browser outside the installation
+             * instead of back to the page it came from. Rebuild the same
+             * path through the forced root instead, once Laravel has
+             * decided this is the value worth keeping.
+             */
+            if ($exception instanceof AuthenticationException
+                && $request->hasSession()
+                && $request->session()->get('url.intended') === $request->fullUrl()) {
+                $request->session()->put('url.intended', url($request->getRequestUri()));
             }
 
             return $response;
