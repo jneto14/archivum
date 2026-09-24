@@ -67,6 +67,12 @@ beforeEach(() => {
     vi.clearAllMocks();
     documentScan.loadScanner.mockResolvedValue(scanner);
     scanner.detectCorners.mockReturnValue(detectedCorners);
+    // Vitest's jsdom-compat URL.createObjectURL reaches into jsdom's Blob
+    // wrapper through a hidden Symbol(impl); jsdom 30.1 stopped exposing it
+    // that way, so the real implementation throws for any File. Nothing here
+    // reads the resulting string, only that the <img> gets some src.
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
 });
 
 it('uploads the straightened scan, not the original photo, when confirmed', async () => {
