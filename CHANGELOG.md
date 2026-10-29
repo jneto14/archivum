@@ -11,6 +11,16 @@ release. Read this file before upgrading.
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-10-29
+
+### Changed
+
+- Every outstanding PHP and JS dependency updated to the latest version its
+  existing constraint allows, including Laravel 13.39, Inertia 3.9 and the
+  Radix UI primitives. Laravel Boost regenerated its bundled
+  `.claude/skills/**` guidelines and `CLAUDE.md`. `@babel/core` stays on
+  7.x — its major is still held back on purpose (ARC-104).
+
 ## [0.6.4] - 2026-09-24
 
 ### Changed
@@ -697,7 +707,8 @@ The first tagged release. Everything below shipped in it.
 - A brand-new user invited on a single-workspace installation is added with the
   role the admin chose, rather than failing with "already a member".
 
-[Unreleased]: https://github.com/jneto14/archivum/compare/v0.6.4...HEAD
+[Unreleased]: https://github.com/jneto14/archivum/compare/v0.6.5...HEAD
+[0.6.5]: https://github.com/jneto14/archivum/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/jneto14/archivum/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/jneto14/archivum/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/jneto14/archivum/compare/v0.6.1...v0.6.2
