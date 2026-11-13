@@ -18,6 +18,11 @@ use Illuminate\Support\Facades\DB;
  * anything in it does not get opened. That makes this a query on every request,
  * so it is deliberately one round trip for both halves rather than two, and
  * `QueryBudgetTest` holds the whole application's per-page count to account.
+ *
+ * Being raw SQL, it gets none of Eloquent's soft-delete scoping, so every
+ * subquery excludes trashed documents and attachments itself. Without that a
+ * document deleted while waiting kept the badge up over a queue that no longer
+ * listed it (ARC-136).
  */
 class CountIntakeReview
 {
@@ -34,17 +39,20 @@ class CountIntakeReview
                 select
                     (
                         select count(*) from documents
-                        where workspace_id = ? and json_length(metadata_suggestions) > 0
+                        where workspace_id = ? and deleted_at is null and json_length(metadata_suggestions) > 0
                     ) as suggestions,
                     (
                         select count(*) from document_attachments
                         inner join documents on documents.id = document_attachments.document_id
-                        where documents.workspace_id = ? and document_attachments.duplicate_of_attachment_id is not null
+                        where documents.workspace_id = ?
+                          and documents.deleted_at is null and document_attachments.deleted_at is null
+                          and document_attachments.duplicate_of_attachment_id is not null
                     ) as duplicates,
                     (
                         select count(*) from document_attachments
                         inner join documents on documents.id = document_attachments.document_id
                         where documents.workspace_id = ?
+                          and documents.deleted_at is null and document_attachments.deleted_at is null
                           and document_attachments.ocr_reviewed_at is null
                           and (
                               document_attachments.ocr_status = ?
