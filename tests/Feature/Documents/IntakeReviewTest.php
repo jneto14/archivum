@@ -114,6 +114,41 @@ class IntakeReviewTest extends TestCase
         );
     }
 
+    public function test_a_deleted_document_stops_counting_towards_the_badge()
+    {
+        $workspace = $this->workspace();
+        $original = $this->reviewable($workspace, 'Manutencao agosto');
+        $copy = $this->reviewable($workspace, 'Scan sem titulo');
+
+        $duplicate = $this->attachment($copy, 'copy.pdf');
+        $duplicate->recordTextFingerprint(1234, $this->attachment($original, 'original.pdf'));
+        $this->attachment($copy, 'handwritten.png')->markOcrPoorlyRead();
+
+        $original->delete();
+        $copy->delete();
+
+        $this->actingAs($this->member($workspace))
+            ->get(route('documents.review', $workspace))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('documents', [])
+                ->where('intakeReviewCount', 0),
+            );
+    }
+
+    public function test_a_deleted_attachment_stops_counting_towards_the_badge()
+    {
+        $workspace = $this->workspace();
+        $document = $this->reviewable($workspace, 'Fatura da oficina');
+        $document->forceFill(['metadata_suggestions' => []])->save();
+
+        $scan = $this->attachment($document, 'handwritten.png');
+        $scan->markOcrPoorlyRead();
+        $scan->delete();
+
+        $this->assertSame(0, app(CountIntakeReview::class)->handle($workspace));
+    }
+
     public function test_reading_a_document_stores_nothing_for_a_field_already_filled()
     {
         $workspace = $this->workspace();
