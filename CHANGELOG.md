@@ -11,6 +11,22 @@ release. Read this file before upgrading.
 
 ## [Unreleased]
 
+## [0.6.6] - 2026-11-13
+
+### Changed
+
+- Every outstanding PHP and JS dependency updated to the latest version its
+  existing constraint allows, including Laravel 13.42, Inertia 3.11 and
+  Vite 8.3.8. `@babel/core` stays on 7.x — its major is still held back on
+  purpose (ARC-104).
+
+### Fixed
+
+- **The sidebar's review badge kept counting documents that had been deleted
+  while waiting for review** — the count ignored the trash, so it stayed up
+  over a queue that no longer listed anything. Trashed documents and
+  attachments are no longer counted (ARC-136).
+
 ## [0.6.5] - 2026-10-29
 
 ### Changed
@@ -707,7 +723,8 @@ The first tagged release. Everything below shipped in it.
 - A brand-new user invited on a single-workspace installation is added with the
   role the admin chose, rather than failing with "already a member".
 
-[Unreleased]: https://github.com/jneto14/archivum/compare/v0.6.5...HEAD
+[Unreleased]: https://github.com/jneto14/archivum/compare/v0.6.6...HEAD
+[0.6.6]: https://github.com/jneto14/archivum/compare/v0.6.5...v0.6.6
 [0.6.5]: https://github.com/jneto14/archivum/compare/v0.6.4...v0.6.5
 [0.6.4]: https://github.com/jneto14/archivum/compare/v0.6.3...v0.6.4
 [0.6.3]: https://github.com/jneto14/archivum/compare/v0.6.2...v0.6.3
